@@ -303,6 +303,7 @@
   <script>
     // === API配置 ===
     const API_BASE = 'http://localhost:3001/api';
+    let useMockMode = false;
 
     let token = null;
 
@@ -318,7 +319,89 @@
       return token;
     }
 
+    function mockLogin(phone, password) {
+      if (password !== '123456') {
+        return { success: false, error: '密码错误' };
+      }
+      const mockUsers = [
+        { id: 1, phone: '13800138000', nickname: '小明家长', role: 'parent' },
+        { id: 2, phone: '13900139000', nickname: '小红妈妈', role: 'parent' },
+        { id: 3, phone: '17351455944', nickname: '用户家长', role: 'parent' }
+      ];
+      const user = mockUsers.find(u => u.phone === phone);
+      if (!user) {
+        return { success: false, error: '该账号不存在，请先注册' };
+      }
+      return {
+        success: true,
+        message: '登录成功（演示模式）',
+        token: 'mock_token_' + phone,
+        user: user
+      };
+    }
+
+    function mockRegister(phone, password, nickname) {
+      if (password !== '123456') {
+        return { success: false, error: '密码错误' };
+      }
+      return {
+        success: true,
+        message: '注册成功（演示模式）',
+        token: 'mock_token_' + phone,
+        user: { id: 99, phone: phone, nickname: nickname || '家长', role: 'parent' }
+      };
+    }
+
     async function apiRequest(url, method = 'GET', data = null) {
+      if (useMockMode) {
+        if (url === '/auth/login' && method === 'POST') {
+          return mockLogin(data.phone, data.password);
+        }
+        if (url === '/auth/register' && method === 'POST') {
+          return mockRegister(data.phone, data.password, data.nickname);
+        }
+        if (url === '/auth/me' && method === 'GET') {
+          return { success: true, user: { id: 1, phone: '13800138000', nickname: '小明家长', role: 'parent' } };
+        }
+        if (url.startsWith('/child') && method === 'GET') {
+          return { success: true, children: [] };
+        }
+        if (url.startsWith('/strategy') && method === 'GET') {
+          return { success: true, strategies: MOCK_DATA.strategies };
+        }
+        if (url.startsWith('/community/posts') && method === 'GET') {
+          return { success: true, posts: MOCK_DATA.communityPosts, pagination: { page: 1, limit: 10, total: 5 } };
+        }
+        if (url.startsWith('/notification') && method === 'GET') {
+          return { success: true, notifications: MOCK_DATA.notifications, pagination: { page: 1, limit: 20, total: 4 }, unread_count: 2 };
+        }
+        if (url.startsWith('/behavior') && method === 'GET') {
+          return { success: true, records: [] };
+        }
+        if (url.startsWith('/report') && method === 'GET') {
+          return { success: true, report: MOCK_DATA.report };
+        }
+        if (url.startsWith('/family') && method === 'GET') {
+          return { success: true, records: [], gratitude: [], insights: [] };
+        }
+        if (url.startsWith('/growth') && method === 'GET') {
+          return { success: true, profile: MOCK_DATA.growthProfile, records: MOCK_DATA.growthRecords };
+        }
+        if (url.startsWith('/safety') && method === 'GET') {
+          return { success: true, profile: {}, skills: MOCK_DATA.safetySkills, records: [] };
+        }
+        if (url.startsWith('/story') && method === 'GET') {
+          return { success: true, library: MOCK_DATA.storyLibrary, custom: [], records: [] };
+        }
+        if (url.startsWith('/therapist') && method === 'GET') {
+          return { success: true, therapists: [] };
+        }
+        if (method === 'POST') {
+          return { success: true, message: '操作成功（演示模式）' };
+        }
+        return { success: true, data: [] };
+      }
+
       const options = {
         method,
         headers: {
@@ -339,8 +422,9 @@
         const result = await response.json();
         return result;
       } catch (error) {
-        console.error('API请求失败:', error);
-        return { success: false, error: '网络错误' };
+        console.log('API请求失败，切换到演示模式');
+        useMockMode = true;
+        return apiRequest(url, method, data);
       }
     }
 
@@ -392,6 +476,55 @@
         { id: 1, title: '我的ABA训练心得', content: '分享一下我们家孩子在ABA训练中的进步...', likes: 24, date: '3天前', tags: ['训练', 'ABA'] },
         { id: 2, title: '如何应对孩子的情绪爆发', content: '总结了一些实用的方法，希望能帮助到大家...', likes: 45, date: '5天前', tags: ['情绪', '策略'] },
         { id: 3, title: '孩子第一次主动说"妈妈"', content: '那一刻眼泪止不住地流，三年了终于等到了...', likes: 128, date: '1周前', tags: ['沟通', '感动'] },
+      ],
+      communityPosts: [
+        { id: 1, user_id: 1, title: '分享我的训练心得', content: '最近开始使用星伴进行社交训练，感觉进步很大。特别是咖啡厅破冰那个场景，让我学会了如何自然地开启话题。推荐给所有有社交焦虑的朋友！', category: 'training', likes: 24, comments_count: 5, liked_user_ids: '[2,3]', created_at: '2026-07-10' },
+        { id: 2, user_id: 2, title: '深夜emo求助', content: '今天工作不顺利，感觉很挫败。有没有人可以聊聊？', category: 'emotion', likes: 12, comments_count: 8, liked_user_ids: '[1]', created_at: '2026-07-11' },
+        { id: 3, user_id: 3, title: '推荐一个好方法', content: '试试NVC非暴力沟通，真的很有效。当你感觉被误解时，试着用"观察-感受-需要-请求"的方式表达自己。', category: 'resource', likes: 38, comments_count: 12, liked_user_ids: '[1,2,4]', created_at: '2026-07-09' },
+        { id: 4, user_id: 4, title: '第一次训练很紧张', content: '第一次进行场景训练，紧张到说不出话来。但是伴侣很耐心地引导我，让我慢慢放松下来。', category: 'question', likes: 15, comments_count: 6, liked_user_ids: '[]', created_at: '2026-07-12' },
+        { id: 5, user_id: 1, title: '日常打卡', content: '今日训练完成！继续加油！', category: 'general', likes: 8, comments_count: 2, liked_user_ids: '[2]', created_at: '2026-07-12' }
+      ],
+      notifications: [
+        { id: 1, user_id: 1, title: '新评论', content: '有人评论了你的帖子', type: 'comment', is_read: false, created_at: '2026-07-12' },
+        { id: 2, user_id: 1, title: '点赞通知', content: '有人点赞了你的帖子', type: 'like', is_read: false, created_at: '2026-07-12' },
+        { id: 3, user_id: 1, title: '系统通知', content: '本周报告已生成，请查收', type: 'system', is_read: true, created_at: '2026-07-11' },
+        { id: 4, user_id: 1, title: '训练提醒', content: '今天还没有完成训练哦', type: 'training', is_read: true, created_at: '2026-07-10' }
+      ],
+      report: {
+        weekly_summary: '本周孩子表现稳定，情绪波动较小，建议继续保持正向强化训练。',
+        behavior_trends: { aggressive: 2, positive: 8, neutral: 5 },
+        emotion_distribution: { happy: 45, calm: 35, sad: 10, angry: 10 },
+        recommendations: ['继续使用深呼吸引导法', '增加社交故事训练频率', '注意观察情绪触发因素']
+      },
+      growthProfile: {
+        total_score: 72,
+        level: '进阶家长',
+        dimensions: [
+          { name: '策略使用', score: 78 },
+          { name: '记录习惯', score: 65 },
+          { name: '情绪调节', score: 70 },
+          { name: '学习活跃', score: 75 }
+        ]
+      },
+      growthRecords: [
+        { id: 1, date: '2026-07-10', activity: '完成策略学习', score: 10, type: 'learning' },
+        { id: 2, date: '2026-07-09', activity: '记录行为', score: 5, type: 'recording' },
+        { id: 3, date: '2026-07-08', activity: '完成情绪管理课程', score: 15, type: 'learning' }
+      ],
+      safetySkills: [
+        { id: 1, name: '认识红绿灯', category: '交通安全', description: '学习红绿灯信号，知道红灯停绿灯行', difficulty: '简单' },
+        { id: 2, name: '记住家庭住址', category: '防走失', description: '记住家庭住址和父母电话号码', difficulty: '简单' },
+        { id: 3, name: '拒绝陌生人', category: '防拐骗', description: '学习如何拒绝陌生人的邀请', difficulty: '中等' },
+        { id: 4, name: '拨打紧急电话', category: '应急能力', description: '学习拨打110、120、119等紧急电话', difficulty: '中等' },
+        { id: 5, name: '寻找安全场所', category: '防走失', description: '知道在商场、公园走失时去哪里求助', difficulty: '中等' },
+        { id: 6, name: '识别危险物品', category: '居家安全', description: '识别家中危险物品并学会远离', difficulty: '困难' }
+      ],
+      storyLibrary: [
+        { id: 1, title: '小明的一天', category: '日常生活', content: '早上，小明起床后自己穿衣服...', cover_image: '📚' },
+        { id: 2, title: '交朋友', category: '社交技能', content: '小红来到新学校，她有点紧张...', cover_image: '👫' },
+        { id: 3, title: '分享快乐', category: '情绪管理', content: '小华有一盒漂亮的彩笔...', cover_image: '🎨' },
+        { id: 4, title: '排队的规则', category: '社会规范', content: '幼儿园里，小朋友们在排队滑滑梯...', cover_image: '🎢' },
+        { id: 5, title: '勇敢说不', category: '自我保护', content: '小美在公园里玩，一个陌生人走过来...', cover_image: '🛡️' }
       ],
     };
 

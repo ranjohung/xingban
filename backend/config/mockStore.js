@@ -1,4 +1,10 @@
-let users = [];
+let users = [
+  { id: 1, phone: '13800138000', password: '$2a$10$9ldCs/fjlE8YpVHQqZu./OtrJN7eoF1spdr/ikhNxznhmikZCiJJK', nickname: '小明家长', role: 'parent', created_at: new Date('2026-07-01') },
+  { id: 2, phone: '13900139000', password: '$2a$10$9ldCs/fjlE8YpVHQqZu./OtrJN7eoF1spdr/ikhNxznhmikZCiJJK', nickname: '小红妈妈', role: 'parent', created_at: new Date('2026-07-02') },
+  { id: 3, phone: '13700137000', password: '$2a$10$9ldCs/fjlE8YpVHQqZu./OtrJN7eoF1spdr/ikhNxznhmikZCiJJK', nickname: '小华爸爸', role: 'parent', created_at: new Date('2026-07-03') },
+  { id: 4, phone: '13600136000', password: '$2a$10$9ldCs/fjlE8YpVHQqZu./OtrJN7eoF1spdr/ikhNxznhmikZCiJJK', nickname: '小张家长', role: 'parent', created_at: new Date('2026-07-04') },
+  { id: 5, phone: '17351455944', password: '$2a$10$9ldCs/fjlE8YpVHQqZu./OtrJN7eoF1spdr/ikhNxznhmikZCiJJK', nickname: '用户家长', role: 'parent', created_at: new Date('2026-07-13') }
+];
 let children = [];
 let behaviors = [];
 let strategies = [
