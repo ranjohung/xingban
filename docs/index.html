@@ -1,0 +1,1984 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>星伴 - 孤独症儿童成长陪伴平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        colors: {
+          primary: '#7A9D8C',
+          'primary-light': '#B5D8CC',
+          'primary-dark': '#5E8172',
+          secondary: '#D4C5B9',
+          accent: '#B5D8CC',
+          emergency: '#FF9F43',
+          danger: '#E74C3C',
+          success: '#27AE60',
+          warning: '#F39C12',
+          'card-bg': '#ffffff',
+          'nav-bg': '#ffffff',
+          'text-primary': '#1a1a2e',
+          'text-secondary': '#6b7280',
+          'text-muted': '#9ca3af',
+          border: '#e5e7eb',
+          background: '#f0f4f8',
+        },
+        fontFamily: {
+          sans: ['PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', 'sans-serif'],
+        },
+        animation: {
+          breathe: 'breathe 4s ease-in-out infinite',
+          fadeIn: 'fadeIn 0.3s ease-out',
+          spin: 'spin 1s linear infinite',
+          pulse: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        },
+        keyframes: {
+          breathe: {
+            '0%, 100%': { transform: 'scale(1)', opacity: '0.6' },
+            '50%': { transform: 'scale(1.15)', opacity: '1' },
+          },
+          fadeIn: {
+            'from': { opacity: '0', transform: 'translateY(10px)' },
+            'to': { opacity: '1', transform: 'translateY(0)' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background-color: #f0f4f8;
+      color: #1a1a2e;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+    .safe-area-bottom {
+      padding-bottom: env(safe-area-inset-bottom, 20px);
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .page-container {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background-color: #f0f4f8;
+      position: relative;
+    }
+    .nav-item.active {
+      color: #7A9D8C;
+    }
+    .nav-item.active svg {
+      stroke: #7A9D8C;
+      fill: #7A9D8C;
+    }
+    .card-shadow {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .emoji-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .progress-bar {
+      height: 6px;
+      border-radius: 3px;
+      background-color: #e5e7eb;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #7A9D8C, #B5D8CC);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
+    }
+    .modal-slide {
+      animation: slideIn 0.3s ease-out;
+    }
+    .tab-active {
+      border-bottom: 2px solid #7A9D8C;
+      color: #7A9D8C;
+      font-weight: 500;
+    }
+    .week-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .strategy-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container" id="app">
+    <!-- 登录页面 -->
+    <div id="login-page" class="min-h-screen flex flex-col items-center justify-center p-6">
+      <div class="w-full max-w-sm">
+        <div class="text-center mb-8">
+          <div class="w-20 h-20 bg-gradient-to-br from-primary to-primary-light rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <svg class="w-10 h-10 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <h1 class="text-2xl font-bold text-text-primary">星伴</h1>
+          <p class="text-text-secondary mt-2">孤独症儿童成长陪伴平台</p>
+        </div>
+        
+        <div class="bg-white rounded-2xl p-6 card-shadow">
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">手机号</label>
+              <input type="tel" id="login-phone" placeholder="请输入手机号" 
+                class="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary focus:outline-none focus:ring-2 focus:ring-primary">
+            </div>
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">密码</label>
+              <input type="password" id="login-password" placeholder="请输入密码" 
+                class="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary focus:outline-none focus:ring-2 focus:ring-primary">
+            </div>
+            <p class="text-xs text-text-muted text-center">默认密码: 123456</p>
+            <button onclick="handleLogin()" 
+              class="w-full py-3 rounded-xl bg-primary text-white font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2">
+              <span id="login-btn-text">登 录</span>
+              <svg id="login-spinner" class="w-4 h-4 hidden animate-spin" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <div class="text-center mt-4">
+          <button onclick="showRegister()" class="text-primary text-sm">注册新账号</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 注册弹窗 -->
+    <div id="register-modal" class="fixed inset-0 bg-black/50 hidden flex items-end justify-center z-50">
+      <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-bold">注册账号</h2>
+          <button onclick="hideRegister()" class="text-text-muted">✕</button>
+        </div>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm text-text-secondary">手机号</label>
+            <input type="tel" id="reg-phone" placeholder="请输入手机号" class="w-full px-4 py-2.5 rounded-xl border border-border">
+          </div>
+          <div>
+            <label class="block text-sm text-text-secondary">昵称</label>
+            <input type="text" id="reg-name" placeholder="请输入昵称" class="w-full px-4 py-2.5 rounded-xl border border-border">
+          </div>
+          <div>
+            <label class="block text-sm text-text-secondary">密码</label>
+            <input type="password" id="reg-password" placeholder="请输入密码" class="w-full px-4 py-2.5 rounded-xl border border-border">
+          </div>
+          <button onclick="handleRegister()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">注 册</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主应用 -->
+    <div id="main-app" class="hidden flex flex-col min-h-screen">
+      <!-- 头部 -->
+      <header class="bg-white border-b border-border px-4 py-3 flex items-center justify-between sticky top-0 z-40">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 bg-gradient-to-br from-primary to-primary-light rounded-xl flex items-center justify-center">
+            <span class="text-white font-bold text-sm">星</span>
+          </div>
+          <div>
+            <h1 class="font-bold text-text-primary" id="page-title">首页</h1>
+            <p class="text-xs text-text-muted" id="page-subtitle">陪伴孩子每一天</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="navigateTo('profile')" class="relative">
+            <div class="w-9 h-9 bg-secondary rounded-full flex items-center justify-center">
+              <svg class="w-5 h-5 text-text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
+          </button>
+        </div>
+      </header>
+
+      <!-- 主内容区 -->
+      <main class="flex-1 overflow-y-auto pb-20 scrollbar-hide" id="main-content">
+        <!-- 页面内容动态插入 -->
+      </main>
+
+      <!-- 底部导航 -->
+      <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-border z-50 safe-area-bottom">
+        <div class="max-w-md mx-auto flex items-center justify-around h-16">
+          <button onclick="navigateTo('home')" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted" id="nav-home">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            <span class="text-xs">首页</span>
+          </button>
+          <button onclick="navigateTo('records')" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted" id="nav-records">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+            <span class="text-xs">记录</span>
+          </button>
+          <button onclick="navigateTo('emergency')" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted relative" id="nav-emergency">
+            <div class="w-10 h-10 rounded-full bg-emergency flex items-center justify-center -mt-5 shadow-lg">
+              <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <span class="text-xs">紧急</span>
+          </button>
+          <button onclick="navigateTo('strategies')" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted" id="nav-strategies">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            <span class="text-xs">策略</span>
+          </button>
+          <button onclick="navigateTo('profile')" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted" id="nav-profile">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span class="text-xs">我的</span>
+          </button>
+        </div>
+      </nav>
+    </div>
+
+    <!-- 全局加载遮罩 -->
+    <div id="loading-overlay" class="fixed inset-0 bg-white/90 flex items-center justify-center z-50 hidden">
+      <div class="flex flex-col items-center gap-3">
+        <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-sm text-text-secondary">加载中...</p>
+      </div>
+    </div>
+
+    <!-- 全局消息提示 -->
+    <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 bg-text-primary text-white px-4 py-2 rounded-lg shadow-lg z-50 hidden transition-opacity">
+      <span id="toast-message"></span>
+    </div>
+  </div>
+
+  <script>
+    // === 数据管理 ===
+    const MOCK_DATA = {
+      strategies: [
+        { id: 1, name: '深呼吸引导法', category: '情绪安抚', description: '通过深呼吸帮助孩子平静下来', difficulty: '简单', effectivenessRate: 85, usageCount: 128 },
+        { id: 2, name: '感官安抚法', category: '情绪安抚', description: '使用触觉、视觉等感官刺激帮助孩子放松', difficulty: '中等', effectivenessRate: 78, usageCount: 96 },
+        { id: 3, name: '视觉提示卡', category: '沟通辅助', description: '通过图片卡片帮助孩子理解指令', difficulty: '简单', effectivenessRate: 92, usageCount: 215 },
+        { id: 4, name: '正向强化法', category: '行为引导', description: '通过奖励机制强化正向行为', difficulty: '中等', effectivenessRate: 88, usageCount: 175 },
+        { id: 5, name: '代币系统', category: '行为引导', description: '用代币兑换奖励，培养良好习惯', difficulty: '中等', effectivenessRate: 82, usageCount: 142 },
+        { id: 6, name: '步骤分解法', category: '生活自理', description: '将复杂任务分解为简单步骤', difficulty: '简单', effectivenessRate: 89, usageCount: 156 },
+        { id: 7, name: '社交故事法', category: '社交训练', description: '通过故事帮助孩子学习社交技巧', difficulty: '困难', effectivenessRate: 75, usageCount: 68 },
+        { id: 8, name: '安全角法', category: '安全防护', description: '设置安全区域帮助孩子自我调节', difficulty: '简单', effectivenessRate: 80, usageCount: 89 },
+        { id: 9, name: '简单指令法', category: '沟通辅助', description: '使用简短清晰的指令', difficulty: '简单', effectivenessRate: 91, usageCount: 234 },
+        { id: 10, name: '选择提问法', category: '沟通辅助', description: '给孩子提供有限的选择', difficulty: '中等', effectivenessRate: 86, usageCount: 134 },
+      ],
+      behaviors: [
+        { id: 1, childName: '小明', type: '行为', category: '哭闹', emotion: '消极', description: '早晨起床时不愿穿衣服，哭闹约15分钟', time: '今天 07:30', intensity: 7 },
+        { id: 2, childName: '小明', type: '情绪', category: '平静', emotion: '平静', description: '下午玩拼图时状态很好，专注了20分钟', time: '今天 14:20', intensity: 2 },
+        { id: 3, childName: '小明', type: '沟通', category: '用手指', emotion: '积极', description: '主动用手指向想要的玩具', time: '今天 10:15', intensity: 1 },
+        { id: 4, childName: '小红', type: '行为', category: '拍手', emotion: '积极', description: '看到喜欢的动画时开心拍手', time: '昨天 16:45', intensity: 3 },
+        { id: 5, childName: '小红', type: '行为', category: '跑开', emotion: '消极', description: '在商场突然跑开，家长追赶', time: '昨天 19:30', intensity: 8 },
+      ],
+      children: [
+        { id: 1, name: '小明', gender: '男', age: 6, diagnosis: '孤独症', avatar: '👦' },
+        { id: 2, name: '小红', gender: '女', age: 4, diagnosis: '孤独症', avatar: '👧' },
+      ],
+      reports: [
+        { id: 1, week: '第30周', childName: '小明', records: 12, emotion: 'positive', aiComment: '本周小明在社交互动方面有明显进步，建议继续保持正向强化训练。' },
+        { id: 2, week: '第29周', childName: '小明', records: 9, emotion: 'neutral', aiComment: '本周情绪波动较大，注意观察触发因素。' },
+      ],
+      familyMoods: [
+        { id: 1, date: '今天', mood: '开心', note: '孩子今天主动打招呼了！', emoji: '😊' },
+        { id: 2, date: '昨天', mood: '平静', note: '平稳的一天', emoji: '😌' },
+        { id: 3, date: '前天', mood: '疲惫', note: '昨晚没睡好', emoji: '😴' },
+      ],
+      gratitudeCards: [
+        { id: 1, partner: '孩子爸爸', content: '谢谢你一直支持我和孩子', sent: true, date: '2024-01-15' },
+        { id: 2, partner: '老师', content: '感谢您的耐心教导', sent: false, date: '2024-01-14' },
+      ],
+      growth: { level: 'L2', index: 65, dimensions: [
+        { name: '策略使用', value: 72 },
+        { name: '记录习惯', value: 68 },
+        { name: '情绪调节', value: 58 },
+        { name: '学习活跃', value: 75 },
+      ]},
+      stories: [
+        { id: 1, title: '我的ABA训练心得', content: '分享一下我们家孩子在ABA训练中的进步...', likes: 24, date: '3天前', tags: ['训练', 'ABA'] },
+        { id: 2, title: '如何应对孩子的情绪爆发', content: '总结了一些实用的方法，希望能帮助到大家...', likes: 45, date: '5天前', tags: ['情绪', '策略'] },
+        { id: 3, title: '孩子第一次主动说"妈妈"', content: '那一刻眼泪止不住地流，三年了终于等到了...', likes: 128, date: '1周前', tags: ['沟通', '感动'] },
+      ],
+    };
+
+    let currentUser = null;
+    let currentPage = 'login';
+    let selectedChild = null;
+
+    // === 工具函数 ===
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      const msg = document.getElementById('toast-message');
+      msg.textContent = message;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+
+    function showLoading() {
+      document.getElementById('loading-overlay').classList.remove('hidden');
+    }
+
+    function hideLoading() {
+      document.getElementById('loading-overlay').classList.add('hidden');
+    }
+
+    function saveUser(user) {
+      localStorage.setItem('xingban_user', JSON.stringify(user));
+      currentUser = user;
+    }
+
+    function getUser() {
+      const saved = localStorage.getItem('xingban_user');
+      return saved ? JSON.parse(saved) : null;
+    }
+
+    // === 登录/注册 ===
+    function handleLogin() {
+      const phone = document.getElementById('login-phone').value;
+      const password = document.getElementById('login-password').value;
+      
+      if (!phone) {
+        showToast('请输入手机号');
+        return;
+      }
+      if (password !== '123456') {
+        showToast('密码错误，默认密码是123456');
+        return;
+      }
+
+      document.getElementById('login-btn-text').textContent = '登录中...';
+      document.getElementById('login-spinner').classList.remove('hidden');
+
+      setTimeout(() => {
+        saveUser({ phone, name: phone });
+        document.getElementById('login-page').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
+        navigateTo('home');
+        showToast('登录成功！');
+      }, 800);
+    }
+
+    function showRegister() {
+      document.getElementById('register-modal').classList.remove('hidden');
+    }
+
+    function hideRegister() {
+      document.getElementById('register-modal').classList.add('hidden');
+    }
+
+    function handleRegister() {
+      const phone = document.getElementById('reg-phone').value;
+      const name = document.getElementById('reg-name').value;
+      const password = document.getElementById('reg-password').value;
+
+      if (!phone || !name || !password) {
+        showToast('请填写完整信息');
+        return;
+      }
+
+      saveUser({ phone, name });
+      hideRegister();
+      document.getElementById('login-page').classList.add('hidden');
+      document.getElementById('main-app').classList.remove('hidden');
+      navigateTo('home');
+      showToast('注册成功！');
+    }
+
+    // === 页面导航 ===
+    function navigateTo(page) {
+      currentPage = page;
+      
+      // 更新导航状态
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      const navId = `nav-${page === 'home' || page === 'emergency' || page === 'strategies' || page === 'records' || page === 'profile' ? page : 'home'}`;
+      const navEl = document.getElementById(navId);
+      if (navEl) navEl.classList.add('active');
+
+      // 渲染页面
+      const content = document.getElementById('main-content');
+      content.innerHTML = '';
+
+      switch(page) {
+        case 'home': renderHome(content); break;
+        case 'records': renderRecords(content); break;
+        case 'emergency': renderEmergency(content); break;
+        case 'strategies': renderStrategies(content); break;
+        case 'profile': renderProfile(content); break;
+        case 'children': renderChildren(content); break;
+        case 'reports': renderReports(content); break;
+        case 'family': renderFamily(content); break;
+        case 'growth': renderGrowth(content); break;
+        case 'safety': renderSafety(content); break;
+        case 'stories': renderStories(content); break;
+        case 'ai': renderAI(content); break;
+        default: renderHome(content);
+      }
+    }
+
+    // === 页面渲染函数 ===
+
+    function renderHome(container) {
+      document.getElementById('page-title').textContent = '首页';
+      document.getElementById('page-subtitle').textContent = '陪伴孩子每一天';
+
+      const todayRecords = MOCK_DATA.behaviors.filter(b => b.time.includes('今天')).length;
+      const streak = 7;
+
+      container.innerHTML = `
+        <div class="p-4 space-y-6 animate-fade-in">
+          <!-- 欢迎卡片 -->
+          <div class="bg-gradient-to-br from-primary to-primary-dark rounded-2xl p-5 text-white card-shadow">
+            <h2 class="text-lg font-bold mb-1">早安，${currentUser?.name || '家长'}</h2>
+            <p class="text-white/80 text-sm">今天也要加油哦！</p>
+            <div class="flex gap-4 mt-4">
+              <div>
+                <div class="text-2xl font-bold">${todayRecords}</div>
+                <div class="text-xs text-white/70">今日记录</div>
+              </div>
+              <div>
+                <div class="text-2xl font-bold">${streak}</div>
+                <div class="text-xs text-white/70">连续记录</div>
+              </div>
+              <div>
+                <div class="text-2xl font-bold">${MOCK_DATA.strategies.length}</div>
+                <div class="text-xs text-white/70">可用策略</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 快速入口 -->
+          <div class="grid grid-cols-4 gap-3">
+            <button onclick="navigateTo('records')" class="flex flex-col items-center gap-2 p-3 bg-white rounded-xl card-shadow hover:shadow-md transition-shadow">
+              <div class="w-10 h-10 bg-primary-light/50 rounded-full flex items-center justify-center">
+                <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+              </div>
+              <span class="text-xs text-text-secondary">记录</span>
+            </button>
+            <button onclick="navigateTo('strategies')" class="flex flex-col items-center gap-2 p-3 bg-white rounded-xl card-shadow hover:shadow-md transition-shadow">
+              <div class="w-10 h-10 bg-primary-light/50 rounded-full flex items-center justify-center">
+                <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                </svg>
+              </div>
+              <span class="text-xs text-text-secondary">策略</span>
+            </button>
+            <button onclick="navigateTo('reports')" class="flex flex-col items-center gap-2 p-3 bg-white rounded-xl card-shadow hover:shadow-md transition-shadow">
+              <div class="w-10 h-10 bg-primary-light/50 rounded-full flex items-center justify-center">
+                <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+              </div>
+              <span class="text-xs text-text-secondary">周报</span>
+            </button>
+            <button onclick="navigateTo('children')" class="flex flex-col items-center gap-2 p-3 bg-white rounded-xl card-shadow hover:shadow-md transition-shadow">
+              <div class="w-10 h-10 bg-primary-light/50 rounded-full flex items-center justify-center">
+                <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="8" r="5"/>
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                </svg>
+              </div>
+              <span class="text-xs text-text-secondary">档案</span>
+            </button>
+          </div>
+
+          <!-- 最近记录 -->
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-bold text-text-primary">最近记录</h3>
+              <button onclick="navigateTo('records')" class="text-xs text-primary">查看全部</button>
+            </div>
+            <div class="space-y-3">
+              ${MOCK_DATA.behaviors.slice(0, 4).map(b => `
+                <div class="bg-white p-4 rounded-xl card-shadow flex items-start gap-3">
+                  <div class="emoji-avatar bg-primary-light/30">${getAvatar(b.childName)}</div>
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="text-sm font-medium text-text-primary">${b.childName}</span>
+                      <span class="text-xs px-2 py-0.5 bg-primary-light/50 text-primary rounded-full">${b.type}</span>
+                      <span class="text-xs px-2 py-0.5 bg-secondary/50 text-text-secondary rounded-full">${b.category}</span>
+                    </div>
+                    <p class="text-sm text-text-secondary line-clamp-1">${b.description}</p>
+                    <div class="flex items-center gap-2 mt-1">
+                      <span class="text-xs text-text-muted">${b.time}</span>
+                      <span class="text-xs text-emergency">强度: ${b.intensity}</span>
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- 推荐策略 -->
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-bold text-text-primary">推荐策略</h3>
+              <button onclick="navigateTo('strategies')" class="text-xs text-primary">更多</button>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              ${MOCK_DATA.strategies.slice(0, 4).map(s => `
+                <div onclick="showStrategyDetail(${s.id})" class="bg-white p-4 rounded-xl card-shadow strategy-card cursor-pointer">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="font-medium text-text-primary text-sm">${s.name}</span>
+                    <span class="text-xs px-2 py-0.5 ${getDifficultyColor(s.difficulty)} rounded-full">${s.difficulty}</span>
+                  </div>
+                  <p class="text-xs text-text-secondary line-clamp-2 mb-2">${s.description}</p>
+                  <div class="flex items-center justify-between text-xs text-text-muted">
+                    <span>有效率 ${s.effectivenessRate}%</span>
+                    <span>使用 ${s.usageCount}次</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function getAvatar(name) {
+      const child = MOCK_DATA.children.find(c => c.name === name);
+      return child?.avatar || '👤';
+    }
+
+    function getDifficultyColor(diff) {
+      switch(diff) {
+        case '简单': return 'bg-success/20 text-success';
+        case '中等': return 'bg-warning/20 text-warning';
+        case '困难': return 'bg-danger/20 text-danger';
+        default: return 'bg-gray-200 text-gray-600';
+      }
+    }
+
+    function showStrategyDetail(id) {
+      const strategy = MOCK_DATA.strategies.find(s => s.id === id);
+      if (!strategy) return;
+      
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in">
+          <div class="flex justify-between items-start mb-4">
+            <div>
+              <h3 class="text-lg font-bold">${strategy.name}</h3>
+              <span class="text-sm text-text-secondary">${strategy.category}</span>
+            </div>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <p class="text-text-secondary mb-4">${strategy.description}</p>
+          <div class="flex items-center gap-4 mb-4">
+            <div>
+              <div class="text-sm text-text-muted">有效率</div>
+              <div class="text-lg font-bold text-success">${strategy.effectivenessRate}%</div>
+            </div>
+            <div>
+              <div class="text-sm text-text-muted">使用次数</div>
+              <div class="text-lg font-bold text-text-primary">${strategy.usageCount}</div>
+            </div>
+            <div>
+              <div class="text-sm text-text-muted">难度</div>
+              <div class="text-lg font-bold ${getDifficultyColor(strategy.difficulty)}">${strategy.difficulty}</div>
+            </div>
+          </div>
+          <button onclick="this.closest('.fixed').remove()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">知道了</button>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function renderRecords(container) {
+      document.getElementById('page-title').textContent = '行为记录';
+      document.getElementById('page-subtitle').textContent = '记录孩子的每一天';
+
+      container.innerHTML = `
+        <div class="p-4 space-y-4 animate-fade-in">
+          <!-- 搜索栏 -->
+          <div class="flex gap-2">
+            <div class="flex-1 relative">
+              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input type="text" placeholder="搜索记录..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+            </div>
+            <button onclick="showNewRecord()" class="px-4 py-2.5 bg-primary text-white rounded-xl font-medium flex items-center gap-2">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              <span class="text-sm">新增</span>
+            </button>
+          </div>
+
+          <!-- 儿童筛选 -->
+          <div class="flex gap-2 overflow-x-auto scrollbar-hide">
+            <button class="px-4 py-2 rounded-lg bg-primary text-white text-sm whitespace-nowrap">全部</button>
+            ${MOCK_DATA.children.map(c => `
+              <button class="px-4 py-2 rounded-lg bg-white border border-border text-text-secondary text-sm whitespace-nowrap">${c.name}</button>
+            `).join('')}
+          </div>
+
+          <!-- 记录列表 -->
+          <div class="space-y-3">
+            ${MOCK_DATA.behaviors.map(b => `
+              <div onclick="showRecordDetail(${b.id})" class="bg-white p-4 rounded-xl card-shadow flex items-start gap-3 cursor-pointer">
+                <div class="emoji-avatar bg-primary-light/30">${getAvatar(b.childName)}</div>
+                <div class="flex-1">
+                  <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm font-medium text-text-primary">${b.childName}</span>
+                      <span class="text-xs px-2 py-0.5 bg-primary-light/50 text-primary rounded-full">${b.type}</span>
+                    </div>
+                    <span class="text-xs text-text-muted">${b.time}</span>
+                  </div>
+                  <p class="text-sm text-text-secondary line-clamp-2">${b.description}</p>
+                  <div class="flex items-center gap-3 mt-2">
+                    <span class="text-xs px-2 py-0.5 bg-secondary/50 text-text-secondary rounded-full">${b.category}</span>
+                    <span class="text-xs px-2 py-0.5 ${getEmotionColor(b.emotion)} rounded-full">${b.emotion}</span>
+                    <span class="text-xs text-text-muted">强度: ${b.intensity}/10</span>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          ${MOCK_DATA.behaviors.length === 0 ? `
+            <div class="text-center py-12">
+              <div class="w-16 h-16 bg-secondary/30 rounded-full flex items-center justify-center mx-auto mb-3">
+                <svg class="w-8 h-8 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                </svg>
+              </div>
+              <p class="text-text-muted">还没有记录</p>
+              <button onclick="showNewRecord()" class="mt-3 text-primary text-sm">添加第一条记录</button>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function getEmotionColor(emotion) {
+      switch(emotion) {
+        case '积极': return 'bg-success/20 text-success';
+        case '平静': return 'bg-primary/20 text-primary';
+        case '消极': return 'bg-danger/20 text-danger';
+        case '极度消极': return 'bg-danger/40 text-danger';
+        default: return 'bg-gray-200 text-gray-600';
+      }
+    }
+
+    function showNewRecord() {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-end justify-center z-50';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold">记录行为</h2>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">选择儿童</label>
+              <select class="w-full px-4 py-2.5 rounded-xl border border-border bg-white">
+                ${MOCK_DATA.children.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">记录类型</label>
+              <div class="flex gap-2">
+                <button class="flex-1 py-2 rounded-lg bg-primary text-white text-sm">行为</button>
+                <button class="flex-1 py-2 rounded-lg border border-border text-text-secondary text-sm">情绪</button>
+                <button class="flex-1 py-2 rounded-lg border border-border text-text-secondary text-sm">沟通</button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">行为描述</label>
+              <textarea placeholder="描述孩子的行为..." class="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary" rows="3"></textarea>
+            </div>
+            <div class="flex gap-4">
+              <div class="flex-1">
+                <label class="block text-sm text-text-secondary mb-1">行为分类</label>
+                <select class="w-full px-4 py-2.5 rounded-xl border border-border bg-white">
+                  <option>哭闹</option><option>拍手</option><option>跑开</option><option>用手指</option><option>其他</option>
+                </select>
+              </div>
+              <div class="flex-1">
+                <label class="block text-sm text-text-secondary mb-1">情绪状态</label>
+                <select class="w-full px-4 py-2.5 rounded-xl border border-border bg-white">
+                  <option>积极</option><option>平静</option><option>消极</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">强度等级: <span id="intensity-value">5</span></label>
+              <input type="range" min="1" max="10" value="5" oninput="document.getElementById('intensity-value').textContent=this.value" class="w-full accent-primary">
+            </div>
+            <button onclick="this.closest('.fixed').remove(); showToast('记录成功')" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存记录</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function showRecordDetail(id) {
+      const record = MOCK_DATA.behaviors.find(b => b.id === id);
+      if (!record) return;
+
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-lg font-bold">记录详情</h3>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="space-y-4">
+            <div class="flex items-center gap-3">
+              <div class="emoji-avatar bg-primary-light/30">${getAvatar(record.childName)}</div>
+              <div>
+                <div class="font-medium">${record.childName}</div>
+                <div class="text-xs text-text-muted">${record.time}</div>
+              </div>
+            </div>
+            <div>
+              <div class="text-sm text-text-muted mb-1">行为描述</div>
+              <p class="text-text-primary">${record.description}</p>
+            </div>
+            <div class="flex gap-3">
+              <span class="px-3 py-1 bg-primary-light/50 text-primary rounded-full text-sm">${record.type}</span>
+              <span class="px-3 py-1 bg-secondary/50 text-text-secondary rounded-full text-sm">${record.category}</span>
+              <span class="px-3 py-1 ${getEmotionColor(record.emotion)} rounded-full text-sm">${record.emotion}</span>
+            </div>
+            <div>
+              <div class="text-sm text-text-muted mb-2">强度等级</div>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: ${record.intensity * 10}%"></div>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="this.closest('.fixed').remove()" class="flex-1 py-2.5 rounded-xl border border-border text-text-secondary">编辑</button>
+              <button onclick="this.closest('.fixed').remove(); showToast('已删除')" class="flex-1 py-2.5 rounded-xl bg-danger/10 text-danger">删除</button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function renderEmergency(container) {
+      document.getElementById('page-title').textContent = '紧急模式';
+      document.getElementById('page-subtitle').textContent = '帮助孩子平静下来';
+
+      container.innerHTML = `
+        <div class="min-h-screen bg-gradient-to-b from-[#1a1a2e] to-[#16213e] p-6 flex flex-col animate-fade-in">
+          <div class="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
+            <svg class="w-16 h-16 text-emergency mx-auto mb-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <h1 class="text-2xl font-bold text-white text-center mb-2">当前情况属于？</h1>
+            <p class="text-white/60 text-center mb-8">选择最接近的情况，获取针对性帮助</p>
+
+            <div class="space-y-4">
+              <button onclick="startEmergency('green')" class="w-full bg-green-600/20 border-2 border-green-500 rounded-2xl p-5 text-left text-white hover:bg-green-600/30 transition-colors">
+                <div class="flex items-center gap-4">
+                  <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                      <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="font-medium">一般行为问题</div>
+                    <div class="text-sm text-white/60">哭闹、拒绝配合、发脾气</div>
+                  </div>
+                </div>
+              </button>
+
+              <button onclick="startEmergency('yellow')" class="w-full bg-yellow-600/20 border-2 border-yellow-500 rounded-2xl p-5 text-left text-white hover:bg-yellow-600/30 transition-colors">
+                <div class="flex items-center gap-4">
+                  <div class="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="font-medium">中度情绪爆发</div>
+                    <div class="text-sm text-white/60">尖叫、扔东西、推人</div>
+                  </div>
+                </div>
+              </button>
+
+              <button onclick="startEmergency('red')" class="w-full bg-red-600/20 border-2 border-red-500 rounded-2xl p-5 text-left text-white hover:bg-red-600/30 transition-colors">
+                <div class="flex items-center gap-4">
+                  <div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+                      <line x1="12" y1="2" x2="12" y2="12"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="font-medium">严重自我伤害</div>
+                    <div class="text-sm text-white/60">撞头、咬人、自残</div>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            <p class="text-white/40 text-center text-sm mt-6">紧急情况下请拨打110或120</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function startEmergency(level) {
+      const container = document.getElementById('main-content');
+      container.innerHTML = `
+        <div class="min-h-screen bg-gradient-to-b from-[#1a1a2e] to-[#16213e] p-6 flex flex-col animate-fade-in">
+          <div class="flex-1 flex flex-col items-center justify-center max-w-md mx-auto w-full">
+            <h2 class="text-xl font-bold text-white text-center mb-8">一起深呼吸</h2>
+            
+            <div class="relative w-48 h-48 mb-8">
+              <div class="absolute inset-0 rounded-full bg-emergency/20 animate-breathe"></div>
+              <div class="absolute inset-4 rounded-full bg-emergency/30 animate-breathe" style="animation-delay: 0.5s"></div>
+              <div class="absolute inset-8 rounded-full bg-emergency/40 animate-breathe" style="animation-delay: 1s"></div>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <svg class="w-16 h-16 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 4v4m0 8v4M8 12H4m16 0h-4"/>
+                </svg>
+              </div>
+            </div>
+
+            <div class="text-center">
+              <p id="breath-text" class="text-white text-xl font-medium mb-2">吸气...</p>
+              <p class="text-white/60 text-sm">跟随圆圈的节奏呼吸</p>
+            </div>
+
+            <button onclick="showEmergencyStrategies()" class="mt-12 px-8 py-3 rounded-xl bg-white text-[#1a1a2e] font-medium hover:bg-gray-100 transition-colors">
+              获取应对策略
+            </button>
+          </div>
+        </div>
+      `;
+
+      // 呼吸动画文字提示
+      const texts = ['吸气...', '保持...', '呼气...', '放松...'];
+      let i = 0;
+      const interval = setInterval(() => {
+        document.getElementById('breath-text').textContent = texts[i % 4];
+        i++;
+      }, 2000);
+    }
+
+    function showEmergencyStrategies() {
+      const container = document.getElementById('main-content');
+      container.innerHTML = `
+        <div class="min-h-screen bg-gradient-to-b from-[#1a1a2e] to-[#16213e] p-6 flex flex-col animate-fade-in">
+          <div class="flex-1 max-w-md mx-auto w-full">
+            <h2 class="text-xl font-bold text-white text-center mb-6">应对策略</h2>
+            
+            <div class="space-y-4">
+              <div class="bg-white/10 rounded-xl p-4 backdrop-blur">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-xl">🛑</span>
+                  <h3 class="text-white font-medium">先停下来</h3>
+                </div>
+                <p class="text-white/70 text-sm">停止当前活动，带孩子到一个安静的环境，减少感官刺激。</p>
+              </div>
+
+              <div class="bg-white/10 rounded-xl p-4 backdrop-blur">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-xl">🌬️</span>
+                  <h3 class="text-white font-medium">深呼吸</h3>
+                </div>
+                <p class="text-white/70 text-sm">和孩子一起做深呼吸：吸气4秒，保持4秒，呼气4秒。</p>
+              </div>
+
+              <div class="bg-white/10 rounded-xl p-4 backdrop-blur">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-xl">🤗</span>
+                  <h3 class="text-white font-medium">给予空间</h3>
+                </div>
+                <p class="text-white/70 text-sm">如果孩子拒绝接触，保持安全距离，安静陪伴，等待情绪平复。</p>
+              </div>
+
+              <div class="bg-white/10 rounded-xl p-4 backdrop-blur">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-xl">🃏</span>
+                  <h3 class="text-white font-medium">提供选择</h3>
+                </div>
+                <p class="text-white/70 text-sm">用简单的选择帮助孩子恢复控制感："你想玩积木还是看书？"</p>
+              </div>
+            </div>
+
+            <button onclick="navigateTo('home')" class="mt-8 w-full py-3 rounded-xl bg-white text-[#1a1a2e] font-medium">
+              返回首页
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderStrategies(container) {
+      document.getElementById('page-title').textContent = '策略库';
+      document.getElementById('page-subtitle').textContent = '科学的干预方法';
+
+      container.innerHTML = `
+        <div class="p-4 space-y-4 animate-fade-in">
+          <!-- 搜索栏 -->
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" placeholder="搜索策略..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+          </div>
+
+          <!-- 分类筛选 -->
+          <div class="flex flex-wrap gap-2">
+            <button class="px-3 py-1.5 rounded-lg bg-primary text-white text-sm">全部</button>
+            <button class="px-3 py-1.5 rounded-lg bg-white border border-border text-text-secondary text-sm">情绪安抚</button>
+            <button class="px-3 py-1.5 rounded-lg bg-white border border-border text-text-secondary text-sm">沟通辅助</button>
+            <button class="px-3 py-1.5 rounded-lg bg-white border border-border text-text-secondary text-sm">行为引导</button>
+            <button class="px-3 py-1.5 rounded-lg bg-white border border-border text-text-secondary text-sm">生活自理</button>
+            <button class="px-3 py-1.5 rounded-lg bg-white border border-border text-text-secondary text-sm">安全防护</button>
+          </div>
+
+          <!-- 策略列表 -->
+          <div class="grid grid-cols-2 gap-3">
+            ${MOCK_DATA.strategies.map(s => `
+              <div onclick="showStrategyDetail(${s.id})" class="bg-white p-4 rounded-xl card-shadow strategy-card cursor-pointer">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="font-medium text-text-primary text-sm">${s.name}</span>
+                </div>
+                <p class="text-xs text-text-secondary line-clamp-2 mb-2">${s.description}</p>
+                <div class="flex items-center gap-2 text-xs">
+                  <span class="px-2 py-0.5 bg-secondary/50 text-text-secondary rounded-full">${s.category}</span>
+                  <span class="px-2 py-0.5 ${getDifficultyColor(s.difficulty)} rounded-full">${s.difficulty}</span>
+                </div>
+                <div class="flex items-center justify-between mt-2 text-xs text-text-muted">
+                  <span>有效 ${s.effectivenessRate}%</span>
+                  <span>${s.usageCount}次使用</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderProfile(container) {
+      document.getElementById('page-title').textContent = '我的';
+      document.getElementById('page-subtitle').textContent = '个人中心';
+
+      container.innerHTML = `
+        <div class="p-4 space-y-6 animate-fade-in">
+          <!-- 用户信息 -->
+          <div class="bg-gradient-to-br from-primary to-primary-dark rounded-2xl p-5 text-white card-shadow">
+            <div class="flex items-center gap-4">
+              <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-xl font-bold">${currentUser?.name || '家长'}</h2>
+                <p class="text-white/80 text-sm">${currentUser?.phone}</p>
+              </div>
+            </div>
+            <div class="flex gap-6 mt-4 pt-4 border-t border-white/20">
+              <div>
+                <div class="text-xl font-bold">${MOCK_DATA.children.length}</div>
+                <div class="text-xs text-white/70">孩子</div>
+              </div>
+              <div>
+                <div class="text-xl font-bold">${MOCK_DATA.behaviors.length}</div>
+                <div class="text-xs text-white/70">记录</div>
+              </div>
+              <div>
+                <div class="text-xl font-bold">${MOCK_DATA.reports.length}</div>
+                <div class="text-xs text-white/70">周报</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 功能入口 -->
+          <div>
+            <h3 class="font-bold text-text-primary mb-3">儿童管理</h3>
+            <div class="bg-white rounded-xl card-shadow overflow-hidden">
+              <button onclick="navigateTo('children')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+                <div class="w-10 h-10 bg-primary-light/50 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="8" r="5"/>
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  </svg>
+                </div>
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-text-primary">儿童档案</div>
+                  <div class="text-xs text-text-muted">管理孩子信息</div>
+                </div>
+                <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+              <button onclick="navigateTo('safety')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+                <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                  </svg>
+                </div>
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-text-primary">安全中心</div>
+                  <div class="text-xs text-text-muted">防走失与技能训练</div>
+                </div>
+                <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="font-bold text-text-primary mb-3">成长支持</h3>
+            <div class="bg-white rounded-xl card-shadow overflow-hidden">
+              <button onclick="navigateTo('growth')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+                <div class="w-10 h-10 bg-primary-light/50 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                  </svg>
+                </div>
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-text-primary">家长成长</div>
+                  <div class="text-xs text-text-muted">等级 L${MOCK_DATA.growth.level.replace('L','')}</div>
+                </div>
+                <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+              <button onclick="navigateTo('reports')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+                <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                  </svg>
+                </div>
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-text-primary">成长周报</div>
+                  <div class="text-xs text-text-muted">查看每周报告</div>
+                </div>
+                <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+              <button onclick="navigateTo('stories')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+                <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-purple-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                  </svg>
+                </div>
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-text-primary">故事分享</div>
+                  <div class="text-xs text-text-muted">家长互助社区</div>
+                </div>
+                <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+              <button onclick="navigateTo('family')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+                <div class="w-10 h-10 bg-pink-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-pink-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                  </svg>
+                </div>
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-text-primary">家庭系统</div>
+                  <div class="text-xs text-text-muted">情绪签到与感谢卡</div>
+                </div>
+                <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+              <button onclick="navigateTo('ai')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+                <div class="w-10 h-10 bg-cyan-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-cyan-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                </div>
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-text-primary">AI分析</div>
+                  <div class="text-xs text-text-muted">行为数据分析</div>
+                </div>
+                <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="font-bold text-text-primary mb-3">系统</h3>
+            <div class="bg-white rounded-xl card-shadow overflow-hidden">
+              <button onclick="showToast('暂无设置')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+                <div class="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                  </svg>
+                </div>
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-text-primary">设置</div>
+                  <div class="text-xs text-text-muted">账号与通知</div>
+                </div>
+                <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+              <button onclick="handleLogout()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+                <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                  </svg>
+                </div>
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-text-primary">退出登录</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('xingban_user');
+      currentUser = null;
+      document.getElementById('main-app').classList.add('hidden');
+      document.getElementById('login-page').classList.remove('hidden');
+      showToast('已退出登录');
+    }
+
+    function renderChildren(container) {
+      document.getElementById('page-title').textContent = '儿童档案';
+      document.getElementById('page-subtitle').textContent = '管理孩子信息';
+
+      container.innerHTML = `
+        <div class="p-4 space-y-4 animate-fade-in">
+          <div class="flex justify-between items-center">
+            <h3 class="font-bold text-text-primary">我的孩子</h3>
+            <button onclick="showNewChild()" class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium">
+              + 添加
+            </button>
+          </div>
+
+          <div class="space-y-3">
+            ${MOCK_DATA.children.map(c => `
+              <div class="bg-white p-4 rounded-xl card-shadow flex items-center gap-4">
+                <div class="emoji-avatar bg-primary-light/30" style="font-size:24px;width:48px;height:48px">${c.avatar}</div>
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="font-bold text-text-primary">${c.name}</span>
+                    <span class="text-xs px-2 py-0.5 bg-secondary/50 text-text-secondary rounded-full">${c.gender}</span>
+                    <span class="text-xs text-text-muted">${c.age}岁</span>
+                  </div>
+                  <p class="text-xs text-text-muted">诊断: ${c.diagnosis}</p>
+                </div>
+                <button onclick="showChildDetail(${c.id})" class="px-3 py-1.5 rounded-lg border border-border text-text-secondary text-sm">
+                  查看
+                </button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function showNewChild() {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-end justify-center z-50';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold">添加孩子</h2>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">昵称</label>
+              <input type="text" placeholder="孩子的昵称" class="w-full px-4 py-2.5 rounded-xl border border-border">
+            </div>
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">性别</label>
+              <div class="flex gap-2">
+                <button class="flex-1 py-2 rounded-lg bg-primary text-white text-sm">男</button>
+                <button class="flex-1 py-2 rounded-lg border border-border text-text-secondary text-sm">女</button>
+                <button class="flex-1 py-2 rounded-lg border border-border text-text-secondary text-sm">其他</button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">年龄</label>
+              <input type="number" placeholder="年龄" class="w-full px-4 py-2.5 rounded-xl border border-border">
+            </div>
+            <button onclick="this.closest('.fixed').remove(); showToast('添加成功')" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function showChildDetail(id) {
+      const child = MOCK_DATA.children.find(c => c.id === id);
+      if (!child) return;
+
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-lg font-bold">孩子详情</h3>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="flex items-center gap-4 mb-6">
+            <div class="emoji-avatar bg-primary-light/30" style="font-size:32px;width:64px;height:64px">${child.avatar}</div>
+            <div>
+              <div class="text-xl font-bold">${child.name}</div>
+              <div class="text-text-muted">${child.gender} · ${child.age}岁</div>
+            </div>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <div class="text-sm text-text-muted mb-1">诊断</div>
+              <div class="px-3 py-2 bg-secondary/30 rounded-lg text-text-primary">${child.diagnosis}</div>
+            </div>
+            <div>
+              <div class="text-sm text-text-muted mb-1">能力评估</div>
+              <div class="space-y-2">
+                <div class="flex justify-between text-sm">
+                  <span class="text-text-secondary">沟通能力</span>
+                  <span class="text-text-primary">中等</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-text-secondary">社交能力</span>
+                  <span class="text-text-primary">初级</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-text-secondary">自理能力</span>
+                  <span class="text-text-primary">中等</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button onclick="this.closest('.fixed').remove()" class="w-full mt-6 py-3 rounded-xl bg-primary text-white font-medium">知道了</button>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function renderReports(container) {
+      document.getElementById('page-title').textContent = '成长周报';
+      document.getElementById('page-subtitle').textContent = '每周成长分析';
+
+      container.innerHTML = `
+        <div class="p-4 space-y-4 animate-fade-in">
+          <div class="flex justify-between items-center">
+            <h3 class="font-bold text-text-primary">周报列表</h3>
+            <button onclick="showNewReport()" class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium">
+              + 生成
+            </button>
+          </div>
+
+          <div class="space-y-3">
+            ${MOCK_DATA.reports.map(r => `
+              <div onclick="showReportDetail(${r.id})" class="bg-white p-4 rounded-xl card-shadow cursor-pointer">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-2">
+                    <span class="font-bold text-text-primary">${r.week}</span>
+                    <span class="text-xs px-2 py-0.5 bg-secondary/50 text-text-secondary rounded-full">${r.childName}</span>
+                  </div>
+                  <span class="text-xs text-text-muted">${r.records}条记录</span>
+                </div>
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="week-dot ${r.emotion === 'positive' ? 'bg-success' : r.emotion === 'negative' ? 'bg-danger' : 'bg-primary'}"></span>
+                  <span class="text-xs text-text-secondary">${r.emotion === 'positive' ? '情绪积极' : r.emotion === 'negative' ? '情绪波动' : '平稳'}</span>
+                </div>
+                <p class="text-sm text-text-secondary line-clamp-2">${r.aiComment}</p>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function showNewReport() {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-end justify-center z-50';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold">生成周报</h2>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">选择儿童</label>
+              <select class="w-full px-4 py-2.5 rounded-xl border border-border">
+                ${MOCK_DATA.children.map(c => `<option>${c.name}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">周范围</label>
+              <div class="flex gap-2">
+                <button class="flex-1 py-2 rounded-lg bg-primary text-white text-sm">本周</button>
+                <button class="flex-1 py-2 rounded-lg border border-border text-text-secondary text-sm">上周</button>
+              </div>
+            </div>
+            <button onclick="this.closest('.fixed').remove(); showToast('周报生成中...')" class="w-full py-3 rounded-xl bg-primary text-white font-medium">生成周报</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function showReportDetail(id) {
+      const report = MOCK_DATA.reports.find(r => r.id === id);
+      if (!report) return;
+
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in max-h-[80vh] overflow-y-auto">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-lg font-bold">${report.week}周报</h3>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <div class="text-sm text-text-muted mb-1">孩子</div>
+              <div class="font-medium">${report.childName}</div>
+            </div>
+            <div>
+              <div class="text-sm text-text-muted mb-2">记录统计</div>
+              <div class="flex gap-4">
+                <div class="flex-1 bg-primary-light/30 rounded-xl p-3 text-center">
+                  <div class="text-xl font-bold text-primary">${report.records}</div>
+                  <div class="text-xs text-text-muted">本周记录</div>
+                </div>
+                <div class="flex-1 bg-secondary/30 rounded-xl p-3 text-center">
+                  <div class="text-xl font-bold text-text-primary">7</div>
+                  <div class="text-xs text-text-muted">连续天数</div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div class="text-sm text-text-muted mb-2">情绪趋势</div>
+              <div class="flex items-center justify-between gap-1">
+                ${['周一','周二','周三','周四','周五','周六','周日'].map((d, i) => `
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="week-dot ${i < 5 ? 'bg-success' : i === 5 ? 'bg-primary' : 'bg-warning'}"></div>
+                    <span class="text-xs text-text-muted">${d[1]}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            <div>
+              <div class="text-sm text-text-muted mb-1">AI分析</div>
+              <p class="text-text-primary">${report.aiComment}</p>
+            </div>
+            <div>
+              <div class="text-sm text-text-muted mb-1">下周建议</div>
+              <p class="text-text-secondary text-sm">继续保持正向强化训练，注意观察孩子的情绪变化。</p>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function renderFamily(container) {
+      document.getElementById('page-title').textContent = '家庭系统';
+      document.getElementById('page-subtitle').textContent = '情绪与感谢';
+
+      container.innerHTML = `
+        <div class="p-4 space-y-4 animate-fade-in">
+          <div class="flex bg-white rounded-xl p-1 card-shadow">
+            <button onclick="renderFamilyMood(this)" class="flex-1 py-2 rounded-lg bg-primary text-white font-medium">情绪签到</button>
+            <button onclick="renderFamilyGratitude(this)" class="flex-1 py-2 rounded-lg text-text-secondary">感谢卡</button>
+          </div>
+
+          <div id="family-content">
+            ${renderFamilyMoodContent()}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderFamilyMoodContent() {
+      return `
+        <div>
+          <h3 class="font-bold text-text-primary mb-3">今日心情</h3>
+          <div class="grid grid-cols-6 gap-2 mb-4">
+            ${[
+              { emoji: '😊', mood: '开心', color: 'bg-yellow-100' },
+              { emoji: '😌', mood: '平静', color: 'bg-blue-100' },
+              { emoji: '😴', mood: '疲惫', color: 'bg-gray-100' },
+              { emoji: '😰', mood: '压力', color: 'bg-orange-100' },
+              { emoji: '😢', mood: '难过', color: 'bg-pink-100' },
+              { emoji: '😟', mood: '焦虑', color: 'bg-purple-100' },
+            ].map(m => `
+              <button onclick="recordMood('${m.mood}', '${m.emoji}')" class="${m.color} rounded-xl p-2 flex flex-col items-center gap-1">
+                <span class="text-xl">${m.emoji}</span>
+                <span class="text-xs text-text-secondary">${m.mood}</span>
+              </button>
+            `).join('')}
+          </div>
+
+          <h3 class="font-bold text-text-primary mb-3">最近记录</h3>
+          <div class="space-y-3">
+            ${MOCK_DATA.familyMoods.map(m => `
+              <div class="bg-white p-3 rounded-xl card-shadow flex items-center gap-3">
+                <span class="text-xl">${m.emoji}</span>
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <span class="font-medium text-text-primary">${m.mood}</span>
+                    <span class="text-xs text-text-muted">${m.date}</span>
+                  </div>
+                  <p class="text-xs text-text-secondary">${m.note}</p>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderFamilyMood(btn) {
+      btn.classList.add('bg-primary', 'text-white');
+      btn.classList.remove('text-text-secondary');
+      btn.nextElementSibling.classList.remove('bg-primary', 'text-white');
+      btn.nextElementSibling.classList.add('text-text-secondary');
+      document.getElementById('family-content').innerHTML = renderFamilyMoodContent();
+    }
+
+    function renderFamilyGratitude(btn) {
+      btn.classList.add('bg-primary', 'text-white');
+      btn.classList.remove('text-text-secondary');
+      btn.previousElementSibling.classList.remove('bg-primary', 'text-white');
+      btn.previousElementSibling.classList.add('text-text-secondary');
+      
+      document.getElementById('family-content').innerHTML = `
+        <div>
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="font-bold text-text-primary">感谢卡</h3>
+            <button onclick="showNewGratitude()" class="px-3 py-1.5 bg-primary text-white rounded-lg text-sm">+ 新建</button>
+          </div>
+          <div class="space-y-3">
+            ${MOCK_DATA.gratitudeCards.map(c => `
+              <div class="bg-gradient-to-br from-primary-light/50 to-primary/20 rounded-xl p-4">
+                <div class="flex justify-between items-start mb-2">
+                  <span class="font-bold text-text-primary">致 ${c.partner}</span>
+                  <span class="text-xs px-2 py-0.5 ${c.sent ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'} rounded-full">${c.sent ? '已发送' : '未发送'}</span>
+                </div>
+                <p class="text-text-secondary text-sm mb-2">"${c.content}"</p>
+                <p class="text-xs text-text-muted">${c.date}</p>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function recordMood(mood, emoji) {
+      const note = prompt('添加备注（可选）：');
+      showToast(`已记录心情：${mood}`);
+    }
+
+    function showNewGratitude() {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-end justify-center z-50';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold">创建感谢卡</h2>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">对方称呼</label>
+              <input type="text" placeholder="如：孩子爸爸" class="w-full px-4 py-2.5 rounded-xl border border-border">
+            </div>
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">感谢内容</label>
+              <textarea placeholder="写下你的感谢..." class="w-full px-4 py-3 rounded-xl border border-border" rows="3"></textarea>
+            </div>
+            <button onclick="this.closest('.fixed').remove(); showToast('感谢卡已创建')" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function renderGrowth(container) {
+      document.getElementById('page-title').textContent = '家长成长';
+      document.getElementById('page-subtitle').textContent = '学习与进步';
+
+      container.innerHTML = `
+        <div class="p-4 space-y-4 animate-fade-in">
+          <div class="bg-gradient-to-br from-primary to-primary-dark rounded-2xl p-5 text-white card-shadow">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <div class="text-sm text-white/80">当前等级</div>
+                <div class="text-3xl font-bold">${MOCK_DATA.growth.level}</div>
+              </div>
+              <div class="text-right">
+                <div class="text-sm text-white/80">成长指数</div>
+                <div class="text-3xl font-bold">${MOCK_DATA.growth.index}</div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              ${['L1','L2','L3','L4','L5'].map((l, i) => `
+                <div class="flex flex-col items-center">
+                  <div class="w-6 h-6 rounded-full ${MOCK_DATA.growth.level >= l ? 'bg-white' : 'bg-white/30'} flex items-center justify-center text-xs font-bold ${MOCK_DATA.growth.level >= l ? 'text-primary' : 'text-white'}">${l.replace('L','')}</div>
+                  ${i < 4 ? '<div class="w-8 h-1 bg-white/30 my-1"></div>' : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div>
+            <h3 class="font-bold text-text-primary mb-3">能力维度</h3>
+            <div class="bg-white rounded-xl card-shadow p-4 space-y-4">
+              ${MOCK_DATA.growth.dimensions.map(d => `
+                <div>
+                  <div class="flex justify-between text-sm mb-1">
+                    <span class="text-text-secondary">${d.name}</span>
+                    <span class="text-text-primary font-medium">${d.value}%</span>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${d.value}%"></div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div>
+            <h3 class="font-bold text-text-primary mb-3">成长记录</h3>
+            <div class="space-y-3">
+              <div class="bg-white p-3 rounded-xl card-shadow flex items-center gap-3">
+                <div class="w-8 h-8 bg-success/20 rounded-full flex items-center justify-center">
+                  <svg class="w-4 h-4 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <div class="text-sm font-medium text-text-primary">完成行为记录</div>
+                  <div class="text-xs text-text-muted">获得 10 成长积分</div>
+                </div>
+                <span class="text-xs text-text-muted">今天</span>
+              </div>
+              <div class="bg-white p-3 rounded-xl card-shadow flex items-center gap-3">
+                <div class="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
+                  <svg class="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <div class="text-sm font-medium text-text-primary">阅读策略文章</div>
+                  <div class="text-xs text-text-muted">获得 5 成长积分</div>
+                </div>
+                <span class="text-xs text-text-muted">昨天</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSafety(container) {
+      document.getElementById('page-title').textContent = '安全中心';
+      document.getElementById('page-subtitle').textContent = '防走失与技能';
+
+      container.innerHTML = `
+        <div class="p-4 space-y-4 animate-fade-in">
+          <div class="grid grid-cols-2 gap-3">
+            <button onclick="showSafetyProfile()" class="bg-white p-4 rounded-xl card-shadow flex flex-col items-center gap-2">
+              <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <svg class="w-6 h-6 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                  <path d="M3 3v5h5"/>
+                  <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                  <path d="M16 21h5v-5"/>
+                </svg>
+              </div>
+              <span class="font-medium text-text-primary">安全档案</span>
+              <span class="text-xs text-text-muted">紧急联系信息</span>
+            </button>
+            <button onclick="showSafetySkills()" class="bg-white p-4 rounded-xl card-shadow flex flex-col items-center gap-2">
+              <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg class="w-6 h-6 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                </svg>
+              </div>
+              <span class="font-medium text-text-primary">技能训练</span>
+              <span class="text-xs text-text-muted">安全技能学习</span>
+            </button>
+          </div>
+
+          <div class="bg-gradient-to-br from-red-500 to-orange-500 rounded-2xl p-4 text-white">
+            <div class="flex items-center gap-3 mb-2">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              <span class="font-bold">紧急提醒</span>
+            </div>
+            <p class="text-sm text-white/90">紧急情况下请保持冷静，并立即拨打 110 或 120。</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function showSafetyProfile() {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-lg font-bold">安全档案</h3>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <div class="text-sm text-text-muted mb-1">孩子</div>
+              <div class="flex items-center gap-2">
+                <span class="emoji-avatar bg-primary-light/30">👦</span>
+                <span class="font-medium">小明</span>
+              </div>
+            </div>
+            <div>
+              <div class="text-sm text-text-muted mb-1">诊断信息</div>
+              <div class="px-3 py-2 bg-secondary/30 rounded-lg">孤独症</div>
+            </div>
+            <div>
+              <div class="text-sm text-text-muted mb-1">紧急联系人</div>
+              <div class="text-text-primary">妈妈: 138****8000</div>
+              <div class="text-text-primary">爸爸: 139****9000</div>
+            </div>
+            <div>
+              <div class="text-sm text-text-muted mb-1">过敏信息</div>
+              <div class="text-text-primary">无已知过敏</div>
+            </div>
+            <div>
+              <div class="text-sm text-text-muted mb-1">沟通注意事项</div>
+              <p class="text-text-secondary text-sm">孩子对视觉提示反应较好，请使用图片卡片沟通。</p>
+            </div>
+          </div>
+          <button onclick="this.closest('.fixed').remove()" class="w-full mt-6 py-3 rounded-xl bg-primary text-white font-medium">知道了</button>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function showSafetySkills() {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-lg font-bold">安全技能训练</h3>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="space-y-3">
+            <div class="bg-white border border-border rounded-xl p-3">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-medium text-text-primary">紧急联系</span>
+                <span class="text-xs text-success">已完成</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: 100%"></div>
+              </div>
+            </div>
+            <div class="bg-white border border-border rounded-xl p-3">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-medium text-text-primary">安全区域认知</span>
+                <span class="text-xs text-warning">进行中</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: 60%"></div>
+              </div>
+            </div>
+            <div class="bg-white border border-border rounded-xl p-3">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-medium text-text-primary">外出安全</span>
+                <span class="text-xs text-text-muted">未开始</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+          <button onclick="this.closest('.fixed').remove()" class="w-full mt-6 py-3 rounded-xl bg-primary text-white font-medium">知道了</button>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function renderStories(container) {
+      document.getElementById('page-title').textContent = '故事分享';
+      document.getElementById('page-subtitle').textContent = '家长互助社区';
+
+      container.innerHTML = `
+        <div class="p-4 space-y-4 animate-fade-in">
+          <div class="flex justify-between items-center">
+            <h3 class="font-bold text-text-primary">精选故事</h3>
+            <button onclick="showNewStory()" class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium">
+              + 发布
+            </button>
+          </div>
+
+          <div class="space-y-3">
+            ${MOCK_DATA.stories.map(s => `
+              <div onclick="showStoryDetail(${s.id})" class="bg-white p-4 rounded-xl card-shadow cursor-pointer">
+                <h4 class="font-bold text-text-primary mb-2">${s.title}</h4>
+                <p class="text-sm text-text-secondary line-clamp-2 mb-2">${s.content}</p>
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    ${s.tags.map(t => `<span class="text-xs px-2 py-0.5 bg-secondary/50 text-text-secondary rounded-full">${t}</span>`).join('')}
+                  </div>
+                  <div class="flex items-center gap-3 text-xs text-text-muted">
+                    <span>${s.likes} 点赞</span>
+                    <span>${s.date}</span>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function showNewStory() {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-end justify-center z-50';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold">发布故事</h2>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">标题</label>
+              <input type="text" placeholder="分享你的故事" class="w-full px-4 py-2.5 rounded-xl border border-border">
+            </div>
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">内容</label>
+              <textarea placeholder="详细描述..." class="w-full px-4 py-3 rounded-xl border border-border" rows="4"></textarea>
+            </div>
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">标签（逗号分隔）</label>
+              <input type="text" placeholder="训练, 情绪, 沟通" class="w-full px-4 py-2.5 rounded-xl border border-border">
+            </div>
+            <button onclick="this.closest('.fixed').remove(); showToast('发布成功')" class="w-full py-3 rounded-xl bg-primary text-white font-medium">发布</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function showStoryDetail(id) {
+      const story = MOCK_DATA.stories.find(s => s.id === id);
+      if (!story) return;
+
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in max-h-[80vh] overflow-y-auto">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-lg font-bold">${story.title}</h3>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="flex items-center gap-2 mb-4">
+            ${story.tags.map(t => `<span class="text-xs px-2 py-0.5 bg-secondary/50 text-text-secondary rounded-full">${t}</span>`).join('')}
+          </div>
+          <p class="text-text-primary leading-relaxed mb-6">${story.content}</p>
+          <div class="flex items-center justify-between pt-4 border-t border-border">
+            <div class="flex items-center gap-3 text-text-muted">
+              <button class="flex items-center gap-1 text-sm hover:text-danger transition-colors">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                <span>${story.likes}</span>
+              </button>
+            </div>
+            <span class="text-xs text-text-muted">${story.date}</span>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function renderAI(container) {
+      document.getElementById('page-title').textContent = 'AI分析';
+      document.getElementById('page-subtitle').textContent = '行为数据洞察';
+
+      container.innerHTML = `
+        <div class="p-4 space-y-4 animate-fade-in">
+          <div class="bg-gradient-to-br from-cyan-500 to-blue-500 rounded-2xl p-5 text-white card-shadow">
+            <div class="flex items-center gap-3 mb-4">
+              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <div>
+                <div class="font-bold">AI 质量监控</div>
+                <div class="text-sm text-white/80">分析服务正常运行</div>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <div class="text-2xl font-bold">98%</div>
+                <div class="text-xs text-white/70">平均置信度</div>
+              </div>
+              <div>
+                <div class="text-2xl font-bold">128</div>
+                <div class="text-xs text-white/70">总分析次数</div>
+              </div>
+              <div>
+                <div class="text-2xl font-bold">2</div>
+                <div class="text-xs text-white/70">降级次数</div>
+              </div>
+              <div>
+                <div class="text-2xl font-bold">今天</div>
+                <div class="text-xs text-white/70">最后分析</div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="font-bold text-text-primary mb-3">快速分析</h3>
+            <button onclick="runAIAnalysis()" class="w-full bg-white p-4 rounded-xl card-shadow flex items-center gap-4 hover:shadow-md transition-shadow">
+              <div class="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-cyan-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
+                  <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+              </div>
+              <div class="flex-1 text-left">
+                <div class="font-medium text-text-primary">分析最近行为记录</div>
+                <div class="text-xs text-text-muted">AI 将自动分析并提供建议</div>
+              </div>
+              <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </button>
+          </div>
+
+          <div>
+            <h3 class="font-bold text-text-primary mb-3">分析记录</h3>
+            <div class="space-y-3">
+              <div class="bg-white p-4 rounded-xl card-shadow">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="font-medium text-text-primary">行为分类分析</span>
+                  <span class="text-xs text-success">置信度 95%</span>
+                </div>
+                <p class="text-sm text-text-secondary">识别到最近一周哭闹行为增加，建议使用正向强化策略。</p>
+                <div class="flex gap-2 mt-2">
+                  <span class="text-xs px-2 py-0.5 bg-primary-light/50 text-primary rounded-full">正向强化</span>
+                  <span class="text-xs px-2 py-0.5 bg-secondary/50 text-text-secondary rounded-full">行为引导</span>
+                </div>
+              </div>
+              <div class="bg-white p-4 rounded-xl card-shadow">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="font-medium text-text-primary">情绪趋势分析</span>
+                  <span class="text-xs text-success">置信度 92%</span>
+                </div>
+                <p class="text-sm text-text-secondary">孩子情绪波动较大，建议增加感官安抚活动。</p>
+                <div class="flex gap-2 mt-2">
+                  <span class="text-xs px-2 py-0.5 bg-success/20 text-success rounded-full">感官安抚</span>
+                  <span class="text-xs px-2 py-0.5 bg-secondary/50 text-text-secondary rounded-full">情绪调节</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function runAIAnalysis() {
+      showToast('AI 分析中...');
+      setTimeout(() => {
+        showToast('分析完成！已生成建议');
+      }, 1500);
+    }
+
+    // === 初始化 ===
+    document.addEventListener('DOMContentLoaded', () => {
+      const savedUser = getUser();
+      if (savedUser) {
+        currentUser = savedUser;
+        document.getElementById('login-page').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
+        navigateTo('home');
+      }
+    });
+  </script>
+</body>
+</html>
