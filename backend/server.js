@@ -32,6 +32,8 @@ app.use('/api/safety', require('./routes/safety'));
 app.use('/api/story', require('./routes/story'));
 app.use('/api/community', require('./routes/community'));
 app.use('/api/notification', require('./routes/notification'));
+app.use('/api/career', require('./routes/career'));
+app.use('/api/finance', require('./routes/finance'));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: '星伴后端服务运行正常' });

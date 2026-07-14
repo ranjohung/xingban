@@ -68,6 +68,13 @@ let notifications = [
   { id: 4, user_id: 1, title: '训练提醒', content: '今天还没有完成训练哦', type: 'training', is_read: true, created_at: new Date('2026-07-10') }
 ];
 
+let childProfileDrafts = [];
+let careerMilestones = [];
+let careerGoals = [];
+let financialRecords = [];
+let userSubsidies = [];
+let fraudReports = [];
+
 let userIdCounter = 1;
 let childIdCounter = 1;
 let behaviorIdCounter = 1;
@@ -83,6 +90,12 @@ let feedbackIdCounter = 1;
 let postIdCounter = 6;
 let commentIdCounter = 6;
 let notificationIdCounter = 5;
+let draftIdCounter = 1;
+let milestoneIdCounter = 1;
+let goalIdCounter = 1;
+let expenseIdCounter = 1;
+let subsidyIdCounter = 1;
+let fraudReportIdCounter = 1;
 
 function query(sql, params, callback) {
   try {
@@ -126,10 +139,22 @@ function query(sql, params, callback) {
     } else if (sql.includes('INSERT INTO children')) {
       const child = {
         id: childIdCounter++,
+        user_id: params[0],
         parent_id: params[0],
         nickname: params[1],
         birth_date: params[2],
         diagnosis_type: params[3],
+        diagnosis_other: params[4] || null,
+        communication_level: params[5] || 'none',
+        social_level: params[6] || 1,
+        self_care_level: params[7] || 1,
+        cognitive_level: params[8] || 1,
+        sensory_hearing: params[9] || 'normal',
+        sensory_visual: params[10] || 'normal',
+        sensory_tactile: params[11] || 'normal',
+        sensory_vestibular: params[12] || 'normal',
+        reinforcers: params[13] || '[]',
+        medical_info: params[14] || null,
         avatar: ['👦', '👧', '🧒'][Math.floor(Math.random() * 3)],
         created_at: new Date()
       };
@@ -508,6 +533,164 @@ function query(sql, params, callback) {
       };
       notifications.push(notification);
       callback(null, { insertId: notification.id });
+    } else if (sql.includes('INSERT INTO child_profile_drafts')) {
+      const draft = {
+        id: draftIdCounter++,
+        user_id: params[0],
+        step: params[1],
+        data: params[2],
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+      childProfileDrafts.push(draft);
+      callback(null, { insertId: draft.id });
+    } else if (sql.includes('SELECT * FROM child_profile_drafts WHERE user_id')) {
+      const userId = params[0];
+      const results = childProfileDrafts.filter(d => d.user_id === userId).reverse().slice(0, 1);
+      callback(null, results);
+    } else if (sql.includes('SELECT * FROM child_profile_drafts WHERE id')) {
+      const id = params[0];
+      const userId = params[1];
+      const results = childProfileDrafts.filter(d => d.id === id && d.user_id === userId);
+      callback(null, results);
+    } else if (sql.includes('UPDATE child_profile_drafts SET step')) {
+      const step = params[0];
+      const data = params[1];
+      const id = params[2];
+      const draft = childProfileDrafts.find(d => d.id === id);
+      if (draft) {
+        draft.step = step;
+        draft.data = data;
+        draft.updated_at = new Date();
+      }
+      callback(null, { affectedRows: 1 });
+    } else if (sql.includes('DELETE FROM child_profile_drafts WHERE id')) {
+      const id = params[0];
+      childProfileDrafts = childProfileDrafts.filter(d => d.id !== id);
+      callback(null, { affectedRows: 1 });
+    } else if (sql.includes('SELECT * FROM career_milestones WHERE child_id')) {
+      const childId = params[0];
+      const results = careerMilestones.filter(m => m.child_id === childId).reverse();
+      callback(null, results);
+    } else if (sql.includes('INSERT INTO career_milestones')) {
+      const milestone = {
+        id: milestoneIdCounter++,
+        child_id: params[0],
+        milestone_id: params[1],
+        title: params[2],
+        description: params[3] || '',
+        story: params[4] || '',
+        photo_url: params[5] || null,
+        created_at: new Date()
+      };
+      careerMilestones.push(milestone);
+      callback(null, { insertId: milestone.id });
+    } else if (sql.includes('DELETE FROM career_milestones WHERE id')) {
+      const id = params[0];
+      const childId = params[1];
+      careerMilestones = careerMilestones.filter(m => !(m.id === id && m.child_id === childId));
+      callback(null, { affectedRows: 1 });
+    } else if (sql.includes('SELECT * FROM career_goals WHERE child_id')) {
+      const childId = params[0];
+      const results = careerGoals.filter(g => g.child_id === childId).sort((a, b) => b.priority - a.priority);
+      callback(null, results);
+    } else if (sql.includes('INSERT INTO career_goals')) {
+      const goal = {
+        id: goalIdCounter++,
+        child_id: params[0],
+        category: params[1],
+        title: params[2],
+        description: params[3] || '',
+        target_date: params[4] || null,
+        priority: params[5] || 1,
+        steps: params[6] || '[]',
+        progress: 0,
+        created_at: new Date()
+      };
+      careerGoals.push(goal);
+      callback(null, { insertId: goal.id });
+    } else if (sql.includes('UPDATE career_goals SET')) {
+      const id = params[7];
+      const childId = params[8];
+      const goal = careerGoals.find(g => g.id === id && g.child_id === childId);
+      if (goal) {
+        goal.category = params[0];
+        goal.title = params[1];
+        goal.description = params[2];
+        goal.target_date = params[3];
+        goal.priority = params[4];
+        goal.steps = params[5];
+        goal.progress = params[6];
+      }
+      callback(null, { affectedRows: 1 });
+    } else if (sql.includes('DELETE FROM career_goals WHERE id')) {
+      const id = params[0];
+      const childId = params[1];
+      careerGoals = careerGoals.filter(g => !(g.id === id && g.child_id === childId));
+      callback(null, { affectedRows: 1 });
+    } else if (sql.includes('SELECT * FROM financial_records WHERE user_id')) {
+      const userId = params[0];
+      const childId = params[1];
+      const results = financialRecords.filter(r => r.user_id === userId && r.child_id === childId).reverse();
+      callback(null, results);
+    } else if (sql.includes('INSERT INTO financial_records')) {
+      const record = {
+        id: expenseIdCounter++,
+        user_id: params[0],
+        child_id: params[1],
+        amount: parseFloat(params[2]),
+        category: params[3],
+        date: params[4] || new Date(),
+        description: params[5] || '',
+        receipt_url: params[6] || null,
+        is_reimbursable: params[7] || false,
+        insurance_policy: params[8] || null,
+        created_at: new Date()
+      };
+      financialRecords.push(record);
+      callback(null, { insertId: record.id });
+    } else if (sql.includes('DELETE FROM financial_records WHERE id')) {
+      const id = params[0];
+      const userId = params[1];
+      const childId = params[2];
+      financialRecords = financialRecords.filter(r => !(r.id === id && r.user_id === userId && r.child_id === childId));
+      callback(null, { affectedRows: 1 });
+    } else if (sql.includes('SELECT * FROM user_subsidies WHERE user_id')) {
+      const userId = params[0];
+      const results = userSubsidies.filter(s => s.user_id === userId);
+      callback(null, results);
+    } else if (sql.includes('INSERT INTO user_subsidies')) {
+      const subsidy = {
+        id: subsidyIdCounter++,
+        user_id: params[0],
+        subsidy_id: params[1],
+        created_at: new Date()
+      };
+      userSubsidies.push(subsidy);
+      callback(null, { insertId: subsidy.id });
+    } else if (sql.includes('DELETE FROM user_subsidies WHERE user_id')) {
+      const userId = params[0];
+      const subsidyId = params[1];
+      userSubsidies = userSubsidies.filter(s => !(s.user_id === userId && s.subsidy_id === subsidyId));
+      callback(null, { affectedRows: 1 });
+    } else if (sql.includes('INSERT INTO fraud_reports')) {
+      const report = {
+        id: fraudReportIdCounter++,
+        user_id: params[0],
+        title: params[1],
+        type: params[2],
+        description: params[3],
+        location: params[4] || '',
+        evidence_url: params[5] || null,
+        status: params[6] || 'pending',
+        created_at: new Date()
+      };
+      fraudReports.push(report);
+      callback(null, { insertId: report.id });
+    } else if (sql.includes('SELECT * FROM fraud_reports WHERE user_id')) {
+      const userId = params[0];
+      const results = fraudReports.filter(r => r.user_id === userId).reverse();
+      callback(null, results);
     } else {
       callback(null, []);
     }
