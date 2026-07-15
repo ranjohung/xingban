@@ -391,10 +391,81 @@
           return { success: true, profile: {}, skills: MOCK_DATA.safetySkills, records: [] };
         }
         if (url.startsWith('/story') && method === 'GET') {
-                  return { success: true, library: MOCK_DATA.storyLibrary, custom: [], records: [] };
+                  const path = url.replace('/story', '');
+                  if (path === '/library' || path.startsWith('/library?')) {
+                    return { success: true, stories: MOCK_DATA.storyLibrary, custom: [], records: [] };
+                  }
+                  if (path.startsWith('/library/') && !path.includes('play')) {
+                    const id = parseInt(path.split('/')[2]);
+                    const story = MOCK_DATA.storyLibrary.find(s => s.id === id);
+                    return { success: true, story: story || null };
+                  }
+                  return { success: true, stories: MOCK_DATA.storyLibrary, custom: [], records: [] };
                 }
                 if (url.startsWith('/therapist') && method === 'GET') {
-                  return { success: true, therapists: [] };
+                  if (url.includes('/feedback')) {
+                    return { success: true, feedback: MOCK_DATA.therapistFeedback };
+                  }
+                  return { success: true, therapists: MOCK_DATA.therapists };
+                }
+                if (url.startsWith('/therapist/share') && method === 'POST') {
+                  return { success: true, message: '周报已分享给康复师' };
+                }
+                if (url.startsWith('/growth/courses') && method === 'GET') {
+                  return { success: true, courses: MOCK_DATA.growthCourses };
+                }
+                if (url.startsWith('/growth/course/') && method === 'POST') {
+                  return { success: true, message: '学习进度已更新' };
+                }
+                if (url.startsWith('/achievements') && method === 'GET') {
+                  return { success: true, achievements: MOCK_DATA.achievements };
+                }
+                if (url.startsWith('/emergency/strategies') && method === 'GET') {
+                  const level = url.includes('level=') ? url.split('level=')[1].split('&')[0] : 'green';
+                  const allStrategies = {
+                    green: [
+                      { name: '停止-思考-行动', description: '引导孩子停下来，深呼吸，思考接下来该怎么做' },
+                      { name: '有限选择法', description: '给出2个简单选择，让孩子感受到控制感' },
+                      { name: '视觉提示卡', description: '出示图片卡片，帮助孩子理解当前情况' },
+                      { name: '陪伴等待', description: '安静地陪在孩子身边，等待情绪自然平复' }
+                    ],
+                    yellow: [
+                      { name: '深呼吸引导', description: '带孩子一起做深呼吸：吸气4秒、保持4秒、呼气6秒' },
+                      { name: '安全空间', description: '引导孩子到预设的安全角落，提供安抚物品' },
+                      { name: '感官调节', description: '提供感官玩具或压力背心，帮助孩子自我调节' },
+                      { name: '转移注意力', description: '用孩子喜欢的活动或物品转移注意力' }
+                    ],
+                    red: [
+                      { name: '安全防护', description: '首先确保孩子安全，移开危险物品，保护头部' },
+                      { name: '不说话少刺激', description: '保持安静，减少语言和视觉刺激' },
+                      { name: '深压安抚', description: '如孩子接受，用深压拥抱或压力背心提供本体感觉输入' },
+                      { name: '紧急联系', description: '如情况持续超过15分钟，联系康复师或拨打急救电话' }
+                    ]
+                  };
+                  return { success: true, strategies: allStrategies[level] || allStrategies.green };
+                }
+                if (url.startsWith('/community/posts/') && method === 'GET') {
+                  const id = parseInt(url.split('/posts/')[1]);
+                  const post = MOCK_DATA.communityPosts.find(p => p.id === id);
+                  return { success: true, post: post || null };
+                }
+                if (url.includes('/comments') && method === 'GET') {
+                  return { success: true, comments: [
+                    { id: 1, content: '说得太好了，深有同感！', user_name: '小明家长', created_at: '2026-07-11' },
+                    { id: 2, content: '谢谢分享，很实用！', user_name: '小红妈妈', created_at: '2026-07-10' }
+                  ] };
+                }
+                if (url.includes('/like') && method === 'POST') {
+                  return { success: true, likes: Math.floor(Math.random() * 50) + 5, message: '已点赞' };
+                }
+                if (url.startsWith('/growth/profile') && method === 'GET') {
+                  return { success: true, profile: { level: 'L2', growth_index: 65, dimensions: { knowledge: 72, practice: 65, emotion: 58, communication: 70 } }, records: MOCK_DATA.growthRecords };
+                }
+                if (url.startsWith('/growth/history') && method === 'GET') {
+                  return { success: true, records: MOCK_DATA.growthRecords.map(r => ({ ...r, action: r.activity, points: r.score, created_at: r.date })) };
+                }
+                if (url.startsWith('/safety/skills') && method === 'GET') {
+                  return { success: true, skills: MOCK_DATA.safetySkills };
                 }
                 if (url.startsWith('/child/goals') && method === 'POST') {
                   return { success: true, message: '目标添加成功（演示模式）' };
@@ -416,6 +487,30 @@
                 }
                 if (url.startsWith('/finance/fraud-report') && method === 'POST') {
                   return { success: true, message: '举报已提交（演示模式）' };
+                }
+                if (url.startsWith('/peer/groups') && method === 'GET') {
+                  return { success: true, groups: MOCK_DATA.peerGroups };
+                }
+                if (url.startsWith('/peer/messages') && method === 'GET') {
+                  return { success: true, messages: MOCK_DATA.peerMessages };
+                }
+                if (url.startsWith('/peer/activities') && method === 'GET') {
+                  return { success: true, activities: MOCK_DATA.peerActivities };
+                }
+                if (url.startsWith('/peer/join') && method === 'POST') {
+                  return { success: true, message: '已加入群组' };
+                }
+                if (url.startsWith('/peer/message') && method === 'POST') {
+                  return { success: true, message: '消息发送成功' };
+                }
+                if (url.startsWith('/peer/register') && method === 'POST') {
+                  return { success: true, message: '报名成功' };
+                }
+                if (url.startsWith('/loneliness/assessment') && method === 'GET') {
+                  return { success: true, assessment: MOCK_DATA.lonelinessAssessment };
+                }
+                if (url.startsWith('/loneliness/score') && method === 'POST') {
+                  return { success: true, message: '评估已提交' };
                 }
                 if (method === 'POST') {
                   return { success: true, message: '操作成功（演示模式）' };
@@ -532,6 +627,34 @@
         { id: 2, date: '2026-07-09', activity: '记录行为', score: 5, type: 'recording' },
         { id: 3, date: '2026-07-08', activity: '完成情绪管理课程', score: 15, type: 'learning' }
       ],
+      therapists: [
+        { id: 1, name: '王医生', title: '儿童发育行为科', hospital: '市儿童医院', avatar: '👨‍⚕️', specialty: 'ABA行为分析', rating: 4.8 },
+        { id: 2, name: '李老师', title: '特殊教育', hospital: '阳光康复中心', avatar: '👩‍🏫', specialty: '感觉统合训练', rating: 4.9 },
+      ],
+      therapistFeedback: [
+        { id: 1, report_id: 1, therapist_id: 1, therapist_name: '王医生', content: '小明本周社交互动进步明显，建议继续增加同伴互动场景的练习。情绪调节方面可以尝试使用情绪卡片辅助识别。', rating: 4, created_at: '2026-07-12', suggestions: ['增加同伴互动场景', '使用情绪卡片辅助'] },
+        { id: 2, report_id: 2, therapist_id: 2, therapist_name: '李老师', content: '感觉统合训练效果良好，建议家中也配备一些感官调节工具。可以尝试本体感觉活动如跳床、推重物等。', rating: 5, created_at: '2026-07-05', suggestions: ['配备感官调节工具', '增加本体感觉活动'] },
+      ],
+      growthCourses: [
+        { id: 1, title: '孤独症基础知识', category: '入门', duration: '30分钟', progress: 100, chapters: 5, completed_chapters: 5, description: '了解孤独症的核心特征和干预原则', icon: '📖' },
+        { id: 2, title: '正向行为支持', category: '行为干预', duration: '45分钟', progress: 60, chapters: 6, completed_chapters: 4, description: '学习正向行为支持的核心理念和实操方法', icon: '💪' },
+        { id: 3, title: '情绪调节策略', category: '情绪管理', duration: '40分钟', progress: 30, chapters: 5, completed_chapters: 2, description: '掌握帮助孩子情绪调节的实用策略', icon: '🧘' },
+        { id: 4, title: '社交故事教学', category: '社交技能', duration: '35分钟', progress: 0, chapters: 4, completed_chapters: 0, description: '使用社交故事帮助孩子理解社交规则', icon: '👫' },
+        { id: 5, title: '感觉统合训练指导', category: '感觉统合', duration: '50分钟', progress: 0, chapters: 7, completed_chapters: 0, description: '了解感觉统合失调及家庭训练方法', icon: '🎯' },
+        { id: 6, title: '沟通辅助技术', category: '沟通', duration: '40分钟', progress: 80, chapters: 5, completed_chapters: 4, description: '学习使用AAC等辅助沟通工具', icon: '💬' },
+      ],
+      achievements: [
+        { id: 1, title: '初心起航', description: '注册星伴账号', icon: '🌟', unlocked: true, unlocked_at: '2026-06-01', category: 'milestone' },
+        { id: 2, title: '第一次记录', description: '完成第一条行为记录', icon: '📝', unlocked: true, unlocked_at: '2026-06-02', category: 'recording' },
+        { id: 3, title: '周报达人', description: '生成5份周报', icon: '📊', unlocked: true, unlocked_at: '2026-07-01', category: 'report' },
+        { id: 4, title: '学习先锋', description: '完成3门课程', icon: '🎓', unlocked: false, unlocked_at: null, category: 'learning', progress: 2, target: 3 },
+        { id: 5, title: '策略大师', description: '使用10种不同策略', icon: '🏆', unlocked: false, unlocked_at: null, category: 'strategy', progress: 6, target: 10 },
+        { id: 6, title: '社区之星', description: '发布5篇社区帖子', icon: '⭐', unlocked: false, unlocked_at: null, category: 'community', progress: 3, target: 5 },
+        { id: 7, title: '安全守护者', description: '完成所有安全技能训练', icon: '🛡️', unlocked: false, unlocked_at: null, category: 'safety', progress: 2, target: 6 },
+        { id: 8, title: '情绪管理达人', description: '完成情绪管理课程', icon: '🧘', unlocked: false, unlocked_at: null, category: 'learning', progress: 30, target: 100 },
+        { id: 9, title: '坚持30天', description: '连续30天使用星伴', icon: '🔥', unlocked: false, unlocked_at: null, category: 'milestone', progress: 14, target: 30 },
+        { id: 10, title: '分享达人', description: '分享3份周报给康复师', icon: '📤', unlocked: true, unlocked_at: '2026-07-10', category: 'report' },
+      ],
       safetySkills: [
         { id: 1, name: '认识红绿灯', category: '交通安全', description: '学习红绿灯信号，知道红灯停绿灯行', difficulty: '简单' },
         { id: 2, name: '记住家庭住址', category: '防走失', description: '记住家庭住址和父母电话号码', difficulty: '简单' },
@@ -563,8 +686,26 @@
         sensory_hearing: '敏感',
         sensory_visual: '正常',
         sensory_tactile: '回避',
+        sensory_taste: '敏感',
+        sensory_smell: '寻求',
         sensory_vestibular: '寻求',
         reinforcers: ['拼图游戏', '数字卡片', '荡秋千', '音乐'],
+        development_milestones: [
+          { id: 1, age: '0-6月', title: '社交微笑', description: '对熟悉的人微笑', achieved: true, date: '2020-10' },
+          { id: 2, age: '6-12月', title: '模仿动作', description: '模仿简单的动作如拍手', achieved: true, date: '2021-03' },
+          { id: 3, age: '12-18月', title: '指物表达', description: '用手指向感兴趣的物品', achieved: true, date: '2021-08' },
+          { id: 4, age: '18-24月', title: '简单词语', description: '说出2-3个有意义的词', achieved: true, date: '2022-02' },
+          { id: 5, age: '2-3岁', title: '双词组合', description: '组合两个词表达需求', achieved: true, date: '2023-01' },
+          { id: 6, age: '3-4岁', title: '简单对话', description: '能进行简单的来回对话', achieved: false },
+          { id: 7, age: '4-5岁', title: '同伴游戏', description: '能与同伴进行合作性游戏', achieved: false },
+          { id: 8, age: '5-6岁', title: '情绪识别', description: '能识别并表达基本情绪', achieved: false },
+        ],
+        personalized_recommendations: [
+          { id: 1, title: '增加感官调节活动', description: '根据孩子的听觉和味觉敏感特点，建议增加感官饮食（Sensory Diet）活动', icon: '🎯', type: 'sensory' },
+          { id: 2, title: '强化社交故事训练', description: '孩子社交能力评分较低，建议每天阅读1-2篇社交故事', icon: '📚', type: 'social' },
+          { id: 3, title: '情绪识别卡片练习', description: '推荐使用情绪识别卡片帮助孩子学习情绪表达', icon: '😊', type: 'emotion' },
+          { id: 4, title: '利用数字优势', description: '孩子对数字敏感，可使用数字相关教具辅助认知学习', icon: '🔢', type: 'cognition' },
+        ],
         medical_info: {
           doctor_name: '李医生',
           hospital: '市儿童医院',
@@ -618,7 +759,40 @@
         { id: 1, type: '诈骗', title: '虚假康复机构诈骗', description: '近期发现有人冒充康复机构进行诈骗，声称可以"治愈"孤独症，收取高额费用。请警惕此类骗局。', severity: 'high', date: '2026-07-10' },
         { id: 2, type: '虚假信息', title: '虚假特效药广告', description: '网络上出现声称可以治疗孤独症的"特效药"广告，这些药物未经科学验证，请不要轻信。', severity: 'medium', date: '2026-07-08' },
         { id: 3, type: '风险提示', title: '个人信息泄露风险', description: '请注意保护孩子的隐私信息，不要在社交媒体上公开孩子的诊断信息和照片。', severity: 'low', date: '2026-07-05' }
-      ]
+      ],
+      peerGroups: [
+        { id: 1, name: '新手家长互助群', description: '刚确诊的家长互相支持，分享经验和情绪', member_count: 128, max_members: 200, category: '互助', tags: ['新手', '情感支持'], is_joined: true, avatar: '🤝', recent_activity: '5分钟前' },
+        { id: 2, name: 'ABA训练交流群', description: 'ABA训练方法分享和讨论', member_count: 86, max_members: 150, category: '训练', tags: ['ABA', '训练方法'], is_joined: true, avatar: '📚', recent_activity: '10分钟前' },
+        { id: 3, name: '大龄儿童家长群', description: '8岁以上孤独症儿童家长的交流空间', member_count: 64, max_members: 100, category: '年龄', tags: ['大龄', '青春期'], is_joined: false, avatar: '🌟', recent_activity: '1小时前' },
+        { id: 4, name: '情绪调节经验分享', description: '分享帮助孩子情绪调节的实用方法', member_count: 45, max_members: 80, category: '技能', tags: ['情绪管理', '方法'], is_joined: false, avatar: '🧘', recent_activity: '3小时前' },
+      ],
+      peerMessages: [
+        { id: 1, group_id: 1, user_name: '小雨妈妈', avatar: '👩', content: '今天孩子第一次主动跟小朋友打招呼了！激动得我眼泪都要掉下来', time: '5分钟前', likes: 12, replies: 5 },
+        { id: 2, group_id: 1, user_name: '阳光爸爸', avatar: '👨', content: '我家孩子也是，训练了半年终于有进步了，坚持就是胜利！', time: '8分钟前', likes: 8, replies: 3 },
+        { id: 3, group_id: 2, user_name: '乐乐妈妈', avatar: '👩', content: '请问大家ABA训练中，孩子不配合怎么办？', time: '10分钟前', likes: 3, replies: 7 },
+        { id: 4, group_id: 1, user_name: '星宝奶奶', avatar: '👵', content: '加油！每个小进步都值得庆祝', time: '15分钟前', likes: 15, replies: 2 },
+      ],
+      peerActivities: [
+        { id: 1, title: '线上分享会：如何应对孩子情绪爆发', date: '2026-07-18', time: '20:00-21:00', speaker: '王医生', participants: 34, max_participants: 50, type: '线上', is_registered: false },
+        { id: 2, title: '家长线下聚会', date: '2026-07-20', time: '14:00-16:00', speaker: '社区志愿者', participants: 12, max_participants: 20, type: '线下', is_registered: true },
+        { id: 3, title: '专题讲座：感觉统合训练实操', date: '2026-07-22', time: '19:30-20:30', speaker: '李老师', participants: 56, max_participants: 100, type: '线上', is_registered: false },
+      ],
+      lonelinessAssessment: {
+        current_score: 6,
+        history: [
+          { date: '2026-07-08', score: 7 },
+          { date: '2026-07-01', score: 8 },
+          { date: '2026-06-24', score: 7 },
+          { date: '2026-06-17', score: 9 },
+        ],
+        suggestions: [
+          { title: '加入互助群组', description: '与有相似经历的家长交流，减少孤独感', icon: '🤝', completed: true },
+          { title: '参加线上分享会', description: '聆听其他家长的经验分享', icon: '🎤', completed: false },
+          { title: '发布一条社区动态', description: '分享你的经历，获得共鸣', icon: '💬', completed: true },
+          { title: '完成一次家庭签到', description: '记录家庭中的积极时刻', icon: '❤️', completed: true },
+          { title: '尝试情绪日记', description: '每天记录自己的情绪状态', icon: '📝', completed: false },
+        ]
+      }
     };
 
     let currentUser = null;
@@ -634,6 +808,20 @@
       setTimeout(() => toast.classList.add('hidden'), 3000);
     }
 
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      const now = new Date();
+      const diff = now - d;
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      if (days === 0) return '今天';
+      if (days === 1) return '昨天';
+      if (days === 2) return '前天';
+      if (days < 7) return days + '天前';
+      return (d.getMonth() + 1) + '月' + d.getDate() + '日';
+    }
+
     function showLoading() {
       document.getElementById('loading-overlay').classList.remove('hidden');
     }
@@ -643,8 +831,14 @@
     }
 
     function saveUser(user) {
-      localStorage.setItem('xingban_user', JSON.stringify(user));
-      currentUser = user;
+      // 统一用户数据结构，确保name/phone属性存在
+      const normalizedUser = {
+        ...user,
+        name: user.nickname || user.name || '家长',
+        phone: user.phone || ''
+      };
+      localStorage.setItem('xingban_user', JSON.stringify(normalizedUser));
+      currentUser = normalizedUser;
     }
 
     function getUser() {
@@ -761,6 +955,10 @@
         case 'notifications': renderNotifications(content); break;
         case 'career': renderCareer(content); break;
         case 'finance': renderFinance(content); break;
+        case 'therapist': renderTherapist(content); break;
+        case 'achievements': renderAchievements(content); break;
+        case 'peer': renderPeer(content); break;
+        case 'settings': renderSettings(content); break;
         default: renderHome(content);
       }
     }
@@ -771,15 +969,24 @@
       document.getElementById('page-title').textContent = '首页';
       document.getElementById('page-subtitle').textContent = '陪伴孩子每一天';
 
-      const todayRecords = MOCK_DATA.behaviors.filter(b => b.time.includes('今天')).length;
+      const todayRecords = MOCK_DATA.behaviors.filter(b => b.time.includes('今天') || b.time.includes('刚刚')).length;
       const streak = 7;
+
+      // 时间问候
+      const hour = new Date().getHours();
+      let greeting = '早安';
+      let greetingIcon = '🌅';
+      if (hour >= 12 && hour < 14) { greeting = '午安'; greetingIcon = '☀️'; }
+      else if (hour >= 14 && hour < 18) { greeting = '下午好'; greetingIcon = '🌤️'; }
+      else if (hour >= 18 && hour < 22) { greeting = '晚上好'; greetingIcon = '🌙'; }
+      else if (hour >= 22 || hour < 6) { greeting = '夜深了'; greetingIcon = '🌃'; }
 
       container.innerHTML = `
         <div class="p-4 space-y-6 animate-fade-in">
           <!-- 欢迎卡片 -->
           <div class="bg-gradient-to-br from-primary to-primary-dark rounded-2xl p-5 text-white card-shadow">
-            <h2 class="text-lg font-bold mb-1">早安，${currentUser?.name || '家长'}</h2>
-            <p class="text-white/80 text-sm">今天也要加油哦！</p>
+            <h2 class="text-lg font-bold mb-1">${greeting}，${currentUser?.name || '家长'} ${greetingIcon}</h2>
+            <p class="text-white/80 text-sm">${hour >= 22 ? '注意休息，明天继续加油' : hour >= 18 ? '辛苦一天了，记得放松一下' : '今天也要加油哦！'}</p>
             <div class="flex gap-4 mt-4">
               <div>
                 <div class="text-2xl font-bold">${todayRecords}</div>
@@ -834,7 +1041,57 @@
               </div>
               <span class="text-xs text-text-secondary">档案</span>
             </button>
+            <button onclick="navigateTo('therapist')" class="flex flex-col items-center gap-2 p-3 bg-white rounded-xl card-shadow hover:shadow-md transition-shadow">
+              <div class="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
+                <svg class="w-5 h-5 text-teal-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+              <span class="text-xs text-text-secondary">康复师</span>
+            </button>
+            <button onclick="navigateTo('peer')" class="flex flex-col items-center gap-2 p-3 bg-white rounded-xl card-shadow hover:shadow-md transition-shadow">
+              <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                <span class="text-primary text-lg">🤝</span>
+              </div>
+              <span class="text-xs text-text-secondary">同伴</span>
+            </button>
+            <button onclick="navigateTo('achievements')" class="flex flex-col items-center gap-2 p-3 bg-white rounded-xl card-shadow hover:shadow-md transition-shadow">
+              <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                <svg class="w-5 h-5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="8" r="7"/>
+                  <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+                </svg>
+              </div>
+              <span class="text-xs text-text-secondary">成就</span>
+            </button>
+            <button onclick="navigateTo('family')" class="flex flex-col items-center gap-2 p-3 bg-white rounded-xl card-shadow hover:shadow-md transition-shadow">
+              <div class="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
+                <svg class="w-5 h-5 text-pink-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+              </div>
+              <span class="text-xs text-text-secondary">家庭</span>
+            </button>
           </div>
+
+          <!-- 消息提醒 -->
+          ${MOCK_DATA.notifications.filter(n => !n.is_read).length > 0 ? `
+          <div onclick="navigateTo('notifications')" class="bg-white p-4 rounded-xl card-shadow flex items-center gap-3 cursor-pointer hover:shadow-md transition-shadow">
+            <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+              <span class="text-lg">🔔</span>
+            </div>
+            <div class="flex-1">
+              <div class="text-sm font-medium text-text-primary">您有 ${MOCK_DATA.notifications.filter(n => !n.is_read).length} 条未读消息</div>
+              <div class="text-xs text-text-muted">点击查看详情</div>
+            </div>
+            <div class="w-5 h-5 bg-danger rounded-full flex items-center justify-center">
+              <span class="text-xs text-white font-bold">${MOCK_DATA.notifications.filter(n => !n.is_read).length}</span>
+            </div>
+          </div>
+          ` : ''}
 
           <!-- 最近记录 -->
           <div>
@@ -961,9 +1218,16 @@
       }
     }
 
+    // 全局筛选状态
+    let recordsFilter = { search: '', childId: null };
+    let strategiesFilter = { search: '', category: '全部' };
+    let communityFilter = { search: '', category: '全部' };
+
     function renderRecords(container) {
       document.getElementById('page-title').textContent = '行为记录';
       document.getElementById('page-subtitle').textContent = '记录孩子的每一天';
+
+      const filteredRecords = getFilteredRecords();
 
       container.innerHTML = `
         <div class="p-4 space-y-4 animate-fade-in">
@@ -974,7 +1238,9 @@
                 <circle cx="11" cy="11" r="8"/>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
-              <input type="text" placeholder="搜索记录..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+              <input type="text" id="records-search" placeholder="搜索记录..." value="${recordsFilter.search}"
+                oninput="onRecordsSearch(this.value)"
+                class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary">
             </div>
             <button onclick="showNewRecord()" class="px-4 py-2.5 bg-primary text-white rounded-xl font-medium flex items-center gap-2">
               <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -987,15 +1253,15 @@
 
           <!-- 儿童筛选 -->
           <div class="flex gap-2 overflow-x-auto scrollbar-hide">
-            <button class="px-4 py-2 rounded-lg bg-primary text-white text-sm whitespace-nowrap">全部</button>
+            <button onclick="filterRecordsByChild(null)" class="px-4 py-2 rounded-lg ${recordsFilter.childId === null ? 'bg-primary text-white' : 'bg-white border border-border text-text-secondary'} text-sm whitespace-nowrap">全部</button>
             ${MOCK_DATA.children.map(c => `
-              <button class="px-4 py-2 rounded-lg bg-white border border-border text-text-secondary text-sm whitespace-nowrap">${c.name}</button>
+              <button onclick="filterRecordsByChild(${c.id})" class="px-4 py-2 rounded-lg ${recordsFilter.childId === c.id ? 'bg-primary text-white' : 'bg-white border border-border text-text-secondary'} text-sm whitespace-nowrap">${c.name}</button>
             `).join('')}
           </div>
 
           <!-- 记录列表 -->
           <div class="space-y-3">
-            ${MOCK_DATA.behaviors.map(b => `
+            ${filteredRecords.length > 0 ? filteredRecords.map(b => `
               <div onclick="showRecordDetail(${b.id})" class="bg-white p-4 rounded-xl card-shadow flex items-start gap-3 cursor-pointer">
                 <div class="emoji-avatar bg-primary-light/30">${getAvatar(b.childName)}</div>
                 <div class="flex-1">
@@ -1014,22 +1280,48 @@
                   </div>
                 </div>
               </div>
-            `).join('')}
-          </div>
-
-          ${MOCK_DATA.behaviors.length === 0 ? `
-            <div class="text-center py-12">
-              <div class="w-16 h-16 bg-secondary/30 rounded-full flex items-center justify-center mx-auto mb-3">
-                <svg class="w-8 h-8 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                </svg>
+            `).join('') : `
+              <div class="text-center py-12">
+                <div class="w-16 h-16 bg-secondary/30 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg class="w-8 h-8 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  </svg>
+                </div>
+                <p class="text-text-muted">${recordsFilter.search || recordsFilter.childId ? '没有匹配的记录' : '还没有记录'}</p>
+                ${!recordsFilter.search && !recordsFilter.childId ? '<button onclick="showNewRecord()" class="mt-3 text-primary text-sm">添加第一条记录</button>' : ''}
               </div>
-              <p class="text-text-muted">还没有记录</p>
-              <button onclick="showNewRecord()" class="mt-3 text-primary text-sm">添加第一条记录</button>
-            </div>
-          ` : ''}
+            `}
+          </div>
         </div>
       `;
+    }
+
+    function getFilteredRecords() {
+      let records = [...MOCK_DATA.behaviors];
+      if (recordsFilter.childId) {
+        const child = MOCK_DATA.children.find(c => c.id === recordsFilter.childId);
+        if (child) records = records.filter(b => b.childName === child.name);
+      }
+      if (recordsFilter.search) {
+        const q = recordsFilter.search.toLowerCase();
+        records = records.filter(b =>
+          b.description.toLowerCase().includes(q) ||
+          b.category.toLowerCase().includes(q) ||
+          b.type.toLowerCase().includes(q) ||
+          b.childName.toLowerCase().includes(q)
+        );
+      }
+      return records;
+    }
+
+    function onRecordsSearch(value) {
+      recordsFilter.search = value;
+      renderRecords(document.getElementById('main-content'));
+    }
+
+    function filterRecordsByChild(childId) {
+      recordsFilter.childId = childId;
+      renderRecords(document.getElementById('main-content'));
     }
 
     function getEmotionColor(emotion) {
@@ -1069,7 +1361,34 @@
             </div>
             <div>
               <label class="block text-sm text-text-secondary mb-1">行为描述</label>
-              <textarea id="record-content" placeholder="描述孩子的行为..." class="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary" rows="3"></textarea>
+              <div style="display:">
+                <textarea id="record-content" placeholder="描述孩子的行为..." class="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary" rows="3"></textarea>
+              </div>
+              <div id="voice-input-area" style="display:none" class="bg-background rounded-xl p-6 text-center">
+                <button id="voice-record-btn" onclick="toggleVoiceRecording()" class="w-16 h-16 rounded-full bg-primary text-white mx-auto flex items-center justify-center shadow-lg hover:bg-primary-dark transition-colors">
+                  <svg class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                  </svg>
+                </button>
+                <p id="voice-status" class="text-sm text-text-secondary mt-3">点击开始录音</p>
+                <p id="voice-result" class="text-sm text-primary mt-2 hidden"></p>
+              </div>
+              <div id="photo-input-area" style="display:none" class="bg-background rounded-xl p-4 text-center">
+                <label class="w-full py-8 border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors">
+                  <svg class="w-10 h-10 text-text-muted mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                  <span class="text-sm text-text-secondary">点击拍照或选择图片</span>
+                  <input type="file" accept="image/*" capture="environment" onchange="handlePhotoSelect(event)" class="hidden">
+                </label>
+                <div id="photo-preview" class="mt-3 hidden">
+                  <img id="photo-preview-img" class="w-full rounded-xl max-h-40 object-cover" src="" alt="预览">
+                  <p class="text-xs text-text-muted mt-1">图片已选择，可继续添加文字描述</p>
+                </div>
+              </div>
             </div>
             <div class="flex gap-4">
               <div class="flex-1">
@@ -1119,6 +1438,15 @@
         b.className = 'flex-1 py-2 rounded-lg border border-border text-text-secondary text-sm';
       });
       btn.className = 'flex-1 py-2 rounded-lg bg-primary text-white text-sm';
+
+      // 切换输入区域
+      const textArea = document.getElementById('record-content');
+      const voiceArea = document.getElementById('voice-input-area');
+      const photoArea = document.getElementById('photo-input-area');
+
+      if (textArea) textArea.parentElement.style.display = type === 'text' ? '' : 'none';
+      if (voiceArea) voiceArea.style.display = type === 'voice' ? '' : 'none';
+      if (photoArea) photoArea.style.display = type === 'photo' ? '' : 'none';
     }
 
     function updateIntensity(value) {
@@ -1126,6 +1454,109 @@
       const levels = { '1': 'low', '2': 'medium', '3': 'high' };
       document.getElementById('intensity-value').textContent = labels[value];
       document.getElementById('record-intensity').value = levels[value];
+    }
+
+    // 语音录制
+    let isRecording = false;
+    let mediaRecorder = null;
+    let audioChunks = [];
+
+    function toggleVoiceRecording() {
+      if (isRecording) {
+        stopVoiceRecording();
+      } else {
+        startVoiceRecording();
+      }
+    }
+
+    async function startVoiceRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+        mediaRecorder.onstop = () => {
+          stream.getTracks().forEach(t => t.stop());
+          processVoiceInput();
+        };
+        mediaRecorder.start();
+        isRecording = true;
+
+        const btn = document.getElementById('voice-record-btn');
+        if (btn) {
+          btn.classList.remove('bg-primary');
+          btn.classList.add('bg-danger', 'animate-pulse');
+        }
+        const status = document.getElementById('voice-status');
+        if (status) status.textContent = '录音中...点击停止';
+      } catch (e) {
+        // 无麦克风权限时使用模拟模式
+        showToast('无法访问麦克风，已切换到语音输入模拟模式');
+        isRecording = true;
+        const btn = document.getElementById('voice-record-btn');
+        if (btn) {
+          btn.classList.remove('bg-primary');
+          btn.classList.add('bg-danger', 'animate-pulse');
+        }
+        const status = document.getElementById('voice-status');
+        if (status) status.textContent = '录音中...点击停止';
+
+        // 3秒后自动停止模拟
+        setTimeout(() => {
+          if (isRecording) stopVoiceRecording();
+        }, 3000);
+      }
+    }
+
+    function stopVoiceRecording() {
+      isRecording = false;
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      } else {
+        processVoiceInput();
+      }
+    }
+
+    function processVoiceInput() {
+      const btn = document.getElementById('voice-record-btn');
+      if (btn) {
+        btn.classList.remove('bg-danger', 'animate-pulse');
+        btn.classList.add('bg-primary');
+      }
+      const status = document.getElementById('voice-status');
+      if (status) status.textContent = '语音识别完成';
+
+      const result = document.getElementById('voice-result');
+      if (result) {
+        result.classList.remove('hidden');
+        result.textContent = '（演示）孩子今天情绪波动较大，在超市里突然哭闹，持续了大约10分钟';
+      }
+
+      // 自动填充文字描述
+      const content = document.getElementById('record-content');
+      if (content) {
+        content.value = '孩子今天情绪波动较大，在超市里突然哭闹，持续了大约10分钟';
+      }
+
+      showToast('语音已转为文字');
+    }
+
+    // 拍照选择
+    function handlePhotoSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const preview = document.getElementById('photo-preview');
+        const img = document.getElementById('photo-preview-img');
+        if (preview && img) {
+          img.src = e.target.result;
+          preview.classList.remove('hidden');
+        }
+        showToast('图片已选择');
+      };
+      reader.readAsDataURL(file);
     }
 
     async function saveRecord() {
@@ -1148,6 +1579,20 @@
 
         if (result.success) {
           showToast('记录成功');
+          // 添加到本地数据
+          const child = MOCK_DATA.children.find(c => c.id === child_id);
+          const newRecord = {
+            id: Date.now(),
+            childName: child ? child.name : '未知',
+            type: behavior_category.includes('沟通') ? '沟通' : behavior_category.includes('社交') ? '行为' : behavior_category.includes('情绪') ? '情绪' : '行为',
+            category: behavior_category,
+            emotion: emotion_state,
+            description: content,
+            time: '刚刚',
+            intensity: intensity_level === 'low' ? 3 : intensity_level === 'medium' ? 5 : 8
+          };
+          MOCK_DATA.behaviors.unshift(newRecord);
+          persistBehaviors();
           document.querySelector('.fixed').remove();
           navigateTo('records');
         } else {
@@ -1163,6 +1608,7 @@
       if (!record) return;
 
       const modal = document.createElement('div');
+      modal.id = 'record-detail-modal';
       modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
       modal.innerHTML = `
         <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in">
@@ -1194,13 +1640,131 @@
               </div>
             </div>
             <div class="flex gap-2">
-              <button onclick="this.closest('.fixed').remove()" class="flex-1 py-2.5 rounded-xl border border-border text-text-secondary">编辑</button>
-              <button onclick="this.closest('.fixed').remove(); showToast('已删除')" class="flex-1 py-2.5 rounded-xl bg-danger/10 text-danger">删除</button>
+              <button onclick="editRecord(${record.id})" class="flex-1 py-2.5 rounded-xl bg-primary/10 text-primary font-medium">编辑</button>
+              <button onclick="deleteRecord(${record.id})" class="flex-1 py-2.5 rounded-xl bg-danger/10 text-danger font-medium">删除</button>
             </div>
           </div>
         </div>
       `;
       document.body.appendChild(modal);
+    }
+
+    function editRecord(id) {
+      const record = MOCK_DATA.behaviors.find(b => b.id === id);
+      if (!record) return;
+
+      // 关闭详情弹窗
+      document.getElementById('record-detail-modal')?.remove();
+
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-end justify-center z-50';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold">编辑记录</h2>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">行为描述</label>
+              <textarea id="edit-record-content" class="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary" rows="3">${record.description}</textarea>
+            </div>
+            <div class="flex gap-4">
+              <div class="flex-1">
+                <label class="block text-sm text-text-secondary mb-1">行为分类</label>
+                <select id="edit-record-category" class="w-full px-4 py-2.5 rounded-xl border border-border bg-white">
+                  ${['情绪爆发','刻板行为','攻击行为','自伤行为','跑开/走失','感官寻求','感官回避','沟通尝试','适应性技能','社交发起','进食问题','睡眠问题','其他'].map(c =>
+                    `<option value="${c}" ${c === record.category ? 'selected' : ''}>${c}</option>`
+                  ).join('')}
+                </select>
+              </div>
+              <div class="flex-1">
+                <label class="block text-sm text-text-secondary mb-1">情绪状态</label>
+                <select id="edit-record-emotion" class="w-full px-4 py-2.5 rounded-xl border border-border bg-white">
+                  ${['积极','平静','消极','焦虑','烦躁'].map(e =>
+                    `<option value="${e}" ${e === record.emotion ? 'selected' : ''}>${e}</option>`
+                  ).join('')}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">强度等级: <span id="edit-intensity-value">${record.intensity <= 3 ? '低' : record.intensity <= 6 ? '中等' : '高'}</span></label>
+              <input type="range" min="1" max="10" value="${record.intensity}" oninput="document.getElementById('edit-intensity-value').textContent = this.value <= 3 ? '低' : this.value <= 6 ? '中等' : '高'" class="w-full accent-primary">
+            </div>
+            <button onclick="saveEditRecord(${id})" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存修改</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function saveEditRecord(id) {
+      const content = document.getElementById('edit-record-content').value;
+      const category = document.getElementById('edit-record-category').value;
+      const emotion = document.getElementById('edit-record-emotion').value;
+
+      if (!content) {
+        showToast('请填写行为描述');
+        return;
+      }
+
+      // 更新本地数据
+      const record = MOCK_DATA.behaviors.find(b => b.id === id);
+      if (record) {
+        record.description = content;
+        record.category = category;
+        record.emotion = emotion;
+      }
+      persistBehaviors();
+
+      try {
+        await apiRequest(`/behavior/${id}`, 'PUT', { content, category, emotion });
+        showToast('记录已更新');
+        document.querySelector('.fixed').remove();
+        navigateTo('records');
+      } catch (error) {
+        showToast('网络错误');
+      }
+    }
+
+    function deleteRecord(id) {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-xs rounded-2xl p-6 animate-fade-in text-center">
+          <div class="w-12 h-12 bg-danger/10 rounded-full flex items-center justify-center mx-auto mb-3">
+            <svg class="w-6 h-6 text-danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-text-primary mb-2">确认删除</h3>
+          <p class="text-sm text-text-secondary mb-4">删除后无法恢复，确定要删除这条记录吗？</p>
+          <div class="flex gap-3">
+            <button onclick="this.closest('.fixed').remove()" class="flex-1 py-2.5 rounded-xl border border-border text-text-secondary">取消</button>
+            <button onclick="confirmDeleteRecord(${id})" class="flex-1 py-2.5 rounded-xl bg-danger text-white">删除</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function confirmDeleteRecord(id) {
+      // 从本地数据中移除
+      const index = MOCK_DATA.behaviors.findIndex(b => b.id === id);
+      if (index > -1) MOCK_DATA.behaviors.splice(index, 1);
+      persistBehaviors();
+
+      try {
+        await apiRequest(`/behavior/${id}`, 'DELETE');
+        showToast('记录已删除');
+        // 关闭所有弹窗
+        document.querySelectorAll('.fixed').forEach(el => el.remove());
+        navigateTo('records');
+      } catch (error) {
+        showToast('网络错误');
+      }
     }
 
     function renderEmergency(container) {
@@ -1312,10 +1876,22 @@
 
       const texts = ['吸气...', '保持...', '呼气...', '放松...'];
       let i = 0;
+      const breathText = document.getElementById('breath-text');
+      if (breathText) breathText.textContent = texts[0];
+
       const interval = setInterval(() => {
-        document.getElementById('breath-text').textContent = texts[i % 4];
         i++;
-      }, 2000);
+        if (breathText) breathText.textContent = texts[i % 4];
+        // 同步高亮当前呼吸阶段
+        const circles = document.querySelectorAll('.animate-breathe');
+        circles.forEach((c, idx) => {
+          c.style.animationDuration = (i % 2 === 0 ? '4' : '6') + 's';
+        });
+        // 检查是否离开了紧急模式页面
+        if (!document.getElementById('breath-text')) {
+          clearInterval(interval);
+        }
+      }, 4000);
     }
 
     async function showEmergencyStrategies(level) {
@@ -1368,6 +1944,9 @@
       document.getElementById('page-title').textContent = '策略库';
       document.getElementById('page-subtitle').textContent = '科学的干预方法';
 
+      const categories = ['全部', '情绪安抚', '沟通辅助', '行为引导', '生活自理', '社交训练', '安全防护'];
+      const filteredStrategies = getFilteredStrategies();
+
       container.innerHTML = `
         <div class="p-4 space-y-4 animate-fade-in">
           <!-- 搜索栏 -->
@@ -1376,22 +1955,21 @@
               <circle cx="11" cy="11" r="8"/>
               <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
-            <input type="text" placeholder="搜索策略..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+            <input type="text" id="strategies-search" placeholder="搜索策略..." value="${strategiesFilter.search}"
+              oninput="onStrategiesSearch(this.value)"
+              class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary">
           </div>
 
           <!-- 分类筛选 -->
           <div class="flex flex-wrap gap-2">
-            <button class="px-3 py-1.5 rounded-lg bg-primary text-white text-sm">全部</button>
-            <button class="px-3 py-1.5 rounded-lg bg-white border border-border text-text-secondary text-sm">情绪安抚</button>
-            <button class="px-3 py-1.5 rounded-lg bg-white border border-border text-text-secondary text-sm">沟通辅助</button>
-            <button class="px-3 py-1.5 rounded-lg bg-white border border-border text-text-secondary text-sm">行为引导</button>
-            <button class="px-3 py-1.5 rounded-lg bg-white border border-border text-text-secondary text-sm">生活自理</button>
-            <button class="px-3 py-1.5 rounded-lg bg-white border border-border text-text-secondary text-sm">安全防护</button>
+            ${categories.map(cat => `
+              <button onclick="filterStrategiesByCategory('${cat}')" class="px-3 py-1.5 rounded-lg ${strategiesFilter.category === cat ? 'bg-primary text-white' : 'bg-white border border-border text-text-secondary'} text-sm">${cat}</button>
+            `).join('')}
           </div>
 
           <!-- 策略列表 -->
           <div class="grid grid-cols-2 gap-3">
-            ${MOCK_DATA.strategies.map(s => `
+            ${filteredStrategies.length > 0 ? filteredStrategies.map(s => `
               <div onclick="showStrategyDetail(${s.id})" class="bg-white p-4 rounded-xl card-shadow strategy-card cursor-pointer">
                 <div class="flex items-center justify-between mb-2">
                   <span class="font-medium text-text-primary text-sm">${s.name}</span>
@@ -1406,10 +1984,40 @@
                   <span>${s.usageCount}次使用</span>
                 </div>
               </div>
-            `).join('')}
+            `).join('') : `
+              <div class="col-span-2 text-center py-8 text-text-muted">
+                ${strategiesFilter.search || strategiesFilter.category !== '全部' ? '没有匹配的策略' : '暂无策略'}
+              </div>
+            `}
           </div>
         </div>
       `;
+    }
+
+    function getFilteredStrategies() {
+      let strategies = [...MOCK_DATA.strategies];
+      if (strategiesFilter.category !== '全部') {
+        strategies = strategies.filter(s => s.category === strategiesFilter.category);
+      }
+      if (strategiesFilter.search) {
+        const q = strategiesFilter.search.toLowerCase();
+        strategies = strategies.filter(s =>
+          s.name.toLowerCase().includes(q) ||
+          s.description.toLowerCase().includes(q) ||
+          s.category.toLowerCase().includes(q)
+        );
+      }
+      return strategies;
+    }
+
+    function onStrategiesSearch(value) {
+      strategiesFilter.search = value;
+      renderStrategies(document.getElementById('main-content'));
+    }
+
+    function filterStrategiesByCategory(category) {
+      strategiesFilter.category = category;
+      renderStrategies(document.getElementById('main-content'));
     }
 
     function renderProfile(container) {
@@ -1594,13 +2202,57 @@
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
+              <button onclick="navigateTo('therapist')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+                <div class="w-10 h-10 bg-teal-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-teal-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                </div>
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-text-primary">康复师沟通</div>
+                  <div class="text-xs text-text-muted">周报分享与反馈</div>
+                </div>
+                <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+              <button onclick="navigateTo('achievements')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+                <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="8" r="7"/>
+                    <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+                  </svg>
+                </div>
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-text-primary">成就徽章</div>
+                  <div class="text-xs text-text-muted">${MOCK_DATA.achievements.filter(a => a.unlocked).length}/${MOCK_DATA.achievements.length} 已解锁</div>
+                </div>
+                <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+              <button onclick="navigateTo('peer')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+                <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                  <span class="text-lg">🤝</span>
+                </div>
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-text-primary">同伴联结</div>
+                  <div class="text-xs text-text-muted">互助群组与同伴支持</div>
+                </div>
+                <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
             </div>
           </div>
 
           <div>
             <h3 class="font-bold text-text-primary mb-3">系统</h3>
             <div class="bg-white rounded-xl card-shadow overflow-hidden">
-              <button onclick="showToast('暂无设置')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+              <button onclick="navigateTo('settings')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
                 <div class="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
                   <svg class="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="3"/>
@@ -1929,7 +2581,7 @@
               <p class="text-text-secondary text-sm">继续保持正向强化训练，注意观察孩子的情绪变化。</p>
             </div>
             <div class="flex gap-2">
-              <button onclick="shareReport(${report.id})" class="flex-1 py-2 rounded-lg bg-primary text-white text-sm font-medium">分享给康复师</button>
+              <button onclick="this.closest('.fixed').remove();showShareToTherapistModal(${report.id})" class="flex-1 py-2 rounded-lg bg-primary text-white text-sm font-medium">分享给康复师</button>
             </div>
           </div>
         </div>
@@ -1938,17 +2590,543 @@
     }
 
     async function shareReport(reportId) {
-      try {
-        const result = await apiRequest('/report/share', 'POST', { report_id: reportId });
+      // 打开分享给康复师的弹窗
+      showShareToTherapistModal(reportId);
+    }
 
+    function showShareToTherapistModal(reportId) {
+      const report = MOCK_DATA.reports.find(r => r.id === reportId);
+      const therapists = MOCK_DATA.therapists;
+
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in max-h-[80vh] overflow-y-auto">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-lg font-bold">分享给康复师</h3>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <div class="text-sm text-text-muted mb-2">选择康复师</div>
+              <div class="space-y-2">
+                ${therapists.map(t => `
+                  <label class="flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-gray-50 cursor-pointer">
+                    <input type="radio" name="share-therapist" value="${t.id}" class="text-primary" ${t.id === 1 ? 'checked' : ''}>
+                    <span class="text-2xl">${t.avatar}</span>
+                    <div class="flex-1">
+                      <div class="font-medium text-text-primary">${t.name}</div>
+                      <div class="text-xs text-text-muted">${t.title} · ${t.specialty}</div>
+                    </div>
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+            <div>
+              <div class="text-sm text-text-muted mb-2">备注</div>
+              <textarea id="share-note" rows="3" class="w-full p-3 rounded-xl border border-border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="添加备注，如需要重点关注的方向..."></textarea>
+            </div>
+            <button onclick="confirmShareReport(${reportId})" class="w-full py-3 rounded-xl bg-primary text-white font-medium">确认分享</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function confirmShareReport(reportId) {
+      const therapistInput = document.querySelector('input[name="share-therapist"]:checked');
+      const note = document.getElementById('share-note')?.value || '';
+      if (!therapistInput) {
+        showToast('请选择康复师');
+        return;
+      }
+      const therapistId = parseInt(therapistInput.value);
+      try {
+        const result = await apiRequest('/therapist/share', 'POST', { report_id: reportId, therapist_id: therapistId, note });
         if (result.success) {
-          showToast('分享成功！');
+          showToast('周报已分享给康复师！');
+          document.querySelector('.fixed')?.remove();
         } else {
           showToast(result.error || '分享失败');
         }
       } catch (error) {
         console.error('分享失败:', error);
         showToast('网络错误');
+      }
+    }
+
+    function renderTherapist(container) {
+      document.getElementById('page-title').textContent = '康复师沟通';
+      document.getElementById('page-subtitle').textContent = '周报分享与反馈';
+
+      const therapists = MOCK_DATA.therapists;
+      const feedback = MOCK_DATA.therapistFeedback;
+      const reports = MOCK_DATA.reports;
+
+      container.innerHTML = `
+        <div class="p-4 space-y-4 animate-fade-in">
+          <!-- 我的康复师 -->
+          <div>
+            <h3 class="font-bold text-text-primary mb-3">我的康复师</h3>
+            <div class="space-y-3">
+              ${therapists.map(t => `
+                <div class="bg-white rounded-xl card-shadow p-4">
+                  <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-primary-light/30 rounded-full flex items-center justify-center text-2xl">${t.avatar}</div>
+                    <div class="flex-1">
+                      <div class="font-bold text-text-primary">${t.name}</div>
+                      <div class="text-sm text-text-secondary">${t.title}</div>
+                      <div class="text-xs text-text-muted">${t.hospital} · ${t.specialty}</div>
+                    </div>
+                    <div class="text-right">
+                      <div class="flex items-center gap-1">
+                        <svg class="w-4 h-4 text-warning" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                        <span class="text-sm font-medium text-text-primary">${t.rating}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- 分享周报 -->
+          <div>
+            <h3 class="font-bold text-text-primary mb-3">分享周报</h3>
+            <div class="bg-white rounded-xl card-shadow p-4 space-y-3">
+              ${reports.map(r => `
+                <div class="flex items-center justify-between p-3 rounded-lg bg-background">
+                  <div>
+                    <div class="font-medium text-text-primary">${r.week}周报</div>
+                    <div class="text-xs text-text-muted">${r.childName} · ${r.records}条记录</div>
+                  </div>
+                  <button onclick="showShareToTherapistModal(${r.id})" class="px-3 py-1.5 rounded-lg bg-primary text-white text-sm font-medium">分享</button>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- 康复师反馈 -->
+          <div>
+            <h3 class="font-bold text-text-primary mb-3">康复师反馈</h3>
+            <div class="space-y-3">
+              ${feedback.length > 0 ? feedback.map(f => {
+                const therapist = therapists.find(t => t.id === f.therapist_id);
+                const relatedReport = reports.find(r => r.id === f.report_id);
+                return `
+                  <div class="bg-white rounded-xl card-shadow p-4">
+                    <div class="flex items-center gap-2 mb-3">
+                      <span class="text-xl">${therapist?.avatar || '👨‍⚕️'}</span>
+                      <div class="flex-1">
+                        <div class="font-medium text-text-primary">${f.therapist_name}</div>
+                        <div class="text-xs text-text-muted">${formatDate(f.created_at)} · ${relatedReport ? relatedReport.week + '周报' : ''}</div>
+                      </div>
+                      <div class="flex items-center gap-0.5">
+                        ${Array.from({length: 5}, (_, i) => `<svg class="w-3.5 h-3.5 ${i < f.rating ? 'text-warning' : 'text-gray-200'}" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`).join('')}
+                      </div>
+                    </div>
+                    <p class="text-sm text-text-primary leading-relaxed mb-3">${f.content}</p>
+                    ${f.suggestions && f.suggestions.length > 0 ? `
+                      <div class="space-y-1.5">
+                        <div class="text-xs font-medium text-primary">💡 建议</div>
+                        ${f.suggestions.map(s => `
+                          <div class="flex items-start gap-2 text-sm text-text-secondary">
+                            <span class="text-primary mt-0.5">•</span>
+                            <span>${s}</span>
+                          </div>
+                        `).join('')}
+                      </div>
+                    ` : ''}
+                  </div>
+                `;
+              }).join('') : '<div class="text-center py-8 text-text-muted"><div class="text-4xl mb-2">📋</div>暂无康复师反馈</div>'}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // === 同伴联结模块 ===
+    let currentPeerTab = 'groups';
+    let currentGroupId = 1;
+
+    function renderPeer(container) {
+      document.getElementById('page-title').textContent = '同伴联结';
+      document.getElementById('page-subtitle').textContent = '你并不孤单';
+
+      const assessment = MOCK_DATA.lonelinessAssessment;
+      const score = assessment.current_score;
+      const scoreColor = score <= 3 ? 'text-success' : score <= 6 ? 'text-warning' : 'text-danger';
+      const scoreLabel = score <= 3 ? '状态良好' : score <= 6 ? '有些孤独' : '需要更多支持';
+      const encourageText = score <= 3 ? '你已经做得很好，继续保持！' : score <= 6 ? '加入群组和参与活动可以有效减轻孤独感' : '建议多与同伴交流，你不是一个人在战斗';
+
+      container.innerHTML = `
+        <div class="p-4 space-y-4 animate-fade-in">
+          <!-- 孤独感自评卡片 -->
+          <div class="bg-white rounded-xl card-shadow p-4">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 bg-primary-light/30 rounded-full flex items-center justify-center text-xl">💙</div>
+              <div class="flex-1">
+                <h3 class="font-bold text-text-primary">孤独感自评</h3>
+                <p class="text-xs text-text-muted">定期评估，关注自己的状态</p>
+              </div>
+              <button onclick="showLonelinessAssessModal()" class="px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium">重新评估</button>
+            </div>
+            <div class="flex items-center gap-4 mb-3">
+              <div class="text-center">
+                <div class="text-3xl font-bold ${scoreColor}">${score}</div>
+                <div class="text-xs text-text-muted">/10分</div>
+              </div>
+              <div class="flex-1">
+                <div class="text-sm font-medium ${scoreColor}">${scoreLabel}</div>
+                <div class="text-xs text-text-secondary mt-1">${encourageText}</div>
+                <!-- 简易趋势柱状图 -->
+                <div class="flex items-end gap-2 mt-2 h-12">
+                  ${assessment.history.slice().reverse().map(h => {
+                    const barHeight = Math.max(10, (h.score / 10) * 100);
+                    const barColor = h.score <= 3 ? 'bg-success' : h.score <= 6 ? 'bg-warning' : 'bg-danger';
+                    const dateLabel = h.date.slice(5);
+                    return `<div class="flex-1 flex flex-col items-center gap-1">
+                      <div class="w-full ${barColor} rounded-t" style="height:${barHeight}%"></div>
+                      <div class="text-[10px] text-text-muted">${dateLabel}</div>
+                    </div>`;
+                  }).join('')}
+                </div>
+              </div>
+            </div>
+            <!-- 个性化建议 -->
+            <div class="border-t border-border pt-3 mt-3">
+              <div class="text-xs font-medium text-primary mb-2">💡 个性化建议</div>
+              <div class="space-y-2">
+                ${assessment.suggestions.map((s, i) => `
+                  <div class="flex items-center gap-2">
+                    <span class="text-lg">${s.completed ? '✅' : s.icon}</span>
+                    <div class="flex-1">
+                      <div class="text-sm ${s.completed ? 'text-text-muted line-through' : 'text-text-primary'}">${s.title}</div>
+                      <div class="text-xs text-text-muted">${s.description}</div>
+                    </div>
+                    ${!s.completed ? `<button onclick="completeSuggestion(${i})" class="px-2 py-1 rounded bg-primary/10 text-primary text-xs">去完成</button>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab切换 -->
+          <div class="flex bg-white rounded-xl p-1 card-shadow">
+            <button onclick="renderPeerTab('groups', this)" class="peer-tab flex-1 py-2.5 rounded-lg ${currentPeerTab === 'groups' ? 'bg-primary text-white font-medium' : 'text-text-secondary'}">互助群组</button>
+            <button onclick="renderPeerTab('messages', this)" class="peer-tab flex-1 py-2.5 rounded-lg ${currentPeerTab === 'messages' ? 'bg-primary text-white font-medium' : 'text-text-secondary'}">群内动态</button>
+            <button onclick="renderPeerTab('activities', this)" class="peer-tab flex-1 py-2.5 rounded-lg ${currentPeerTab === 'activities' ? 'bg-primary text-white font-medium' : 'text-text-secondary'}">线下活动</button>
+          </div>
+
+          <!-- Tab内容区 -->
+          <div id="peer-tab-content">
+            ${renderPeerTabContent(currentPeerTab)}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPeerTabContent(tab) {
+      if (tab === 'groups') {
+        const groups = MOCK_DATA.peerGroups;
+        if (groups.length === 0) {
+          return '<div class="text-center py-12 text-text-muted"><div class="text-4xl mb-2">🤝</div>暂无互助群组</div>';
+        }
+        return `<div class="space-y-3">
+          ${groups.map(g => `
+            <div class="bg-white rounded-xl card-shadow p-4">
+              <div class="flex items-start gap-3">
+                <div class="w-12 h-12 bg-primary-light/30 rounded-xl flex items-center justify-center text-2xl">${g.avatar}</div>
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <h4 class="font-bold text-text-primary">${g.name}</h4>
+                    <span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs">${g.category}</span>
+                  </div>
+                  <p class="text-sm text-text-secondary mt-1">${g.description}</p>
+                  <div class="flex items-center gap-3 mt-2">
+                    <span class="text-xs text-text-muted">👥 ${g.member_count}/${g.max_members}</span>
+                    <span class="text-xs text-text-muted">🕐 ${g.recent_activity}</span>
+                  </div>
+                  <div class="flex gap-1.5 mt-2">
+                    ${g.tags.map(t => `<span class="px-2 py-0.5 rounded-full bg-gray-100 text-text-muted text-xs">${t}</span>`).join('')}
+                  </div>
+                </div>
+                <div class="flex flex-col gap-2">
+                  ${g.is_joined
+                    ? `<button onclick="showGroupDetail(${g.id})" class="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-medium">查看</button>`
+                    : `<button onclick="joinGroup(${g.id})" class="px-3 py-1.5 rounded-lg border border-primary text-primary text-xs font-medium">加入</button>`
+                  }
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+      }
+
+      if (tab === 'messages') {
+        const joinedGroups = MOCK_DATA.peerGroups.filter(g => g.is_joined);
+        const messages = MOCK_DATA.peerMessages.filter(m => joinedGroups.some(g => g.id === m.group_id));
+        if (messages.length === 0) {
+          return '<div class="text-center py-12 text-text-muted"><div class="text-4xl mb-2">💬</div>暂无群内动态，快加入一个群组吧</div>';
+        }
+        return `<div class="space-y-3">
+          <!-- 群组选择 -->
+          <div class="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+            ${joinedGroups.map(g => `
+              <button onclick="switchPeerGroup(${g.id})" class="shrink-0 px-3 py-1.5 rounded-full ${currentGroupId === g.id ? 'bg-primary text-white' : 'bg-white text-text-secondary border border-border'} text-xs font-medium">${g.avatar} ${g.name}</button>
+            `).join('')}
+          </div>
+          <!-- 消息流 -->
+          <div class="space-y-3" id="peer-messages-list">
+            ${messages.filter(m => m.group_id === currentGroupId).length > 0
+              ? messages.filter(m => m.group_id === currentGroupId).map(m => `
+                <div class="bg-white rounded-xl card-shadow p-4">
+                  <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 bg-primary-light/30 rounded-full flex items-center justify-center text-lg">${m.avatar}</div>
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2">
+                        <span class="font-medium text-sm text-text-primary">${m.user_name}</span>
+                        <span class="text-xs text-text-muted">${m.time}</span>
+                      </div>
+                      <p class="text-sm text-text-primary mt-1">${m.content}</p>
+                      <div class="flex items-center gap-4 mt-2">
+                        <button onclick="likePeerMessage(${m.id})" class="flex items-center gap-1 text-xs text-text-muted hover:text-danger">
+                          <span>❤️</span><span>${m.likes}</span>
+                        </button>
+                        <button onclick="replyPeerMessage(${m.id})" class="flex items-center gap-1 text-xs text-text-muted hover:text-primary">
+                          <span>💬</span><span>${m.replies}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `).join('')
+              : '<div class="text-center py-8 text-text-muted"><div class="text-4xl mb-2">💬</div>该群组暂无消息</div>'
+            }
+          </div>
+          <!-- 发送消息 -->
+          <div class="bg-white rounded-xl card-shadow p-3 flex gap-2">
+            <input type="text" id="peer-message-input" placeholder="说点什么..." class="flex-1 px-3 py-2 rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" onkeydown="if(event.key==='Enter')sendPeerMessage()">
+            <button onclick="sendPeerMessage()" class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium">发送</button>
+          </div>
+        </div>`;
+      }
+
+      if (tab === 'activities') {
+        const activities = MOCK_DATA.peerActivities;
+        if (activities.length === 0) {
+          return '<div class="text-center py-12 text-text-muted"><div class="text-4xl mb-2">📅</div>暂无活动安排</div>';
+        }
+        return `<div class="space-y-3">
+          ${activities.map(a => `
+            <div class="bg-white rounded-xl card-shadow p-4">
+              <div class="flex items-start gap-3">
+                <div class="w-12 h-12 bg-primary-light/30 rounded-xl flex items-center justify-center text-2xl">${a.type === '线上' ? '💻' : '🏠'}</div>
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <h4 class="font-bold text-text-primary">${a.title}</h4>
+                    <span class="px-2 py-0.5 rounded-full ${a.type === '线上' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'} text-xs">${a.type}</span>
+                  </div>
+                  <div class="flex items-center gap-3 mt-2 text-xs text-text-muted">
+                    <span>📅 ${a.date}</span>
+                    <span>🕐 ${a.time}</span>
+                  </div>
+                  <div class="flex items-center gap-3 mt-1 text-xs text-text-muted">
+                    <span>🎤 ${a.speaker}</span>
+                    <span>👥 ${a.participants}/${a.max_participants}</span>
+                  </div>
+                  <div class="mt-2">
+                    <div class="progress-bar">
+                      <div class="progress-fill" style="width:${(a.participants / a.max_participants) * 100}%"></div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  ${a.is_registered
+                    ? '<span class="px-3 py-1.5 rounded-lg bg-success/10 text-success text-xs font-medium">已报名</span>'
+                    : `<button onclick="registerActivity(${a.id})" class="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-medium">报名</button>`
+                  }
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+      }
+      return '';
+    }
+
+    function renderPeerTab(tab, btn) {
+      currentPeerTab = tab;
+      // 更新tab样式
+      document.querySelectorAll('.peer-tab').forEach(el => {
+        el.classList.remove('bg-primary', 'text-white', 'font-medium');
+        el.classList.add('text-text-secondary');
+      });
+      if (btn) {
+        btn.classList.remove('text-text-secondary');
+        btn.classList.add('bg-primary', 'text-white', 'font-medium');
+      }
+      // 更新内容
+      const contentEl = document.getElementById('peer-tab-content');
+      if (contentEl) {
+        contentEl.innerHTML = renderPeerTabContent(tab);
+      }
+    }
+
+    function joinGroup(groupId) {
+      const group = MOCK_DATA.peerGroups.find(g => g.id === groupId);
+      if (group) {
+        group.is_joined = true;
+        group.member_count++;
+        showToast(`已加入「${group.name}」`);
+        navigateTo('peer');
+      }
+    }
+
+    function sendPeerMessage() {
+      const input = document.getElementById('peer-message-input');
+      if (!input) return;
+      const content = input.value.trim();
+      if (!content) { showToast('请输入消息内容'); return; }
+      MOCK_DATA.peerMessages.unshift({
+        id: MOCK_DATA.peerMessages.length + 1,
+        group_id: currentGroupId,
+        user_name: currentUser?.name || '我',
+        avatar: '🙋',
+        content: content,
+        time: '刚刚',
+        likes: 0,
+        replies: 0
+      });
+      input.value = '';
+      showToast('消息发送成功');
+      renderPeerTab('messages', document.querySelectorAll('.peer-tab')[1]);
+    }
+
+    function registerActivity(activityId) {
+      const activity = MOCK_DATA.peerActivities.find(a => a.id === activityId);
+      if (activity) {
+        activity.is_registered = true;
+        activity.participants++;
+        showToast(`已报名「${activity.title}」`);
+        navigateTo('peer');
+      }
+    }
+
+    function showGroupDetail(groupId) {
+      const group = MOCK_DATA.peerGroups.find(g => g.id === groupId);
+      if (!group) return;
+      const groupMessages = MOCK_DATA.peerMessages.filter(m => m.group_id === groupId);
+
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-end justify-center z-50';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-md rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto animate-fade-in safe-area-bottom">
+          <div class="flex justify-between items-center mb-4">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">${group.avatar}</span>
+              <h3 class="text-lg font-bold">${group.name}</h3>
+            </div>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <p class="text-sm text-text-secondary mb-3">${group.description}</p>
+          <div class="flex items-center gap-3 mb-4">
+            <span class="text-xs text-text-muted">👥 ${group.member_count}/${group.max_members}人</span>
+            <span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs">${group.category}</span>
+            ${group.tags.map(t => `<span class="px-2 py-0.5 rounded-full bg-gray-100 text-text-muted text-xs">${t}</span>`).join('')}
+          </div>
+          <h4 class="font-medium text-text-primary mb-2">最近动态</h4>
+          ${groupMessages.length > 0
+            ? `<div class="space-y-3">${groupMessages.slice(0, 5).map(m => `
+              <div class="p-3 rounded-lg bg-background">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-sm">${m.avatar}</span>
+                  <span class="text-sm font-medium text-text-primary">${m.user_name}</span>
+                  <span class="text-xs text-text-muted">${m.time}</span>
+                </div>
+                <p class="text-sm text-text-secondary">${m.content}</p>
+              </div>
+            `).join('')}</div>`
+            : '<div class="text-center py-6 text-text-muted">暂无动态</div>'
+          }
+          <button onclick="this.closest('.fixed').remove(); navigateTo('peer'); currentPeerTab='messages'; currentGroupId=${groupId};" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-medium">进入群聊</button>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function switchPeerGroup(groupId) {
+      currentGroupId = groupId;
+      renderPeerTab('messages', document.querySelectorAll('.peer-tab')[1]);
+    }
+
+    function likePeerMessage(messageId) {
+      const msg = MOCK_DATA.peerMessages.find(m => m.id === messageId);
+      if (msg) {
+        msg.likes++;
+        renderPeerTab('messages', document.querySelectorAll('.peer-tab')[1]);
+      }
+    }
+
+    function replyPeerMessage(messageId) {
+      const msg = MOCK_DATA.peerMessages.find(m => m.id === messageId);
+      if (!msg) return;
+      const input = document.getElementById('peer-message-input');
+      if (input) {
+        input.value = `@${msg.user_name} `;
+        input.focus();
+      }
+    }
+
+    function showLonelinessAssessModal() {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold">孤独感评估</h3>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="text-center mb-6">
+            <div class="text-4xl mb-2">💙</div>
+            <p class="text-sm text-text-secondary">请根据近一周的真实感受进行评分</p>
+            <p class="text-xs text-text-muted mt-1">1=不孤独，10=极度孤独</p>
+          </div>
+          <div class="mb-6">
+            <input type="range" id="loneliness-slider" min="1" max="10" value="${MOCK_DATA.lonelinessAssessment.current_score}" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary" oninput="document.getElementById('loneliness-score-display').textContent=this.value">
+            <div class="flex justify-between text-xs text-text-muted mt-1">
+              <span>1</span><span>5</span><span>10</span>
+            </div>
+            <div class="text-center mt-3">
+              <span class="text-3xl font-bold text-primary" id="loneliness-score-display">${MOCK_DATA.lonelinessAssessment.current_score}</span>
+              <span class="text-sm text-text-muted">/10</span>
+            </div>
+          </div>
+          <button onclick="submitLonelinessScore(parseInt(document.getElementById('loneliness-slider').value))" class="w-full py-3 rounded-xl bg-primary text-white font-medium">提交评估</button>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function submitLonelinessScore(score) {
+      if (!score || score < 1 || score > 10) { showToast('请选择1-10分'); return; }
+      const today = new Date().toISOString().slice(0, 10);
+      MOCK_DATA.lonelinessAssessment.current_score = score;
+      MOCK_DATA.lonelinessAssessment.history.unshift({ date: today, score: score });
+      if (MOCK_DATA.lonelinessAssessment.history.length > 8) {
+        MOCK_DATA.lonelinessAssessment.history = MOCK_DATA.lonelinessAssessment.history.slice(0, 8);
+      }
+      document.querySelector('.fixed')?.remove();
+      showToast('评估已提交');
+      navigateTo('peer');
+    }
+
+    function completeSuggestion(index) {
+      if (MOCK_DATA.lonelinessAssessment.suggestions[index]) {
+        MOCK_DATA.lonelinessAssessment.suggestions[index].completed = true;
+        showToast('完成一项建议，继续加油！');
+        navigateTo('peer');
       }
     }
 
@@ -2129,6 +3307,9 @@
         if (result.success) {
           const profile = result.profile;
           const levels = ['L1','L2','L3','L4','L5'];
+          const courses = MOCK_DATA.growthCourses;
+          const courseCategories = ['全部', '入门', '行为干预', '情绪管理', '社交技能', '感觉统合', '沟通'];
+          const unlockedAchievements = MOCK_DATA.achievements.filter(a => a.unlocked).length;
 
           container.innerHTML = `
             <div class="p-4 space-y-4 animate-fade-in">
@@ -2170,6 +3351,22 @@
                 </div>
               </div>
 
+              <!-- 成长课程 -->
+              <div>
+                <div class="flex items-center justify-between mb-3">
+                  <h3 class="font-bold text-text-primary">成长课程</h3>
+                  <button onclick="navigateTo('achievements')" class="text-sm text-primary font-medium">查看成就 →</button>
+                </div>
+                <div class="flex gap-2 overflow-x-auto scrollbar-hide pb-2 mb-3">
+                  ${courseCategories.map((cat, i) => `
+                    <button onclick="filterGrowthCourses('${cat}')" class="whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${i === 0 ? 'bg-primary text-white' : 'bg-white text-text-secondary border border-border'}" id="course-cat-${i}">${cat}</button>
+                  `).join('')}
+                </div>
+                <div id="growth-courses-list" class="space-y-3">
+                  ${renderCourseCards(courses)}
+                </div>
+              </div>
+
               <div>
                 <h3 class="font-bold text-text-primary mb-3">成长记录</h3>
                 <div id="growth-history" class="space-y-3">
@@ -2194,6 +3391,127 @@
             <div class="text-center py-8 text-text-muted">网络错误</div>
           </div>
         `;
+      }
+    }
+
+    function renderCourseCards(courses) {
+      return courses.map(c => `
+        <div class="bg-white rounded-xl card-shadow p-4">
+          <div class="flex items-start gap-3">
+            <div class="w-12 h-12 bg-primary-light/30 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">${c.icon}</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <div class="font-bold text-text-primary text-sm">${c.title}</div>
+                ${c.progress === 100 ? '<span class="text-xs text-success font-medium">已完成</span>' : c.progress > 0 ? '<span class="text-xs text-primary font-medium">学习中</span>' : '<span class="text-xs text-text-muted">未开始</span>'}
+              </div>
+              <div class="text-xs text-text-muted mt-0.5">${c.description}</div>
+              <div class="flex items-center gap-3 mt-2">
+                <span class="text-xs text-text-muted">📖 ${c.completed_chapters}/${c.chapters}章</span>
+                <span class="text-xs text-text-muted">⏱ ${c.duration}</span>
+              </div>
+              <div class="progress-bar mt-2">
+                <div class="progress-fill" style="width: ${c.progress}%"></div>
+              </div>
+              <div class="flex items-center justify-between mt-2">
+                <span class="text-xs text-text-muted">${c.progress}%</span>
+                <button onclick="showCourseDetail(${c.id})" class="text-xs text-primary font-medium">${c.progress === 100 ? '复习' : c.progress > 0 ? '继续学习' : '开始学习'} →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function filterGrowthCourses(category) {
+      const categories = ['全部', '入门', '行为干预', '情绪管理', '社交技能', '感觉统合', '沟通'];
+      categories.forEach((cat, i) => {
+        const btn = document.getElementById('course-cat-' + i);
+        if (btn) {
+          btn.className = 'whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-colors ' + (cat === category ? 'bg-primary text-white' : 'bg-white text-text-secondary border border-border');
+        }
+      });
+      const filtered = category === '全部' ? MOCK_DATA.growthCourses : MOCK_DATA.growthCourses.filter(c => c.category === category);
+      document.getElementById('growth-courses-list').innerHTML = filtered.length > 0 ? renderCourseCards(filtered) : '<div class="text-center py-6 text-text-muted">该分类暂无课程</div>';
+    }
+
+    function showCourseDetail(id) {
+      const course = MOCK_DATA.growthCourses.find(c => c.id === id);
+      if (!course) return;
+
+      const chapters = [];
+      for (let i = 1; i <= course.chapters; i++) {
+        const isCompleted = i <= course.completed_chapters;
+        const isCurrent = i === course.completed_chapters + 1;
+        chapters.push({ num: i, completed: isCompleted, current: isCurrent });
+      }
+
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in max-h-[80vh] overflow-y-auto">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-lg font-bold">${course.icon} ${course.title}</h3>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="space-y-4">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded-full bg-primary-light/30 text-primary text-xs font-medium">${course.category}</span>
+              <span class="text-xs text-text-muted">⏱ ${course.duration}</span>
+              <span class="text-xs text-text-muted">📖 ${course.chapters}章</span>
+            </div>
+            <p class="text-sm text-text-secondary">${course.description}</p>
+            <div>
+              <div class="flex justify-between text-sm mb-1">
+                <span class="text-text-secondary">学习进度</span>
+                <span class="text-text-primary font-medium">${course.progress}%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: ${course.progress}%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="text-sm font-medium text-text-primary mb-2">章节列表</div>
+              <div class="space-y-2">
+                ${chapters.map(ch => `
+                  <div class="flex items-center gap-3 p-2 rounded-lg ${ch.current ? 'bg-primary-light/20 border border-primary/30' : ''}">
+                    <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${ch.completed ? 'bg-success text-white' : ch.current ? 'bg-primary text-white' : 'bg-gray-100 text-text-muted'}">
+                      ${ch.completed ? '✓' : ch.num}
+                    </div>
+                    <span class="text-sm ${ch.completed ? 'text-text-secondary' : ch.current ? 'text-primary font-medium' : 'text-text-muted'}">第${ch.num}章</span>
+                    ${ch.completed ? '<span class="text-xs text-success ml-auto">已完成</span>' : ch.current ? '<span class="text-xs text-primary ml-auto">当前</span>' : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            <button onclick="startLearning(${course.id})" class="w-full py-3 rounded-xl ${course.progress === 100 ? 'bg-primary-light text-primary' : 'bg-primary text-white'} font-medium">
+              ${course.progress === 100 ? '复习课程' : course.progress > 0 ? '继续学习' : '开始学习'}
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function startLearning(courseId) {
+      const course = MOCK_DATA.growthCourses.find(c => c.id === courseId);
+      if (!course) return;
+
+      try {
+        const result = await apiRequest('/growth/course/' + courseId + '/learn', 'POST');
+        if (result.success) {
+          // 更新mock数据中的进度
+          if (course.completed_chapters < course.chapters) {
+            course.completed_chapters++;
+            course.progress = Math.round((course.completed_chapters / course.chapters) * 100);
+          }
+          showToast('学习进度已更新！');
+          document.querySelector('.fixed')?.remove();
+          // 重新渲染成长页面
+          navigateTo('growth');
+        }
+      } catch (error) {
+        console.error('学习失败:', error);
+        showToast('网络错误');
       }
     }
 
@@ -2225,6 +3543,155 @@
       } catch (error) {
         console.error('获取成长记录失败:', error);
       }
+    }
+
+    function renderAchievements(container) {
+      document.getElementById('page-title').textContent = '成就徽章';
+      document.getElementById('page-subtitle').textContent = '记录每一步成长';
+
+      const achievements = MOCK_DATA.achievements;
+      const unlocked = achievements.filter(a => a.unlocked);
+      const total = achievements.length;
+      const unlockedCount = unlocked.length;
+      const progressPercent = Math.round((unlockedCount / total) * 100);
+
+      const categoryLabels = {
+        all: '全部',
+        milestone: '里程碑',
+        recording: '记录',
+        report: '周报',
+        learning: '学习',
+        strategy: '策略',
+        community: '社区',
+        safety: '安全'
+      };
+      const categories = Object.entries(categoryLabels);
+
+      container.innerHTML = `
+        <div class="p-4 space-y-4 animate-fade-in">
+          <!-- 统计卡片 -->
+          <div class="bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl p-5 text-white card-shadow">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <div class="text-sm text-white/80">已解锁成就</div>
+                <div class="text-3xl font-bold">${unlockedCount}<span class="text-lg text-white/70">/${total}</span></div>
+              </div>
+              <div class="text-5xl">🏆</div>
+            </div>
+            <div class="progress-bar bg-white/30">
+              <div class="h-full rounded-full bg-white" style="width: ${progressPercent}%; height: 6px; border-radius: 3px;"></div>
+            </div>
+            <div class="text-xs text-white/70 mt-1">${progressPercent}% 完成</div>
+          </div>
+
+          <!-- 分类筛选 -->
+          <div class="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+            ${categories.map(([key, label], i) => `
+              <button onclick="filterAchievements('${key}')" class="whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${i === 0 ? 'bg-primary text-white' : 'bg-white text-text-secondary border border-border'}" id="ach-cat-${i}">${label}</button>
+            `).join('')}
+          </div>
+
+          <!-- 成就列表 -->
+          <div id="achievements-list" class="grid grid-cols-2 gap-3">
+            ${renderAchievementCards(achievements)}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAchievementCards(achievements) {
+      return achievements.map(a => {
+        if (a.unlocked) {
+          return `
+            <div class="bg-white rounded-xl card-shadow p-4 cursor-pointer hover:shadow-md transition-shadow" onclick="showAchievementDetail(${a.id})">
+              <div class="text-center">
+                <div class="text-4xl mb-2">${a.icon}</div>
+                <div class="font-bold text-text-primary text-sm">${a.title}</div>
+                <div class="text-xs text-text-muted mt-1">${a.description}</div>
+                <div class="mt-2">
+                  <span class="text-xs text-success font-medium">✓ 已解锁</span>
+                </div>
+                <div class="text-xs text-text-muted mt-1">${formatDate(a.unlocked_at)}</div>
+              </div>
+            </div>
+          `;
+        } else {
+          const progressPercent = a.target ? Math.round((a.progress / a.target) * 100) : 0;
+          return `
+            <div class="bg-white rounded-xl card-shadow p-4 opacity-70">
+              <div class="text-center">
+                <div class="text-4xl mb-2 grayscale opacity-50">${a.icon}</div>
+                <div class="font-bold text-text-secondary text-sm">${a.title}</div>
+                <div class="text-xs text-text-muted mt-1">${a.description}</div>
+                <div class="progress-bar mt-2">
+                  <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                </div>
+                <div class="text-xs text-text-muted mt-1">${a.progress || 0}/${a.target || 0}</div>
+              </div>
+            </div>
+          `;
+        }
+      }).join('');
+    }
+
+    function filterAchievements(category) {
+      const categoryMap = {
+        all: '全部',
+        milestone: '里程碑',
+        recording: '记录',
+        report: '周报',
+        learning: '学习',
+        strategy: '策略',
+        community: '社区',
+        safety: '安全'
+      };
+      const categories = Object.entries(categoryMap);
+      categories.forEach(([key, label], i) => {
+        const btn = document.getElementById('ach-cat-' + i);
+        if (btn) {
+          btn.className = 'whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-colors ' + (key === category ? 'bg-primary text-white' : 'bg-white text-text-secondary border border-border');
+        }
+      });
+      const filtered = category === 'all' ? MOCK_DATA.achievements : MOCK_DATA.achievements.filter(a => a.category === category);
+      document.getElementById('achievements-list').innerHTML = filtered.length > 0 ? renderAchievementCards(filtered) : '<div class="col-span-2 text-center py-8 text-text-muted">该分类暂无成就</div>';
+    }
+
+    function showAchievementDetail(id) {
+      const achievement = MOCK_DATA.achievements.find(a => a.id === id);
+      if (!achievement || !achievement.unlocked) return;
+
+      const categoryLabels = {
+        milestone: '里程碑',
+        recording: '记录',
+        report: '周报',
+        learning: '学习',
+        strategy: '策略',
+        community: '社区',
+        safety: '安全'
+      };
+
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-lg font-bold">成就详情</h3>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="text-center py-4">
+            <div class="text-6xl mb-3">${achievement.icon}</div>
+            <div class="text-xl font-bold text-text-primary">${achievement.title}</div>
+            <div class="text-sm text-text-secondary mt-1">${achievement.description}</div>
+            <div class="inline-block mt-3 px-3 py-1 rounded-full bg-primary-light/30 text-primary text-xs font-medium">${categoryLabels[achievement.category] || achievement.category}</div>
+            <div class="mt-4 pt-4 border-t border-border">
+              <div class="text-sm text-text-muted">解锁时间</div>
+              <div class="font-medium text-text-primary">${achievement.unlocked_at}</div>
+            </div>
+            <button onclick="this.closest('.fixed').remove()" class="w-full mt-4 py-2.5 rounded-xl bg-primary text-white font-medium">太棒了！</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
     }
 
     function renderSafety(container) {
@@ -2549,18 +4016,120 @@
     }
 
     async function playStory(id) {
-      try {
-        const result = await apiRequest(`/story/library/${id}/play`, 'POST');
+      const story = MOCK_DATA.storyLibrary.find(s => s.id === id);
+      if (!story) return;
 
-        if (result.success) {
-          showToast('正在播放...');
-        } else {
-          showToast('播放失败');
-        }
-      } catch (error) {
-        console.error('播放故事失败:', error);
-        showToast('网络错误');
+      // 打开故事阅读模式
+      const modal = document.createElement('div');
+      modal.id = 'story-reader';
+      modal.className = 'fixed inset-0 bg-[#1a1a2e] z-[60] flex flex-col';
+      modal.innerHTML = `
+        <div class="flex items-center justify-between p-4 text-white/60">
+          <button onclick="closeStoryReader()" class="text-sm">✕ 关闭</button>
+          <span class="text-sm">${story.title}</span>
+          <span id="story-progress-text" class="text-xs">阅读模式</span>
+        </div>
+        <div class="flex-1 overflow-y-auto p-6 max-w-md mx-auto w-full">
+          <div class="text-center mb-6">
+            <span class="text-5xl">${story.cover_image || '📚'}</span>
+          </div>
+          <h2 class="text-xl font-bold text-white text-center mb-6">${story.title}</h2>
+          <div id="story-reading-content" class="text-white/90 leading-loose text-lg space-y-4">
+            ${story.content.split(/[。！？]/).filter(s => s.trim()).map(s => `<p class="story-paragraph opacity-0 transition-opacity duration-500">${s.trim()}。</p>`).join('')}
+          </div>
+        </div>
+        <div class="p-4 max-w-md mx-auto w-full">
+          <div class="flex items-center justify-center gap-6 text-white/60">
+            <button onclick="storyPrevParagraph()" class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+            </button>
+            <button id="story-play-btn" onclick="toggleStoryAutoPlay(${id})" class="w-14 h-14 rounded-full bg-primary flex items-center justify-center hover:bg-primary-dark">
+              <svg id="story-play-icon" class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+            </button>
+            <button onclick="storyNextParagraph()" class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </button>
+          </div>
+          <div class="progress-bar mt-4">
+            <div id="story-progress-bar" class="progress-fill" style="width: 0%"></div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      // 初始化段落显示
+      currentStoryParagraph = 0;
+      updateStoryParagraphs();
+    }
+
+    let currentStoryParagraph = 0;
+    let storyAutoPlayTimer = null;
+
+    function closeStoryReader() {
+      if (storyAutoPlayTimer) clearInterval(storyAutoPlayTimer);
+      storyAutoPlayTimer = null;
+      document.getElementById('story-reader')?.remove();
+    }
+
+    function updateStoryParagraphs() {
+      const paragraphs = document.querySelectorAll('.story-paragraph');
+      paragraphs.forEach((p, i) => {
+        p.style.opacity = i <= currentStoryParagraph ? '1' : '0';
+      });
+
+      // 更新进度条
+      const total = paragraphs.length;
+      const progress = total > 0 ? ((currentStoryParagraph + 1) / total * 100) : 0;
+      const bar = document.getElementById('story-progress-bar');
+      if (bar) bar.style.width = progress + '%';
+
+      const text = document.getElementById('story-progress-text');
+      if (text) text.textContent = `${currentStoryParagraph + 1}/${total}`;
+    }
+
+    function storyNextParagraph() {
+      const paragraphs = document.querySelectorAll('.story-paragraph');
+      if (currentStoryParagraph < paragraphs.length - 1) {
+        currentStoryParagraph++;
+        updateStoryParagraphs();
       }
+    }
+
+    function storyPrevParagraph() {
+      if (currentStoryParagraph > 0) {
+        currentStoryParagraph--;
+        updateStoryParagraphs();
+      }
+    }
+
+    function toggleStoryAutoPlay(id) {
+      const icon = document.getElementById('story-play-icon');
+      if (storyAutoPlayTimer) {
+        clearInterval(storyAutoPlayTimer);
+        storyAutoPlayTimer = null;
+        if (icon) icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+      } else {
+        storyAutoPlayTimer = setInterval(() => {
+          const paragraphs = document.querySelectorAll('.story-paragraph');
+          if (currentStoryParagraph < paragraphs.length - 1) {
+            storyNextParagraph();
+          } else {
+            clearInterval(storyAutoPlayTimer);
+            storyAutoPlayTimer = null;
+            if (icon) icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+            showToast('故事播放完成');
+          }
+        }, 2000);
+        if (icon) icon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+      }
+
+      try { apiRequest(`/story/library/${id}/play`, 'POST'); } catch(e) {}
     }
 
     function renderAI(container) {
@@ -2662,6 +4231,9 @@
       document.getElementById('page-title').textContent = '用户社区';
       document.getElementById('page-subtitle').textContent = '家长互助交流';
 
+      const categories = ['全部', '综合讨论', '训练心得', '情感分享', '资源推荐', '问题求助'];
+      const categoryValues = ['全部', 'general', 'training', 'emotion', 'resource', 'question'];
+
       container.innerHTML = `
         <div class="p-4 space-y-4 animate-fade-in">
           <div class="flex justify-between items-center">
@@ -2669,6 +4241,24 @@
             <button onclick="showNewPost()" class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium">
               + 发帖
             </button>
+          </div>
+
+          <!-- 搜索栏 -->
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="community-search" placeholder="搜索帖子..." value="${communityFilter.search}"
+              oninput="onCommunitySearch(this.value)"
+              class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+          </div>
+
+          <!-- 分类筛选 -->
+          <div class="flex gap-2 overflow-x-auto scrollbar-hide">
+            ${categories.map((cat, i) => `
+              <button onclick="filterCommunityByCategory('${categoryValues[i]}')" class="px-3 py-1.5 rounded-lg ${communityFilter.category === categoryValues[i] ? 'bg-primary text-white' : 'bg-white border border-border text-text-secondary'} text-sm whitespace-nowrap">${cat}</button>
+            `).join('')}
           </div>
 
           <div id="post-list" class="space-y-3">
@@ -2681,8 +4271,9 @@
         const result = await apiRequest('/community/posts', 'GET');
 
         if (result.success) {
+          const filteredPosts = getFilteredCommunityPosts(result.posts);
           const postList = document.getElementById('post-list');
-          postList.innerHTML = result.posts.map(p => `
+          postList.innerHTML = filteredPosts.length > 0 ? filteredPosts.map(p => `
             <div onclick="showPostDetail(${p.id})" class="bg-white p-4 rounded-xl card-shadow cursor-pointer">
               <h4 class="font-bold text-text-primary mb-2">${p.title}</h4>
               <p class="text-sm text-text-secondary line-clamp-2 mb-3">${p.content}</p>
@@ -2706,7 +4297,11 @@
                 </div>
               </div>
             </div>
-          `).join('');
+          `).join('') : `
+            <div class="text-center py-8 text-text-muted">
+              ${communityFilter.search || communityFilter.category !== '全部' ? '没有匹配的帖子' : '暂无帖子'}
+            </div>
+          `;
         } else {
           document.getElementById('post-list').innerHTML = `
             <div class="text-center py-4 text-text-muted">加载失败</div>
@@ -2715,6 +4310,31 @@
       } catch (error) {
         console.error('获取帖子列表失败:', error);
       }
+    }
+
+    function getFilteredCommunityPosts(posts) {
+      let filtered = [...posts];
+      if (communityFilter.category !== '全部') {
+        filtered = filtered.filter(p => p.category === communityFilter.category);
+      }
+      if (communityFilter.search) {
+        const q = communityFilter.search.toLowerCase();
+        filtered = filtered.filter(p =>
+          p.title.toLowerCase().includes(q) ||
+          p.content.toLowerCase().includes(q)
+        );
+      }
+      return filtered;
+    }
+
+    function onCommunitySearch(value) {
+      communityFilter.search = value;
+      renderCommunity(document.getElementById('main-content'));
+    }
+
+    function filterCommunityByCategory(category) {
+      communityFilter.category = category;
+      renderCommunity(document.getElementById('main-content'));
     }
 
     function getCategoryName(category) {
@@ -3050,25 +4670,57 @@
 
           <div class="bg-white rounded-xl card-shadow p-4">
             <h3 class="font-bold text-text-primary mb-3 flex items-center gap-2">
-              <span>👂</span>感官特点
+              <span>👂</span>感官档案
             </h3>
-            <div class="grid grid-cols-2 gap-3">
-              <div class="flex items-center justify-between p-3 bg-primary-light/30 rounded-lg">
-                <span class="text-sm text-text-secondary">听觉</span>
-                <span class="text-sm font-medium ${getSensoryColor(profile.sensory_hearing)}">${profile.sensory_hearing}</span>
+            <div class="space-y-2">
+              <div class="flex items-center gap-3">
+                <span class="text-sm text-text-secondary w-10">听觉</span>
+                <div class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full ${getSensoryBarColor(profile.sensory_hearing)}" style="width: ${getSensoryWidth(profile.sensory_hearing)}%"></div>
+                </div>
+                <span class="text-sm font-medium w-10 text-right ${getSensoryColor(profile.sensory_hearing)}">${profile.sensory_hearing}</span>
               </div>
-              <div class="flex items-center justify-between p-3 bg-primary-light/30 rounded-lg">
-                <span class="text-sm text-text-secondary">视觉</span>
-                <span class="text-sm font-medium ${getSensoryColor(profile.sensory_visual)}">${profile.sensory_visual}</span>
+              <div class="flex items-center gap-3">
+                <span class="text-sm text-text-secondary w-10">视觉</span>
+                <div class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full ${getSensoryBarColor(profile.sensory_visual)}" style="width: ${getSensoryWidth(profile.sensory_visual)}%"></div>
+                </div>
+                <span class="text-sm font-medium w-10 text-right ${getSensoryColor(profile.sensory_visual)}">${profile.sensory_visual}</span>
               </div>
-              <div class="flex items-center justify-between p-3 bg-primary-light/30 rounded-lg">
-                <span class="text-sm text-text-secondary">触觉</span>
-                <span class="text-sm font-medium ${getSensoryColor(profile.sensory_tactile)}">${profile.sensory_tactile}</span>
+              <div class="flex items-center gap-3">
+                <span class="text-sm text-text-secondary w-10">触觉</span>
+                <div class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full ${getSensoryBarColor(profile.sensory_tactile)}" style="width: ${getSensoryWidth(profile.sensory_tactile)}%"></div>
+                </div>
+                <span class="text-sm font-medium w-10 text-right ${getSensoryColor(profile.sensory_tactile)}">${profile.sensory_tactile}</span>
               </div>
-              <div class="flex items-center justify-between p-3 bg-primary-light/30 rounded-lg">
-                <span class="text-sm text-text-secondary">前庭</span>
-                <span class="text-sm font-medium ${getSensoryColor(profile.sensory_vestibular)}">${profile.sensory_vestibular}</span>
+              <div class="flex items-center gap-3">
+                <span class="text-sm text-text-secondary w-10">味觉</span>
+                <div class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full ${getSensoryBarColor(profile.sensory_taste)}" style="width: ${getSensoryWidth(profile.sensory_taste)}%"></div>
+                </div>
+                <span class="text-sm font-medium w-10 text-right ${getSensoryColor(profile.sensory_taste)}">${profile.sensory_taste}</span>
               </div>
+              <div class="flex items-center gap-3">
+                <span class="text-sm text-text-secondary w-10">嗅觉</span>
+                <div class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full ${getSensoryBarColor(profile.sensory_smell)}" style="width: ${getSensoryWidth(profile.sensory_smell)}%"></div>
+                </div>
+                <span class="text-sm font-medium w-10 text-right ${getSensoryColor(profile.sensory_smell)}">${profile.sensory_smell}</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="text-sm text-text-secondary w-10">前庭</span>
+                <div class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full ${getSensoryBarColor(profile.sensory_vestibular)}" style="width: ${getSensoryWidth(profile.sensory_vestibular)}%"></div>
+                </div>
+                <span class="text-sm font-medium w-10 text-right ${getSensoryColor(profile.sensory_vestibular)}">${profile.sensory_vestibular}</span>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border">
+              <span class="text-xs px-2 py-1 bg-red-50 text-red-600 rounded-full">敏感 = 高反应</span>
+              <span class="text-xs px-2 py-1 bg-yellow-50 text-yellow-600 rounded-full">回避 = 逃避刺激</span>
+              <span class="text-xs px-2 py-1 bg-green-50 text-green-600 rounded-full">寻求 = 追求刺激</span>
+              <span class="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded-full">正常 = 适度反应</span>
             </div>
           </div>
 
@@ -3137,6 +4789,53 @@
                   <div class="progress-bar mt-2">
                     <div class="progress-fill" style="width: ${(g.current_level/g.target_level)*100}%"></div>
                   </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl card-shadow p-4">
+            <h3 class="font-bold text-text-primary mb-3 flex items-center gap-2">
+              <span>🌱</span>发展里程碑
+            </h3>
+            <div class="relative">
+              <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-border"></div>
+              <div class="space-y-3">
+                ${profile.development_milestones.map((m, i) => `
+                  <div class="flex gap-3 relative">
+                    <div class="w-8 h-8 rounded-full ${m.achieved ? 'bg-success' : 'bg-secondary'} flex items-center justify-center flex-shrink-0 z-10 text-white text-xs font-bold">
+                      ${m.achieved ? '✓' : i + 1}
+                    </div>
+                    <div class="flex-1 p-3 ${m.achieved ? 'bg-success/5 border border-success/20' : 'bg-gray-50 border border-border'} rounded-lg">
+                      <div class="flex items-center justify-between">
+                        <span class="font-medium text-text-primary text-sm">${m.title}</span>
+                        <span class="text-xs px-2 py-0.5 ${m.achieved ? 'bg-success/20 text-success' : 'bg-gray-200 text-gray-500'} rounded-full">${m.achieved ? '已达成' : '未达成'}</span>
+                      </div>
+                      <p class="text-xs text-text-secondary mt-1">${m.description}</p>
+                      <div class="flex items-center justify-between mt-1">
+                        <span class="text-xs text-text-muted">${m.age}</span>
+                        ${m.achieved ? `<span class="text-xs text-success">${m.date}</span>` : ''}
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl card-shadow p-4">
+            <h3 class="font-bold text-text-primary mb-3 flex items-center gap-2">
+              <span>💡</span>个性化推荐
+            </h3>
+            <div class="space-y-3">
+              ${profile.personalized_recommendations.map(r => `
+                <div class="flex items-start gap-3 p-3 bg-primary-light/20 rounded-lg">
+                  <span class="text-xl">${r.icon}</span>
+                  <div class="flex-1">
+                    <div class="font-medium text-text-primary text-sm">${r.title}</div>
+                    <p class="text-xs text-text-secondary mt-1">${r.description}</p>
+                  </div>
+                  <button onclick="navigateTo('${getRecommendationTarget(r.type)}')" class="text-xs text-primary whitespace-nowrap">去执行 →</button>
                 </div>
               `).join('')}
             </div>
@@ -3234,6 +4933,36 @@
         case '寻求': return 'text-primary';
         case '正常': return 'text-success';
         default: return 'text-text-muted';
+      }
+    }
+
+    function getSensoryBarColor(status) {
+      switch(status) {
+        case '敏感': return 'bg-red-400';
+        case '回避': return 'bg-yellow-400';
+        case '寻求': return 'bg-primary';
+        case '正常': return 'bg-success';
+        default: return 'bg-gray-400';
+      }
+    }
+
+    function getSensoryWidth(status) {
+      switch(status) {
+        case '敏感': return 90;
+        case '回避': return 70;
+        case '寻求': return 60;
+        case '正常': return 40;
+        default: return 30;
+      }
+    }
+
+    function getRecommendationTarget(type) {
+      switch(type) {
+        case 'sensory': return 'strategies';
+        case 'social': return 'stories';
+        case 'emotion': return 'emergency';
+        case 'cognition': return 'strategies';
+        default: return 'home';
       }
     }
 
@@ -3680,6 +5409,72 @@
       }, 1500);
     }
 
+    function editCareerGoal(goalId) {
+      const goal = MOCK_DATA.careerGoals.find(g => g.id === goalId);
+      if (!goal) return;
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-end justify-center z-50';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold">编辑生涯目标</h2>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">目标名称</label>
+              <input type="text" id="edit-goal-title" value="${goal.title}" class="w-full px-4 py-2.5 rounded-xl border border-border">
+            </div>
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">目标类型</label>
+              <select id="edit-goal-type" class="w-full px-4 py-2.5 rounded-xl border border-border">
+                <option value="skill" ${goal.type === 'skill' ? 'selected' : ''}>技能培养</option>
+                <option value="social" ${goal.type === 'social' ? 'selected' : ''}>社交能力</option>
+                <option value="career" ${goal.type === 'career' ? 'selected' : ''}>职业探索</option>
+                <option value="education" ${goal.type === 'education' ? 'selected' : ''}>教育规划</option>
+                <option value="life" ${goal.type === 'life' ? 'selected' : ''}>生活能力</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">描述</label>
+              <textarea id="edit-goal-description" class="w-full px-4 py-3 rounded-xl border border-border" rows="3">${goal.description}</textarea>
+            </div>
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">截止日期</label>
+              <input type="date" id="edit-goal-deadline" value="${goal.deadline}" class="w-full px-4 py-2.5 rounded-xl border border-border">
+            </div>
+            <button onclick="saveEditCareerGoal(${goalId})" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存修改</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function saveEditCareerGoal(goalId) {
+      const title = document.getElementById('edit-goal-title').value;
+      const type = document.getElementById('edit-goal-type').value;
+      const description = document.getElementById('edit-goal-description').value;
+      const deadline = document.getElementById('edit-goal-deadline').value;
+
+      if (!title) {
+        showToast('请填写目标名称');
+        return;
+      }
+
+      try {
+        const result = await apiRequest(`/career/goals/1/${goalId}`, 'PUT', { title, type, description, deadline });
+        if (result.success) {
+          showToast('目标已更新');
+          document.querySelector('.fixed').remove();
+          renderCareer(document.getElementById('main-content'));
+        } else {
+          showToast(result.error || '更新失败');
+        }
+      } catch (error) {
+        showToast('网络错误');
+      }
+    }
+
     function renderFinance(container) {
       document.getElementById('page-title').textContent = '财务规划';
       document.getElementById('page-subtitle').textContent = '记账与防骗指南';
@@ -3986,6 +5781,23 @@
 
     // === 初始化 ===
     document.addEventListener('DOMContentLoaded', () => {
+      // 从localStorage恢复行为记录
+      const savedBehaviors = localStorage.getItem('xingban_behaviors');
+      if (savedBehaviors) {
+        try {
+          const parsed = JSON.parse(savedBehaviors);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            MOCK_DATA.behaviors = parsed;
+          }
+        } catch(e) {}
+      }
+
+      // 恢复设置
+      const savedSettings = localStorage.getItem('xingban_settings');
+      if (savedSettings) {
+        try { settingsState = { ...settingsState, ...JSON.parse(savedSettings) }; } catch(e) {}
+      }
+
       const savedUser = getUser();
       if (savedUser) {
         currentUser = savedUser;
@@ -3994,6 +5806,410 @@
         navigateTo('home');
       }
     });
+
+    // 保存行为记录到localStorage
+    function persistBehaviors() {
+      localStorage.setItem('xingban_behaviors', JSON.stringify(MOCK_DATA.behaviors));
+    }
+
+    // === 设置页面 ===
+    let settingsState = {
+      notifyBehavior: true,
+      notifyReport: true,
+      notifyCommunity: true,
+      notifyTraining: true,
+      dataExported: false,
+    };
+
+    function renderSettings(container) {
+      document.getElementById('page-title').textContent = '设置';
+      document.getElementById('page-subtitle').textContent = '个性化配置';
+
+      container.innerHTML = `
+        <div class="p-4 space-y-4 animate-fade-in">
+          <!-- 通知偏好 -->
+          <div>
+            <h3 class="font-bold text-text-primary mb-3">通知偏好</h3>
+            <div class="bg-white rounded-xl card-shadow overflow-hidden">
+              <div class="p-4 flex items-center justify-between border-b border-border">
+                <div>
+                  <div class="font-medium text-text-primary">行为记录提醒</div>
+                  <div class="text-xs text-text-muted">每天提醒记录孩子行为</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" ${settingsState.notifyBehavior ? 'checked' : ''} onchange="toggleSetting('notifyBehavior', this.checked)" class="sr-only peer">
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+              <div class="p-4 flex items-center justify-between border-b border-border">
+                <div>
+                  <div class="font-medium text-text-primary">周报生成通知</div>
+                  <div class="text-xs text-text-muted">每周自动生成报告时通知</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" ${settingsState.notifyReport ? 'checked' : ''} onchange="toggleSetting('notifyReport', this.checked)" class="sr-only peer">
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+              <div class="p-4 flex items-center justify-between border-b border-border">
+                <div>
+                  <div class="font-medium text-text-primary">社区互动通知</div>
+                  <div class="text-xs text-text-muted">评论、点赞等互动提醒</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" ${settingsState.notifyCommunity ? 'checked' : ''} onchange="toggleSetting('notifyCommunity', this.checked)" class="sr-only peer">
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+              <div class="p-4 flex items-center justify-between">
+                <div>
+                  <div class="font-medium text-text-primary">训练提醒</div>
+                  <div class="text-xs text-text-muted">每日训练任务提醒</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" ${settingsState.notifyTraining ? 'checked' : ''} onchange="toggleSetting('notifyTraining', this.checked)" class="sr-only peer">
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- 账号管理 -->
+          <div>
+            <h3 class="font-bold text-text-primary mb-3">账号管理</h3>
+            <div class="bg-white rounded-xl card-shadow overflow-hidden">
+              <button onclick="showEditProfile()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border">
+                <div class="w-10 h-10 bg-primary-light/50 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </div>
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-text-primary">修改个人信息</div>
+                  <div class="text-xs text-text-muted">昵称、头像等</div>
+                </div>
+                <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+              <button onclick="showChangePassword()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border">
+                <div class="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-yellow-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </div>
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-text-primary">修改密码</div>
+                  <div class="text-xs text-text-muted">更新登录密码</div>
+                </div>
+                <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+              <button onclick="exportData()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+                <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                </div>
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-text-primary">导出数据</div>
+                  <div class="text-xs text-text-muted">导出所有记录为文件</div>
+                </div>
+                <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- 隐私与安全 -->
+          <div>
+            <h3 class="font-bold text-text-primary mb-3">隐私与安全</h3>
+            <div class="bg-white rounded-xl card-shadow overflow-hidden">
+              <div class="p-4 flex items-center justify-between border-b border-border">
+                <div>
+                  <div class="font-medium text-text-primary">匿名社区发帖</div>
+                  <div class="text-xs text-text-muted">在社区隐藏真实信息</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" class="sr-only peer">
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+              <button onclick="showPrivacyPolicy()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border">
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-text-primary">隐私政策</div>
+                  <div class="text-xs text-text-muted">了解我们如何保护您的数据</div>
+                </div>
+                <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+              <button onclick="clearCache()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-text-primary">清除缓存</div>
+                  <div class="text-xs text-text-muted">清除本地缓存数据</div>
+                </div>
+                <span class="text-xs text-text-muted">12.3 MB</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 关于 -->
+          <div>
+            <h3 class="font-bold text-text-primary mb-3">关于</h3>
+            <div class="bg-white rounded-xl card-shadow overflow-hidden">
+              <div class="p-4 flex items-center justify-between border-b border-border">
+                <div class="font-medium text-text-primary">版本号</div>
+                <span class="text-sm text-text-muted">1.0.0</span>
+              </div>
+              <button onclick="showAbout()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border">
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-text-primary">关于星伴</div>
+                </div>
+                <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+              <button onclick="showFeedback()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-text-primary">意见反馈</div>
+                </div>
+                <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <p class="text-center text-xs text-text-muted py-4">星伴 v1.0.0 - 陪伴孩子每一天</p>
+        </div>
+      `;
+    }
+
+    function toggleSetting(key, value) {
+      settingsState[key] = value;
+      localStorage.setItem('xingban_settings', JSON.stringify(settingsState));
+      showToast(value ? '已开启' : '已关闭');
+    }
+
+    function showEditProfile() {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-end justify-center z-50';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold">修改个人信息</h2>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">昵称</label>
+              <input type="text" id="edit-nickname" value="${currentUser?.name || ''}" class="w-full px-4 py-2.5 rounded-xl border border-border">
+            </div>
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">手机号</label>
+              <input type="tel" id="edit-phone" value="${currentUser?.phone || ''}" class="w-full px-4 py-2.5 rounded-xl border border-border bg-gray-50" readonly>
+              <p class="text-xs text-text-muted mt-1">手机号不可修改</p>
+            </div>
+            <button onclick="saveProfile()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function saveProfile() {
+      const nickname = document.getElementById('edit-nickname').value;
+      if (!nickname) {
+        showToast('请输入昵称');
+        return;
+      }
+      currentUser = { ...currentUser, name: nickname, nickname: nickname };
+      saveUser(currentUser);
+      showToast('个人信息已更新');
+      document.querySelector('.fixed').remove();
+    }
+
+    function showChangePassword() {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-end justify-center z-50';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold">修改密码</h2>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">当前密码</label>
+              <input type="password" id="old-password" placeholder="请输入当前密码" class="w-full px-4 py-2.5 rounded-xl border border-border">
+            </div>
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">新密码</label>
+              <input type="password" id="new-password" placeholder="请输入新密码" class="w-full px-4 py-2.5 rounded-xl border border-border">
+            </div>
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">确认新密码</label>
+              <input type="password" id="confirm-password" placeholder="请再次输入新密码" class="w-full px-4 py-2.5 rounded-xl border border-border">
+            </div>
+            <button onclick="changePassword()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">确认修改</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function changePassword() {
+      const oldPw = document.getElementById('old-password').value;
+      const newPw = document.getElementById('new-password').value;
+      const confirmPw = document.getElementById('confirm-password').value;
+      if (!oldPw || !newPw || !confirmPw) { showToast('请填写完整'); return; }
+      if (newPw !== confirmPw) { showToast('两次密码不一致'); return; }
+      if (newPw.length < 6) { showToast('密码至少6位'); return; }
+      try {
+        const result = await apiRequest('/auth/change-password', 'POST', { old_password: oldPw, new_password: newPw });
+        if (result.success) { showToast('密码修改成功'); document.querySelector('.fixed').remove(); }
+        else { showToast(result.error || '修改失败'); }
+      } catch (e) { showToast('网络错误'); }
+    }
+
+    function exportData() {
+      const data = {
+        user: currentUser,
+        behaviors: MOCK_DATA.behaviors,
+        children: MOCK_DATA.children,
+        strategies: MOCK_DATA.strategies,
+        exportDate: new Date().toISOString()
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `星伴数据导出_${new Date().toLocaleDateString('zh-CN')}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('数据导出成功');
+    }
+
+    function showPrivacyPolicy() {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-end justify-center z-50';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom max-h-[80vh] overflow-y-auto">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold">隐私政策</h2>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="space-y-4 text-sm text-text-secondary leading-relaxed">
+            <p><strong class="text-text-primary">数据收集：</strong>星伴仅收集您主动提供的孩子信息、行为记录等必要数据，用于提供个性化服务。</p>
+            <p><strong class="text-text-primary">数据存储：</strong>所有数据采用加密存储，确保安全性。数据保存在您的设备本地和加密云端服务器。</p>
+            <p><strong class="text-text-primary">数据共享：</strong>未经您的明确同意，我们不会将您的数据分享给任何第三方。</p>
+            <p><strong class="text-text-primary">数据删除：</strong>您有权随时要求删除所有个人数据。删除后数据不可恢复。</p>
+            <p><strong class="text-text-primary">儿童隐私：</strong>我们特别重视儿童隐私保护，不会在社区公开展示儿童的真实姓名和照片。</p>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function clearCache() {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-xs rounded-2xl p-6 animate-fade-in text-center">
+          <h3 class="text-lg font-bold text-text-primary mb-2">清除缓存</h3>
+          <p class="text-sm text-text-secondary mb-4">确定要清除所有本地缓存数据吗？登录状态不会受影响。</p>
+          <div class="flex gap-3">
+            <button onclick="this.closest('.fixed').remove()" class="flex-1 py-2.5 rounded-xl border border-border text-text-secondary">取消</button>
+            <button onclick="confirmClearCache()" class="flex-1 py-2.5 rounded-xl bg-primary text-white">确认</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function confirmClearCache() {
+      // 保留登录状态，清除其他缓存
+      const token = localStorage.getItem('xingban_token');
+      const user = localStorage.getItem('xingban_user');
+      localStorage.clear();
+      if (token) localStorage.setItem('xingban_token', token);
+      if (user) localStorage.setItem('xingban_user', user);
+      document.querySelectorAll('.fixed').forEach(el => el.remove());
+      showToast('缓存已清除');
+    }
+
+    function showAbout() {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-end justify-center z-50';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom text-center">
+          <div class="w-16 h-16 bg-gradient-to-br from-primary to-primary-light rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <h2 class="text-xl font-bold text-text-primary mb-1">星伴</h2>
+          <p class="text-sm text-text-muted mb-4">孤独症儿童成长陪伴平台</p>
+          <p class="text-sm text-text-secondary leading-relaxed mb-4">
+            星伴致力于为孤独症儿童家庭提供科学、温暖、专业的成长支持。
+            通过行为记录、策略推荐、AI分析等功能，帮助家长更好地了解和陪伴孩子成长。
+          </p>
+          <p class="text-xs text-text-muted mb-6">版本 1.0.0 | 演示模式</p>
+          <button onclick="this.closest('.fixed').remove()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">知道了</button>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function showFeedback() {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-end justify-center z-50';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold">意见反馈</h2>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">反馈类型</label>
+              <select id="feedback-type" class="w-full px-4 py-2.5 rounded-xl border border-border">
+                <option value="bug">Bug反馈</option>
+                <option value="feature">功能建议</option>
+                <option value="experience">使用体验</option>
+                <option value="other">其他</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm text-text-secondary mb-1">详细描述</label>
+              <textarea id="feedback-content" placeholder="请详细描述您的反馈..." class="w-full px-4 py-3 rounded-xl border border-border" rows="4"></textarea>
+            </div>
+            <button onclick="submitFeedback()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">提交反馈</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function submitFeedback() {
+      const type = document.getElementById('feedback-type').value;
+      const content = document.getElementById('feedback-content').value;
+      if (!content) { showToast('请填写反馈内容'); return; }
+      try {
+        const result = await apiRequest('/feedback', 'POST', { type, content });
+        if (result.success) { showToast('感谢您的反馈！'); document.querySelector('.fixed').remove(); }
+        else { showToast(result.error || '提交失败'); }
+      } catch (e) { showToast('网络错误'); }
+    }
   </script>
 </body>
 </html>
