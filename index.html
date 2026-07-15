@@ -126,6 +126,19 @@
       transform: translateY(-2px);
       box-shadow: 0 8px 24px rgba(0,0,0,0.08);
     }
+    .strategy-card:active {
+      transform: translateY(0);
+    }
+    button:active:not(.nav-item) {
+      opacity: 0.85;
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
   </style>
 </head>
 <body>
@@ -443,6 +456,14 @@
                     ]
                   };
                   return { success: true, strategies: allStrategies[level] || allStrategies.green };
+                }
+                if (url === '/community/posts' && method === 'POST') {
+                  const newPost = { id: MOCK_DATA.communityPosts.length + 1, user_id: 1, title: data.title, content: data.content, category: data.category, likes: 0, comments_count: 0, liked_user_ids: '[]', created_at: new Date().toISOString().split('T')[0] };
+                  MOCK_DATA.communityPosts.unshift(newPost);
+                  return { success: true, post: newPost, message: '发布成功' };
+                }
+                if (url.includes('/comments') && method === 'POST') {
+                  return { success: true, comment: { id: Date.now(), content: data.content, user_name: currentUser?.name || '我', created_at: new Date().toISOString().split('T')[0] }, message: '评论成功' };
                 }
                 if (url.startsWith('/community/posts/') && method === 'GET') {
                   const id = parseInt(url.split('/posts/')[1]);
@@ -792,8 +813,51 @@
           { title: '完成一次家庭签到', description: '记录家庭中的积极时刻', icon: '❤️', completed: true },
           { title: '尝试情绪日记', description: '每天记录自己的情绪状态', icon: '📝', completed: false },
         ]
-      }
+      },
+      emergencyContacts: [
+        { id: 1, name: '妈妈', phone: '138****8000', fullPhone: '13812348000' },
+        { id: 2, name: '爸爸', phone: '139****9000', fullPhone: '13912349000' },
+        { id: 3, name: '李医生', phone: '137****6000', fullPhone: '13712346000' }
+      ]
     };
+
+    // === 全局状态管理 ===
+    const appState = {
+      lastCheckIn: null,     // 最后签到日期 (YYYY-MM-DD)
+      checkInStreak: 0,      // 连续签到天数
+      totalCheckIns: 0,      // 总签到天数
+    };
+
+    function loadAppState() {
+      const saved = localStorage.getItem('xingban_app_state');
+      if (saved) {
+        try {
+          Object.assign(appState, JSON.parse(saved));
+        } catch(e) {}
+      }
+    }
+
+    function saveAppState() {
+      localStorage.setItem('xingban_app_state', JSON.stringify(appState));
+    }
+
+    // === 辅助函数：添加成长记录并更新成长指数 ===
+    function addGrowthRecord(activity, score, type) {
+      const newRecord = {
+        id: Date.now(),
+        date: new Date().toISOString().split('T')[0],
+        activity: activity,
+        score: score,
+        type: type
+      };
+      MOCK_DATA.growthRecords.unshift(newRecord);
+      // 更新成长指数
+      MOCK_DATA.growth.index = Math.min(100, MOCK_DATA.growth.index + Math.round(score / 5));
+      // 更新成长Profile总分
+      if (MOCK_DATA.growthProfile) {
+        MOCK_DATA.growthProfile.total_score = Math.min(100, MOCK_DATA.growthProfile.total_score + Math.round(score / 5));
+      }
+    }
 
     let currentUser = null;
     let currentPage = 'login';
@@ -1003,6 +1067,31 @@
             </div>
           </div>
 
+          <!-- 今日签到卡片 -->
+          ${isCheckedInToday() ? `
+          <div class="bg-white p-4 rounded-xl card-shadow flex items-center gap-3">
+            <div class="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center">
+              <span class="text-lg">✅</span>
+            </div>
+            <div class="flex-1">
+              <div class="text-sm font-medium text-text-primary">今日已签到</div>
+              <div class="text-xs text-text-muted">连续签到 ${appState.checkInStreak} 天 · 已获 +3 成长积分</div>
+            </div>
+            <span class="text-xs text-success font-medium">已完成</span>
+          </div>
+          ` : `
+          <div class="bg-white p-4 rounded-xl card-shadow flex items-center gap-3">
+            <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+              <span class="text-lg">📅</span>
+            </div>
+            <div class="flex-1">
+              <div class="text-sm font-medium text-text-primary">今日还未签到</div>
+              <div class="text-xs text-text-muted">连续签到 ${appState.checkInStreak} 天 · 签到可获 +3 成长积分</div>
+            </div>
+            <button onclick="checkIn()" class="px-4 py-1.5 bg-primary text-white text-sm rounded-lg font-medium hover:bg-primary-dark transition-colors">签到</button>
+          </div>
+          `}
+
           <!-- 快速入口 -->
           <div class="grid grid-cols-4 gap-3">
             <button onclick="navigateTo('records')" class="flex flex-col items-center gap-2 p-3 bg-white rounded-xl card-shadow hover:shadow-md transition-shadow">
@@ -1137,6 +1226,30 @@
                   <div class="flex items-center justify-between text-xs text-text-muted">
                     <span>有效率 ${s.effectivenessRate}%</span>
                     <span>使用 ${s.usageCount}次</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- 社区热门 -->
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-bold text-text-primary">社区热帖</h3>
+              <button onclick="navigateTo('community')" class="text-xs text-primary">更多</button>
+            </div>
+            <div class="space-y-3">
+              ${MOCK_DATA.communityPosts.slice(0, 2).map(p => `
+                <div onclick="showPostDetail(${p.id})" class="bg-white p-4 rounded-xl card-shadow cursor-pointer hover:shadow-md transition-shadow active:scale-[0.98]">
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs px-2 py-0.5 bg-secondary/50 text-text-secondary rounded-full">${getCategoryName(p.category)}</span>
+                    <span class="text-xs text-text-muted">${p.created_at}</span>
+                  </div>
+                  <h4 class="font-medium text-text-primary text-sm mb-1 line-clamp-1">${p.title}</h4>
+                  <p class="text-xs text-text-secondary line-clamp-1">${p.content}</p>
+                  <div class="flex items-center gap-3 mt-2 text-xs text-text-muted">
+                    <span>❤️ ${p.likes}</span>
+                    <span>💬 ${p.comments_count}</span>
                   </div>
                 </div>
               `).join('')}
@@ -1593,6 +1706,16 @@
           };
           MOCK_DATA.behaviors.unshift(newRecord);
           persistBehaviors();
+
+          // 数据联动：行为记录 ↔ 成长体系
+          addGrowthRecord('记录行为', 5, 'recording');
+
+          // 数据联动：行为记录 ↔ 周报（更新当周周报的records数量）
+          const currentWeek = MOCK_DATA.reports.find(r => r.childName === (child ? child.name : ''));
+          if (currentWeek) {
+            currentWeek.records = (currentWeek.records || 0) + 1;
+          }
+
           document.querySelector('.fixed').remove();
           navigateTo('records');
         } else {
@@ -1771,6 +1894,11 @@
       document.getElementById('page-title').textContent = '紧急模式';
       document.getElementById('page-subtitle').textContent = '帮助孩子平静下来';
 
+      const emergencyContacts = MOCK_DATA.emergencyContacts || [
+        { id: 1, name: '妈妈', phone: '138****8000', fullPhone: '13812348000' },
+        { id: 2, name: '爸爸', phone: '139****9000', fullPhone: '13912349000' }
+      ];
+
       container.innerHTML = `
         <div class="min-h-screen bg-gradient-to-b from-[#1a1a2e] to-[#16213e] p-6 flex flex-col animate-fade-in">
           <div class="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
@@ -1783,7 +1911,7 @@
             <p class="text-white/60 text-center mb-8">选择最接近的情况，获取针对性帮助</p>
 
             <div class="space-y-4">
-              <button onclick="startEmergency('green')" class="w-full bg-green-600/20 border-2 border-green-500 rounded-2xl p-5 text-left text-white hover:bg-green-600/30 transition-colors">
+              <button onclick="startEmergency('green')" class="w-full bg-green-600/20 border-2 border-green-500 rounded-2xl p-5 text-left text-white hover:bg-green-600/30 transition-colors active:scale-[0.98]">
                 <div class="flex items-center gap-4">
                   <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
                     <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1798,7 +1926,7 @@
                 </div>
               </button>
 
-              <button onclick="startEmergency('yellow')" class="w-full bg-yellow-600/20 border-2 border-yellow-500 rounded-2xl p-5 text-left text-white hover:bg-yellow-600/30 transition-colors">
+              <button onclick="startEmergency('yellow')" class="w-full bg-yellow-600/20 border-2 border-yellow-500 rounded-2xl p-5 text-left text-white hover:bg-yellow-600/30 transition-colors active:scale-[0.98]">
                 <div class="flex items-center gap-4">
                   <div class="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center">
                     <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1812,7 +1940,7 @@
                 </div>
               </button>
 
-              <button onclick="startEmergency('red')" class="w-full bg-red-600/20 border-2 border-red-500 rounded-2xl p-5 text-left text-white hover:bg-red-600/30 transition-colors">
+              <button onclick="startEmergency('red')" class="w-full bg-red-600/20 border-2 border-red-500 rounded-2xl p-5 text-left text-white hover:bg-red-600/30 transition-colors active:scale-[0.98]">
                 <div class="flex items-center gap-4">
                   <div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center">
                     <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1828,10 +1956,106 @@
               </button>
             </div>
 
+            <!-- 紧急联系人 -->
+            <div class="mt-6 pt-6 border-t border-white/10">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-white/80 text-sm font-medium">紧急联系人</h3>
+                <button onclick="showEmergencyContactManager()" class="text-white/50 text-xs hover:text-white/80 transition-colors">管理 →</button>
+              </div>
+              <div class="flex gap-3">
+                ${emergencyContacts.map(c => `
+                  <button onclick="callEmergencyContact('${c.fullPhone}', '${c.name}')" class="flex-1 bg-white/10 rounded-xl p-3 text-center hover:bg-white/20 transition-colors active:scale-[0.96]">
+                    <div class="text-lg mb-1">📞</div>
+                    <div class="text-white text-xs font-medium">${c.name}</div>
+                    <div class="text-white/50 text-xs">${c.phone}</div>
+                  </button>
+                `).join('')}
+                <button onclick="callEmergencyContact('110', '报警')" class="flex-1 bg-red-500/20 rounded-xl p-3 text-center hover:bg-red-500/30 transition-colors active:scale-[0.96]">
+                  <div class="text-lg mb-1">🚨</div>
+                  <div class="text-white text-xs font-medium">110</div>
+                  <div class="text-white/50 text-xs">报警</div>
+                </button>
+                <button onclick="callEmergencyContact('120', '急救')" class="flex-1 bg-red-500/20 rounded-xl p-3 text-center hover:bg-red-500/30 transition-colors active:scale-[0.96]">
+                  <div class="text-lg mb-1">🚑</div>
+                  <div class="text-white text-xs font-medium">120</div>
+                  <div class="text-white/50 text-xs">急救</div>
+                </button>
+              </div>
+            </div>
+
             <p class="text-white/40 text-center text-sm mt-6">紧急情况下请拨打110或120</p>
           </div>
         </div>
       `;
+    }
+
+    function callEmergencyContact(phone, name) {
+      showToast(`正在拨打${name}：${phone}`);
+    }
+
+    function showEmergencyContactManager() {
+      const contacts = MOCK_DATA.emergencyContacts || [
+        { id: 1, name: '妈妈', phone: '138****8000', fullPhone: '13812348000' },
+        { id: 2, name: '爸爸', phone: '139****9000', fullPhone: '13912349000' }
+      ];
+
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-end justify-center z-50';
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom max-h-[80vh] overflow-y-auto">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold">紧急联系人管理</h2>
+            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+          </div>
+          <div id="emergency-contacts-list" class="space-y-3">
+            ${contacts.map(c => `
+              <div class="flex items-center gap-3 p-3 bg-secondary/30 rounded-xl">
+                <div class="flex-1">
+                  <div class="font-medium text-text-primary">${c.name}</div>
+                  <div class="text-sm text-text-muted">${c.fullPhone}</div>
+                </div>
+                <button onclick="callEmergencyContact('${c.fullPhone}', '${c.name}')" class="px-3 py-1.5 bg-success/10 text-success rounded-lg text-sm">拨打</button>
+                <button onclick="removeEmergencyContact(${c.id})" class="px-3 py-1.5 bg-danger/10 text-danger rounded-lg text-sm">删除</button>
+              </div>
+            `).join('')}
+          </div>
+          <div class="mt-4 pt-4 border-t border-border">
+            <h4 class="text-sm font-medium text-text-primary mb-3">添加联系人</h4>
+            <div class="flex gap-2">
+              <input id="new-contact-name" type="text" placeholder="称呼" class="flex-1 px-3 py-2 rounded-xl border border-border text-sm">
+              <input id="new-contact-phone" type="tel" placeholder="电话号码" class="flex-1 px-3 py-2 rounded-xl border border-border text-sm">
+            </div>
+            <button onclick="addEmergencyContact()" class="w-full mt-3 py-2.5 rounded-xl bg-primary text-white font-medium text-sm">添加联系人</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function addEmergencyContact() {
+      const name = document.getElementById('new-contact-name').value;
+      const phone = document.getElementById('new-contact-phone').value;
+      if (!name || !phone) { showToast('请填写完整信息'); return; }
+      if (!MOCK_DATA.emergencyContacts) {
+        MOCK_DATA.emergencyContacts = [
+          { id: 1, name: '妈妈', phone: '138****8000', fullPhone: '13812348000' },
+          { id: 2, name: '爸爸', phone: '139****9000', fullPhone: '13912349000' }
+        ];
+      }
+      const newId = Math.max(...MOCK_DATA.emergencyContacts.map(c => c.id), 0) + 1;
+      const maskedPhone = phone.length >= 4 ? phone.slice(0, 3) + '****' + phone.slice(-4) : phone;
+      MOCK_DATA.emergencyContacts.push({ id: newId, name, phone: maskedPhone, fullPhone: phone });
+      showToast('联系人已添加');
+      document.querySelector('.fixed')?.remove();
+      navigateTo('emergency');
+    }
+
+    function removeEmergencyContact(id) {
+      if (!MOCK_DATA.emergencyContacts) return;
+      MOCK_DATA.emergencyContacts = MOCK_DATA.emergencyContacts.filter(c => c.id !== id);
+      showToast('联系人已删除');
+      document.querySelector('.fixed')?.remove();
+      navigateTo('emergency');
     }
 
     async function startEmergency(level) {
@@ -1867,9 +2091,16 @@
               <p class="text-white/60 text-sm">跟随圆圈的节奏呼吸</p>
             </div>
 
-            <button onclick="showEmergencyStrategies('${level}')" class="mt-12 px-8 py-3 rounded-xl bg-white text-[#1a1a2e] font-medium hover:bg-gray-100 transition-colors">
+            <button onclick="showEmergencyStrategies('${level}')" class="mt-12 px-8 py-3 rounded-xl bg-white text-[#1a1a2e] font-medium hover:bg-gray-100 transition-colors active:scale-[0.98]">
               获取应对策略
             </button>
+
+            <div class="mt-6 flex gap-3">
+              <button onclick="callEmergencyContact('110', '报警')" class="flex-1 py-2.5 rounded-xl bg-red-500/30 border border-red-500/50 text-white text-sm font-medium hover:bg-red-500/40 transition-colors active:scale-[0.98]">🚨 报警 110</button>
+              <button onclick="callEmergencyContact('120', '急救')" class="flex-1 py-2.5 rounded-xl bg-red-500/30 border border-red-500/50 text-white text-sm font-medium hover:bg-red-500/40 transition-colors active:scale-[0.98]">🚑 急救 120</button>
+            </div>
+
+            <button onclick="navigateTo('emergency')" class="mt-4 text-white/50 text-sm hover:text-white/70 transition-colors">← 返回选择</button>
           </div>
         </div>
       `;
@@ -1903,8 +2134,11 @@
             <div id="emergency-strategies-list" class="space-y-4">
               <div class="text-center text-white/60 py-8">加载中...</div>
             </div>
-            <button onclick="navigateTo('home')" class="mt-8 w-full py-3 rounded-xl bg-white text-[#1a1a2e] font-medium">
+            <button onclick="navigateTo('home')" class="mt-8 w-full py-3 rounded-xl bg-white text-[#1a1a2e] font-medium hover:bg-gray-100 transition-colors active:scale-[0.98]">
               返回首页
+            </button>
+            <button onclick="navigateTo('emergency')" class="mt-3 w-full py-3 rounded-xl bg-white/10 text-white font-medium border border-white/20 hover:bg-white/20 transition-colors active:scale-[0.98]">
+              返回紧急模式
             </button>
           </div>
         </div>
@@ -3499,12 +3733,21 @@
       try {
         const result = await apiRequest('/growth/course/' + courseId + '/learn', 'POST');
         if (result.success) {
+          const wasCompleted = course.progress === 100;
           // 更新mock数据中的进度
           if (course.completed_chapters < course.chapters) {
             course.completed_chapters++;
             course.progress = Math.round((course.completed_chapters / course.chapters) * 100);
           }
-          showToast('学习进度已更新！');
+
+          // 数据联动：完成课程 ↔ 成长体系
+          if (!wasCompleted && course.progress === 100) {
+            addGrowthRecord('完成课程: ' + course.title, 15, 'learning');
+            showToast('🎉 恭喜完成课程！获得15成长积分');
+          } else {
+            showToast('学习进度已更新！');
+          }
+
           document.querySelector('.fixed')?.remove();
           // 重新渲染成长页面
           navigateTo('growth');
@@ -4136,6 +4379,32 @@
       document.getElementById('page-title').textContent = 'AI分析';
       document.getElementById('page-subtitle').textContent = '行为数据洞察';
 
+      // 行为情绪分类统计
+      const emotionCounts = { '积极': 0, '平静': 0, '消极': 0, '焦虑': 0, '烦躁': 0 };
+      MOCK_DATA.behaviors.forEach(b => { if (emotionCounts[b.emotion] !== undefined) emotionCounts[b.emotion]++; });
+      const maxEmotionCount = Math.max(...Object.values(emotionCounts), 1);
+      const emotionColors = { '积极': '#10b981', '平静': '#3b82f6', '消极': '#f59e0b', '焦虑': '#ef4444', '烦躁': '#8b5cf6' };
+
+      // AI智能建议
+      const aiSuggestions = [];
+      const negativeCount = (emotionCounts['消极'] || 0) + (emotionCounts['焦虑'] || 0) + (emotionCounts['烦躁'] || 0);
+      const positiveCount = emotionCounts['积极'] || 0;
+      if (negativeCount > positiveCount) {
+        aiSuggestions.push({ icon: '🧘', title: '增加感官安抚活动', desc: '近期待改善情绪占比较高，建议每日安排2-3次感官安抚活动，如深压按摩、重力毯休息。', priority: 'high' });
+      }
+      if (emotionCounts['焦虑'] > 2) {
+        aiSuggestions.push({ icon: '🌬️', title: '焦虑情绪干预', desc: '焦虑行为出现频繁，建议使用视觉日程表减少不确定性，并在焦虑初起时引导深呼吸。', priority: 'high' });
+      }
+      if (emotionCounts['积极'] >= 3) {
+        aiSuggestions.push({ icon: '⭐', title: '巩固积极行为', desc: '积极情绪记录较多，建议在积极行为出现时立即给予社会性赞美和强化，巩固良好表现。', priority: 'medium' });
+      }
+      aiSuggestions.push({ icon: '📊', title: '持续记录是关键', desc: '数据越多，AI分析越精准。建议每天至少记录3次行为，保持7天以上可获得趋势分析。', priority: 'low' });
+      aiSuggestions.push({ icon: '🎯', title: '制定个性化目标', desc: '基于当前行为模式，建议在儿童档案中设定2-3个可量化的短期目标，配合策略库执行。', priority: 'medium' });
+
+      // 能力发展对比
+      const lastScores = { 社交: 45, 沟通: 38, 情绪: 52, 自理: 60 };
+      const currentScores = { 社交: 52, 沟通: 43, 情绪: 58, 自理: 65 };
+
       container.innerHTML = `
         <div class="p-4 space-y-4 animate-fade-in">
           <div class="bg-gradient-to-br from-cyan-500 to-blue-500 rounded-2xl p-5 text-white card-shadow">
@@ -4156,8 +4425,8 @@
                 <div class="text-xs text-white/70">平均置信度</div>
               </div>
               <div>
-                <div class="text-2xl font-bold">128</div>
-                <div class="text-xs text-white/70">总分析次数</div>
+                <div class="text-2xl font-bold">${MOCK_DATA.behaviors.length}</div>
+                <div class="text-xs text-white/70">分析记录数</div>
               </div>
               <div>
                 <div class="text-2xl font-bold">2</div>
@@ -4170,9 +4439,10 @@
             </div>
           </div>
 
+          <!-- 快速分析 -->
           <div>
             <h3 class="font-bold text-text-primary mb-3">快速分析</h3>
-            <button onclick="runAIAnalysis()" class="w-full bg-white p-4 rounded-xl card-shadow flex items-center gap-4 hover:shadow-md transition-shadow">
+            <button onclick="runAIAnalysis()" class="w-full bg-white p-4 rounded-xl card-shadow flex items-center gap-4 hover:shadow-md transition-shadow active:scale-[0.98]">
               <div class="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center">
                 <svg class="w-6 h-6 text-cyan-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
@@ -4189,6 +4459,87 @@
             </button>
           </div>
 
+          <!-- 行为趋势图表 -->
+          <div>
+            <h3 class="font-bold text-text-primary mb-3">情绪分布统计</h3>
+            <div class="bg-white rounded-xl card-shadow p-4 space-y-3">
+              ${Object.entries(emotionCounts).map(([emotion, count]) => `
+                <div class="flex items-center gap-3">
+                  <span class="text-xs w-8 text-text-secondary">${emotion}</span>
+                  <div class="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden">
+                    <div class="h-full rounded-full transition-all duration-500" style="width: ${Math.max(count / maxEmotionCount * 100, 2)}%; background-color: ${emotionColors[emotion]}"></div>
+                  </div>
+                  <span class="text-xs w-6 text-right font-medium" style="color: ${emotionColors[emotion]}">${count}</span>
+                </div>
+              `).join('')}
+              <div class="flex items-center gap-3 pt-2 border-t border-border">
+                <span class="text-xs text-text-muted">总计 ${MOCK_DATA.behaviors.length} 条记录</span>
+                <span class="text-xs text-success ml-auto">积极率 ${MOCK_DATA.behaviors.length > 0 ? Math.round(positiveCount / MOCK_DATA.behaviors.length * 100) : 0}%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 能力发展对比 -->
+          <div>
+            <h3 class="font-bold text-text-primary mb-3">能力发展对比</h3>
+            <div class="bg-white rounded-xl card-shadow p-4">
+              <div class="flex items-center gap-4 mb-3 text-xs">
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-gray-300 inline-block"></span> 上次评估</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-primary inline-block"></span> 本次评估</span>
+              </div>
+              ${Object.keys(currentScores).map(key => {
+                const diff = currentScores[key] - lastScores[key];
+                const maxScore = 100;
+                return `
+                  <div class="mb-3 last:mb-0">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-sm text-text-primary">${key}</span>
+                      <span class="text-xs ${diff >= 0 ? 'text-success' : 'text-danger'} font-medium">${diff >= 0 ? '+' : ''}${diff}</span>
+                    </div>
+                    <div class="relative h-5">
+                      <div class="absolute inset-0 h-full rounded bg-gray-100 overflow-hidden">
+                        <div class="h-full rounded bg-gray-300 transition-all duration-500" style="width: ${lastScores[key] / maxScore * 100}%"></div>
+                      </div>
+                      <div class="absolute inset-0 h-full rounded overflow-hidden">
+                        <div class="h-full rounded bg-primary transition-all duration-700" style="width: ${currentScores[key] / maxScore * 100}%"></div>
+                      </div>
+                    </div>
+                    <div class="flex justify-between text-xs text-text-muted mt-0.5">
+                      <span>${lastScores[key]}</span>
+                      <span>${currentScores[key]}</span>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <!-- AI智能建议 -->
+          <div>
+            <h3 class="font-bold text-text-primary mb-3">AI 智能建议</h3>
+            <div class="space-y-3">
+              ${aiSuggestions.map(s => {
+                const priorityColors = { high: 'bg-danger/10 text-danger', medium: 'bg-warning/10 text-warning', low: 'bg-success/10 text-success' };
+                const priorityLabels = { high: '重要', medium: '建议', low: '提示' };
+                return `
+                  <div class="bg-white p-4 rounded-xl card-shadow">
+                    <div class="flex items-start gap-3">
+                      <span class="text-2xl">${s.icon}</span>
+                      <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                          <span class="font-medium text-text-primary text-sm">${s.title}</span>
+                          <span class="text-xs px-1.5 py-0.5 rounded ${priorityColors[s.priority]}">${priorityLabels[s.priority]}</span>
+                        </div>
+                        <p class="text-xs text-text-secondary leading-relaxed">${s.desc}</p>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <!-- 分析记录 -->
           <div>
             <h3 class="font-bold text-text-primary mb-3">分析记录</h3>
             <div class="space-y-3">
@@ -4224,6 +4575,7 @@
       showToast('AI 分析中...');
       setTimeout(() => {
         showToast('分析完成！已生成建议');
+        navigateTo('ai');
       }, 1500);
     }
 
@@ -4398,6 +4750,18 @@
 
         if (result.success) {
           showToast('发布成功！');
+
+          // 数据联动：社区互动 ↔ 成就（检查"社区之星"成就）
+          const communityAchievement = MOCK_DATA.achievements.find(a => a.id === 6);
+          if (communityAchievement && !communityAchievement.unlocked) {
+            communityAchievement.progress = (communityAchievement.progress || 0) + 1;
+            if (communityAchievement.progress >= communityAchievement.target) {
+              communityAchievement.unlocked = true;
+              communityAchievement.unlocked_at = new Date().toISOString().split('T')[0];
+              setTimeout(() => showToast('🏆 成就解锁：社区之星'), 1500);
+            }
+          }
+
           document.querySelector('.fixed').remove();
           renderCommunity(document.getElementById('main-content'));
         } else {
@@ -5781,6 +6145,9 @@
 
     // === 初始化 ===
     document.addEventListener('DOMContentLoaded', () => {
+      // 恢复全局应用状态
+      loadAppState();
+
       // 从localStorage恢复行为记录
       const savedBehaviors = localStorage.getItem('xingban_behaviors');
       if (savedBehaviors) {
@@ -6209,6 +6576,59 @@
         if (result.success) { showToast('感谢您的反馈！'); document.querySelector('.fixed').remove(); }
         else { showToast(result.error || '提交失败'); }
       } catch (e) { showToast('网络错误'); }
+    }
+
+    // === 每日签到功能 ===
+    function getTodayStr() {
+      const d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    function isCheckedInToday() {
+      return appState.lastCheckIn === getTodayStr();
+    }
+
+    function checkIn() {
+      if (isCheckedInToday()) {
+        showToast('今天已经签到过了');
+        return;
+      }
+
+      const today = getTodayStr();
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.getFullYear() + '-' + String(yesterday.getMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getDate()).padStart(2, '0');
+
+      // 计算连续签到
+      if (appState.lastCheckIn === yesterdayStr) {
+        appState.checkInStreak += 1;
+      } else {
+        appState.checkInStreak = 1;
+      }
+
+      appState.lastCheckIn = today;
+      appState.totalCheckIns += 1;
+
+      // 基础签到积分
+      let points = 3;
+      let bonusMsg = '';
+
+      // 连续签到奖励
+      if (appState.checkInStreak === 7) {
+        points += 20;
+        bonusMsg = ' 连续签到7天奖励+20分！';
+      } else if (appState.checkInStreak === 30) {
+        points += 50;
+        bonusMsg = ' 连续签到30天奖励+50分！';
+      }
+
+      addGrowthRecord('每日签到', points, 'checkin');
+      saveAppState();
+
+      showToast('签到成功！获得' + points + '成长积分' + bonusMsg);
+
+      // 刷新首页签到卡片
+      navigateTo('home');
     }
   </script>
 </body>
