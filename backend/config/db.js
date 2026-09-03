@@ -11,7 +11,12 @@ const mysqlConnection = mysql.createConnection({
 let isUsingMock = false;
 let mockDB = null;
 
-mysqlConnection.connect((err) => {
+let connectionStarted = false;
+
+function connect(callback = () => {}) {
+  if (connectionStarted) return callback(isUsingMock ? new Error('当前使用内存模拟存储') : null);
+  connectionStarted = true;
+  mysqlConnection.connect((err) => {
   if (err) {
     console.error('MySQL连接失败，将使用内存模拟存储');
     isUsingMock = true;
@@ -19,7 +24,9 @@ mysqlConnection.connect((err) => {
   } else {
     console.log('✅ MySQL连接成功');
   }
-});
+    callback(err);
+  });
+}
 
 function query(sql, params, callback) {
   if (isUsingMock && mockDB) {
@@ -30,8 +37,6 @@ function query(sql, params, callback) {
 }
 
 module.exports = {
-  connect: (callback) => {
-    mysqlConnection.connect(callback);
-  },
+  connect,
   query: query
 };

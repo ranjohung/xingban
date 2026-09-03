@@ -3,6 +3,21 @@ const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
 
+router.post('/share', auth, (req, res) => {
+  const { report_id, therapist_id, note = '' } = req.body;
+  if (!Number.isInteger(Number(report_id)) || !Number.isInteger(Number(therapist_id))) {
+    return res.status(400).json({ error: '周报ID和康复师ID必须为有效整数' });
+  }
+  db.query(
+    'INSERT INTO report_comments (report_id, therapist_id, content) VALUES (?, ?, ?)',
+    [Number(report_id), Number(therapist_id), note || '家长已分享周报'],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.status(201).json({ success: true, message: '周报已分享给康复师', share: { id: result.insertId } });
+    }
+  );
+});
+
 router.post('/register', (req, res) => {
   const { name, phone, email, professional_title, specialty, years_of_experience } = req.body;
   

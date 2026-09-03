@@ -556,7 +556,8 @@
 
       try {
         const response = await fetch(`${API_BASE}${url}`, options);
-        const result = await response.json();
+        const result = await response.json().catch(() => ({ error: `服务返回了无效响应（HTTP ${response.status}）` }));
+        if (!response.ok) return { success: false, ...result, status: response.status };
         return result;
       } catch (error) {
         console.log('API请求失败，切换到演示模式');
@@ -2060,7 +2061,7 @@
 
     async function startEmergency(level) {
       try {
-        const result = await apiRequest('/emergency/start', 'POST', { level });
+        const result = await apiRequest('/emergency/start', 'POST', { child_id: 1, level });
         if (!result.success) {
           showToast('启动紧急模式失败');
           return;
@@ -2145,7 +2146,7 @@
       `;
 
       try {
-        const result = await apiRequest(`/emergency/strategies?level=${level || 'green'}`, 'GET');
+        const result = await apiRequest(`/emergency/strategies/${level || 'green'}`, 'GET');
 
         if (result.success && result.strategies) {
           const strategiesList = document.getElementById('emergency-strategies-list');
@@ -2750,7 +2751,7 @@
       const week_range = document.getElementById('report-week').value;
 
       try {
-        const result = await apiRequest('/report/generate', 'POST', { child_id, week_range });
+        const result = await apiRequest(`/report/generate/${child_id}`, 'POST', { week_range });
 
         if (result.success) {
           showToast('周报生成成功！');
@@ -3731,7 +3732,7 @@
       if (!course) return;
 
       try {
-        const result = await apiRequest('/growth/course/' + courseId + '/learn', 'POST');
+        const result = await apiRequest('/growth/earn', 'POST', { action: 'course_learning', points: 5, description: '课程学习进度更新：' + course.title });
         if (result.success) {
           const wasCompleted = course.progress === 100;
           // 更新mock数据中的进度
@@ -4372,7 +4373,7 @@
         if (icon) icon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
       }
 
-      try { apiRequest(`/story/library/${id}/play`, 'POST'); } catch(e) {}
+      try { apiRequest('/story/play', 'POST', { story_id: id }); } catch(e) {}
     }
 
     function renderAI(container) {
@@ -5407,7 +5408,7 @@
       }
 
       try {
-        const result = await apiRequest('/child/goals', 'POST', {
+        const result = await apiRequest('/child/1/goals', 'POST', {
           child_id: 1,
           category,
           target,
@@ -6108,7 +6109,7 @@
       const endpoint = isFollowing ? 'unfollow' : 'follow';
 
       try {
-        const result = await apiRequest(`/finance/subsidies/${endpoint}/${subsidyId}`, 'POST');
+        const result = await apiRequest(`/finance/subsidies/${endpoint}/${subsidyId}`, isFollowing ? 'DELETE' : 'POST');
 
         if (result.success) {
           showToast(isFollowing ? '已取消关注' : '已关注');
@@ -6440,7 +6441,7 @@
       if (newPw !== confirmPw) { showToast('两次密码不一致'); return; }
       if (newPw.length < 6) { showToast('密码至少6位'); return; }
       try {
-        const result = await apiRequest('/auth/change-password', 'POST', { old_password: oldPw, new_password: newPw });
+        const result = await apiRequest('/auth/reset-password', 'POST', { oldPassword: oldPw, newPassword: newPw });
         if (result.success) { showToast('密码修改成功'); document.querySelector('.fixed').remove(); }
         else { showToast(result.error || '修改失败'); }
       } catch (e) { showToast('网络错误'); }
