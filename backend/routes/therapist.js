@@ -4,16 +4,25 @@ const db = require('../config/db');
 const auth = require('../middleware/auth');
 
 router.post('/share', auth, (req, res) => {
-  const { report_id, therapist_id, note = '' } = req.body;
+  const { report_id, therapist_id, note = '', scope = ['summary'], expires_days = 7 } = req.body;
   if (!Number.isInteger(Number(report_id)) || !Number.isInteger(Number(therapist_id))) {
     return res.status(400).json({ error: '周报ID和康复师ID必须为有效整数' });
   }
+  const allowedScopes = ['summary', 'risk', 'medical'];
+  if (!Array.isArray(scope) || scope.length === 0 || scope.some(item => !allowedScopes.includes(item))) {
+    return res.status(400).json({ error: '分享范围无效' });
+  }
+  const expiresDays = Number(expires_days);
+  if (![1, 7, 30].includes(expiresDays)) {
+    return res.status(400).json({ error: '分享有效期无效' });
+  }
+  const shareMetadata = JSON.stringify({ note: String(note).slice(0, 500), scope, expires_days: expiresDays, authorized_at: new Date().toISOString() });
   db.query(
     'INSERT INTO report_comments (report_id, therapist_id, content) VALUES (?, ?, ?)',
-    [Number(report_id), Number(therapist_id), note || '家长已分享周报'],
+    [Number(report_id), Number(therapist_id), shareMetadata],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({ success: true, message: '周报已分享给康复师', share: { id: result.insertId } });
+      res.status(201).json({ success: true, message: '周报已按授权范围分享', share: { id: result.insertId, scope, expires_days: expiresDays } });
     }
   );
 });

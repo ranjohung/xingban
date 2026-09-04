@@ -179,6 +179,7 @@
     #login-page>div { position:relative;z-index:1; }
     #login-page .card-shadow { box-shadow:0 28px 80px rgba(49,76,65,.13);border:1px solid rgba(255,255,255,.75); }
     .mobile-bottom-nav { display:none; }
+    body.low-burden-mode .gamification-only { display:none!important; }
     @keyframes overlayIn { from { opacity:0; } }
     @keyframes dialogIn { from { opacity:0;transform:translateY(12px) scale(.985); } }
     @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important; } }
@@ -896,6 +897,19 @@
       ]
     };
 
+    const STRATEGY_GUIDES = {
+      1: { when:'孩子开始焦虑、呼吸变快，但仍能跟随简单指令时', prepare:['先降低环境噪声','家长先稳定语速','不要强迫孩子闭眼'], steps:[['靠近并确认安全','蹲到与孩子视线接近的位置，保持一臂距离，先说：“我在这里，你是安全的。”'],['家长先示范','把手轻放腹部，用鼻子缓慢吸气，嘴巴慢慢呼气；不要一开始就要求孩子做到。'],['用具体形象带领','说：“闻一闻小花，再慢慢吹蜡烛。”吸气约3秒、呼气约4秒。'],['一起重复3次','每次结束停顿2秒，观察肩膀、呼吸和声音是否放松。'],['平静后立即肯定','说：“你刚才让身体慢下来了。”随后提供喝水或安静活动。']], script:'“我陪你。闻小花——一、二、三；吹蜡烛——一、二、三、四。”', avoid:'孩子正在尖叫、屏息或强烈抗拒时不要反复命令“深呼吸”，先减少刺激并保证安全。' },
+      2: { when:'出现捂耳、烦躁、来回走动等感官过载信号时', prepare:['准备孩子平时接受的压力球或安抚物','一次只提供一种刺激','预留安静区域'], steps:[['识别过载来源','快速查看声音、灯光、人群、衣物触感中哪一项突然变化。'],['减少外界刺激','关小声音、移开人群或调暗灯光，语言减到一句话。'],['提供两个熟悉选择','展示而不是强塞：“压力球，还是安静角？”等待5秒。'],['持续观察2分钟','关注呼吸、手部动作和逃离倾向；有效就继续，无效就停止该刺激。'],['记录有效组合','平静后记下场景、刺激来源和有效物品，供下次提前准备。']], script:'“这里有点吵。你可以选压力球，或者去安静角，我陪你。”', avoid:'不要使用孩子从未尝试过的强刺激，也不要在孩子拒绝触碰时强行拥抱。' },
+      3: { when:'孩子难以理解“接下来做什么”，或活动转换时容易抗拒', prepare:['准备2—5张清晰图片','顺序从左到右','最后安排明确奖励'], steps:[['选一个短流程','第一次只做“收玩具→洗手→吃饭”三步。'],['逐张说明','指着每张卡，用相同短句说明，不额外讲大道理。'],['完成一项就操作卡片','让孩子把完成卡翻面、取下或打勾，形成结束感。'],['转换前提前预告','剩2分钟时指向下一张卡，使用计时器提示。'],['全部完成后兑现结果','立即给予约定的表扬或活动，保持规则稳定。']], script:'“先收玩具，再洗手，最后吃饭。做完这一张，我们就翻过去。”', avoid:'图片过多、临时频繁换顺序，都会降低孩子对时间表的信任。' },
+      4: { when:'孩子出现了需要巩固的具体正向行为时', prepare:['选定一个可观察行为','准备孩子真正喜欢的强化物','所有照护者口径一致'], steps:[['把目标说具体','把“表现好”改成“听到名字后转身”或“把玩具放回盒子”。'],['提前说明结果','任务开始前用一句话说明完成后能得到什么。'],['行为出现后立即强化','在1—2秒内给予具体表扬，再兑现约定的活动或物品。'],['逐渐改为自然奖励','稳定后减少物质奖励，增加表扬、选择权和活动本身的成就感。'],['每天记录成功率','记录机会次数和成功次数，连续稳定后再提高要求。']], script:'“你把玩具放回盒子了，这就是自己整理。现在可以选一本故事书。”', avoid:'不要用事后临时许诺或取消已经获得的奖励；强化物也不能替代基本需求。' },
+      5: { when:'孩子能理解延迟奖励，需要通过多个小成功完成较长任务时', prepare:['准备3—5格代币板','选定明确兑换物','先从很容易成功的要求开始'], steps:[['共同确认兑换规则','展示“集满3颗星可以玩5分钟积木”，让结果看得见。'],['一次只提一个要求','每完成一个明确动作，立刻发一枚代币并具体表扬。'],['让孩子亲手贴代币','边贴边数还差几个，帮助理解进度。'],['集满后立即兑换','不临时加任务，也不拖延兑现。'],['稳定后缓慢增加格数','从3格增加到4格，每次只调整一个变量。']], script:'“坐好完成这一题，就得到一颗星。三颗星集满，我们玩积木。”', avoid:'不要因问题行为扣掉已经获得的代币，也不要频繁更换兑换规则。' },
+      6: { when:'穿衣、洗漱、收拾等任务步骤太多，孩子容易停住或抗拒时', prepare:['把任务拆成3—7个动作','准备图片提示','决定从第一步或最后一步开始教'], steps:[['观察并写下全部动作','以洗手为例：开水—打湿—抹皂—搓手—冲洗—擦干。'],['选择一个孩子能完成的起点','其余步骤由家长协助，先让孩子体验完整成功。'],['只教当前一步','使用简短指令和示范，等待5—10秒再辅助。'],['完成后立即标记','翻过图片卡或打勾，并给予具体表扬。'],['掌握后再增加一步','连续多次独立完成后才撤掉提示，不一次要求全部独立。']], script:'“现在只做第一步：打开水龙头。”（等待）“你自己打开了。”', avoid:'不要边做边连续纠正所有步骤；任务中断时先降低难度，而不是从头重复。' },
+      7: { when:'需要练习打招呼、轮流、等待或适应新环境时', prepare:['故事主角与孩子相似','一次只教一个行为','使用真实场景图片更好'], steps:[['明确一个目标','例如只练“见到老师挥手”，不要同时要求眼神和完整问候。'],['用第一人称短句阅读','每页1—2句，描述发生什么、别人怎么想、我可以怎么做。'],['让孩子指出关键动作','问选择题：“小朋友现在可以挥手，还是跑开？”'],['在家角色扮演','家长扮演老师，练习2—3轮，每轮不超过3分钟。'],['真实场景前复习','出门前快速看一遍，完成后具体表扬目标行为。']], script:'“早上我看到老师。我可以挥挥手，说‘老师好’。老师会知道我来了。”', avoid:'故事不是训话工具；避免使用“必须、总是、不能犯错”等绝对化表达。' },
+      8: { when:'孩子情绪升高，需要一个可主动进入、降低刺激的安全空间时', prepare:['与孩子平静时共同布置','放入熟悉安抚物','明确这不是惩罚区'], steps:[['平静时先参观','介绍角落里的物品和用途，让孩子自由进出。'],['建立进入信号','约定一句话或一张“休息”卡，家长也尊重孩子主动提出。'],['情绪前兆时提供选择','说“要在这里休息，还是去安静角？”避免拖拽。'],['保持陪伴但减少语言','在可观察范围内等待，除安全提醒外不过度提问。'],['孩子准备好后再返回','用简单选择确认下一步，并记录哪些物品有效。']], script:'“安静角是帮助身体休息的地方，不是惩罚。你准备好时可以回来。”', avoid:'绝不能锁门、阻止孩子离开或把安全角当隔离处罚。' },
+      9: { when:'孩子能听懂关键词，但长句、连续命令或抽象表达让其困惑时', prepare:['先获得孩子注意','一次一个动作','配合手势或图片'], steps:[['走近再说','在孩子可感知范围内叫名字，等待短暂反应。'],['给出一个肯定式指令','说“脚放地上”，不说“不要爬来爬去”。'],['等待5—10秒','给孩子处理语言和启动动作的时间，不连续重复。'],['必要时增加视觉提示','指向物品、示范动作或出示图片，而不是提高音量。'],['完成后具体肯定','说“你把杯子放桌上了”，帮助建立语言和结果的联系。']], script:'“小明，看这里。杯子放桌上。”（等待）“你做到了。”', avoid:'避免一次说多个步骤、反问句、讽刺或不断提高音量。' },
+      10:{ when:'孩子面对开放问题容易沉默、焦虑，或需要提升可控感时', prepare:['两个选项都必须可接受','用实物或图片展示','选择后立即执行'], steps:[['先明确不可选择的边界','例如已经需要穿鞋，但可以选择鞋的颜色。'],['提供两个具体选项','把选项放在眼前，用相同语气说出。'],['安静等待5—10秒','不要马上替孩子选，也不要连续追加第三个选项。'],['确认并执行选择','复述“你选蓝色鞋”，立即开始下一步。'],['无回应时温和缩小帮助','指着两项再问一次；仍无回应可说明将代选并保持平静。']], script:'“现在要穿鞋。你想穿蓝色，还是灰色？”', avoid:'不要提供虚假选择，例如孩子选了之后又否定；也不要用选择逃避必要的安全边界。' }
+    };
+
     // === 全局状态管理 ===
     const appState = {
       lastCheckIn: null,     // 最后签到日期 (YYYY-MM-DD)
@@ -1154,15 +1168,15 @@
           <!-- 欢迎卡片 -->
           <div class="bg-gradient-to-br from-primary to-primary-dark rounded-2xl p-5 text-white card-shadow">
             <h2 class="text-lg font-bold mb-1">${greeting}，${currentUser?.name || '家长'} ${greetingIcon}</h2>
-            <p class="text-white/80 text-sm">${hour >= 22 ? '注意休息，明天继续加油' : hour >= 18 ? '辛苦一天了，记得放松一下' : '今天也要加油哦！'}</p>
-            <div class="flex gap-4 mt-4">
+            <p class="text-white/80 text-sm">${hour >= 22 ? '先照顾好自己，记录可以明天再补' : hour >= 18 ? '辛苦一天了，今天不完成任务也没关系' : '按你的节奏来，我们只保留真正需要的事'}</p>
+            <div class="flex gap-4 mt-4 gamification-only">
               <div>
                 <div class="text-2xl font-bold">${todayRecords}</div>
                 <div class="text-xs text-white/70">今日记录</div>
               </div>
               <div>
                 <div class="text-2xl font-bold">${streak}</div>
-                <div class="text-xs text-white/70">连续记录</div>
+                <div class="text-xs text-white/70">近期陪伴</div>
               </div>
               <div>
                 <div class="text-2xl font-bold">${MOCK_DATA.strategies.length}</div>
@@ -1173,7 +1187,7 @@
 
           <!-- 今日签到卡片 -->
           ${isCheckedInToday() ? `
-          <div class="bg-white p-4 rounded-xl card-shadow flex items-center gap-3">
+          <div class="bg-white p-4 rounded-xl card-shadow flex items-center gap-3 gamification-only">
             <div class="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center">
               <span class="text-lg">✅</span>
             </div>
@@ -1184,7 +1198,7 @@
             <span class="text-xs text-success font-medium">已完成</span>
           </div>
           ` : `
-          <div class="bg-white p-4 rounded-xl card-shadow flex items-center gap-3">
+          <div class="bg-white p-4 rounded-xl card-shadow flex items-center gap-3 gamification-only">
             <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
               <span class="text-lg">📅</span>
             </div>
@@ -1377,51 +1391,57 @@
       }
     }
 
+    function getStrategyProgress(id) {
+      try { return JSON.parse(localStorage.getItem(`xingban_strategy_${id}`) || '[]'); }
+      catch (_) { return []; }
+    }
+
+    function toggleStrategyStep(strategyId, stepIndex, checked) {
+      const progress = new Set(getStrategyProgress(strategyId));
+      if (checked) progress.add(stepIndex); else progress.delete(stepIndex);
+      localStorage.setItem(`xingban_strategy_${strategyId}`, JSON.stringify([...progress]));
+      const total = STRATEGY_GUIDES[strategyId].steps.length;
+      document.getElementById(`strategy-progress-${strategyId}`).textContent = `${progress.size}/${total}`;
+      document.getElementById(`strategy-progress-bar-${strategyId}`).style.width = `${Math.round(progress.size / total * 100)}%`;
+      if (progress.size === total) showToast('本次练习步骤已全部完成');
+    }
+
     function showStrategyDetail(id) {
       const strategy = MOCK_DATA.strategies.find(s => s.id === id);
-      if (!strategy) return;
-
+      const guide = STRATEGY_GUIDES[id];
+      if (!strategy || !guide) return;
+      const progress = new Set(getStrategyProgress(id));
       const modal = document.createElement('div');
-      modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
+      modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3 sm:p-6';
       modal.innerHTML = `
-        <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in">
-          <div class="flex justify-between items-start mb-4">
-            <div>
-              <h3 class="text-lg font-bold">${strategy.name}</h3>
-              <span class="text-sm text-text-secondary">${strategy.category}</span>
-            </div>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+        <div class="bg-white w-full max-w-2xl rounded-2xl animate-fade-in max-h-[92vh] overflow-hidden flex flex-col">
+          <div class="flex justify-between items-start gap-4 p-5 sm:p-6 border-b border-border bg-white sticky top-0 z-10">
+            <div><div class="flex items-center gap-2 mb-1"><span class="text-xs px-2 py-1 rounded-full bg-primary-light/40 text-primary font-medium">分步实操教程</span><span class="text-xs text-text-muted">约 ${Math.max(3, guide.steps.length * 2)} 分钟</span></div><h3 class="text-xl font-bold">${strategy.name}</h3><p class="text-sm text-text-secondary mt-1">${strategy.description}</p></div>
+            <button onclick="closeTopModal()" aria-label="关闭教程" class="w-9 h-9 shrink-0 rounded-full bg-background text-text-muted hover:text-text-primary">✕</button>
           </div>
-          <p class="text-text-secondary mb-4">${strategy.description}</p>
-          <div class="flex items-center gap-4 mb-4">
-            <div>
-              <div class="text-sm text-text-muted">有效率</div>
-              <div class="text-lg font-bold text-success">${strategy.effectivenessRate}%</div>
-            </div>
-            <div>
-              <div class="text-sm text-text-muted">使用次数</div>
-              <div class="text-lg font-bold text-text-primary">${strategy.usageCount}</div>
-            </div>
-            <div>
-              <div class="text-sm text-text-muted">难度</div>
-              <div class="text-lg font-bold ${getDifficultyColor(strategy.difficulty)}">${strategy.difficulty}</div>
-            </div>
+          <div class="overflow-y-auto p-5 sm:p-6 space-y-6">
+            <section class="rounded-xl bg-primary-light/20 border border-primary/10 p-4"><div class="text-xs font-semibold text-primary mb-1">什么时候使用</div><p class="text-sm leading-6 text-text-primary">${guide.when}</p></section>
+            <section><h4 class="font-bold text-text-primary mb-3">开始前准备</h4><div class="grid sm:grid-cols-3 gap-2">${guide.prepare.map((item, index) => `<div class="rounded-xl bg-background p-3 text-sm text-text-secondary"><span class="text-primary font-bold mr-1">${index + 1}.</span>${item}</div>`).join('')}</div></section>
+            <section>
+              <div class="flex items-center justify-between mb-3"><h4 class="font-bold text-text-primary">跟着做</h4><div class="flex items-center gap-2 text-xs text-text-muted"><span id="strategy-progress-${id}">${progress.size}/${guide.steps.length}</span><div class="w-20 h-1.5 rounded-full bg-gray-200 overflow-hidden"><div id="strategy-progress-bar-${id}" class="h-full bg-primary rounded-full transition-all" style="width:${Math.round(progress.size / guide.steps.length * 100)}%"></div></div></div></div>
+              <div class="space-y-3">${guide.steps.map((step, index) => `<label class="flex gap-3 p-4 rounded-xl border border-border bg-white cursor-pointer hover:border-primary/40"><input type="checkbox" class="mt-1 w-4 h-4 accent-primary" ${progress.has(index) ? 'checked' : ''} onchange="toggleStrategyStep(${id},${index},this.checked)"><span class="w-7 h-7 shrink-0 rounded-full bg-primary text-white text-sm font-bold flex items-center justify-center">${index + 1}</span><span><strong class="block text-sm text-text-primary mb-1">${step[0]}</strong><span class="block text-sm leading-6 text-text-secondary">${step[1]}</span></span></label>`).join('')}</div>
+            </section>
+            <section class="rounded-xl border border-primary/20 overflow-hidden"><div class="px-4 py-3 bg-primary-light/20 text-sm font-bold text-text-primary">可以直接照着说</div><blockquote class="p-4 text-sm leading-6 text-text-primary border-l-4 border-primary m-4 bg-background rounded-r-lg">${guide.script}</blockquote></section>
+            <section class="rounded-xl bg-amber-50 border border-amber-200 p-4"><div class="text-sm font-bold text-amber-800 mb-1">注意避免</div><p class="text-sm leading-6 text-amber-900/80">${guide.avoid}</p></section>
+            <section class="rounded-xl bg-danger/5 border border-danger/20 p-4"><div class="text-sm font-bold text-danger mb-1">不用于精神科紧急情况</div><p class="text-sm leading-6 text-text-secondary">若出现自伤/自杀想法或计划、意识异常、幻觉妄想、服药过量，或极少睡眠同时明显兴奋冲动，请停止本教程并进入“紧急支持”；不要让孩子独处，必要时拨打 120/110。</p></section>
+            <section class="flex flex-wrap items-center gap-4 py-2 text-sm"><div><span class="text-text-muted">临床有效率</span> <strong>尚未经验证</strong></div><div><span class="text-text-muted">难度</span> <strong>${strategy.difficulty}</strong></div><div><span class="text-text-muted">历史使用</span> <strong>${strategy.usageCount} 次（演示）</strong></div></section>
+            <section class="border-t border-border pt-5"><p class="text-sm text-text-secondary mb-3">实际尝试后，这个方法对孩子有效吗？</p><div class="grid grid-cols-3 gap-2"><button onclick="submitStrategyFeedback(${strategy.id},'positive')" class="py-2.5 rounded-xl bg-success/10 text-success text-sm font-medium">有效</button><button onclick="submitStrategyFeedback(${strategy.id},'negative')" class="py-2.5 rounded-xl bg-danger/10 text-danger text-sm font-medium">暂时无效</button><button onclick="reportStrategyConcern(${strategy.id})" class="py-2.5 rounded-xl bg-amber-50 text-amber-700 text-sm font-medium">出现不适</button></div></section>
           </div>
-          <div class="flex gap-2 mb-4">
-            <button onclick="submitStrategyFeedback(${strategy.id}, 'positive')" class="flex-1 py-2 rounded-lg bg-success/10 text-success text-sm font-medium">有效</button>
-            <button onclick="submitStrategyFeedback(${strategy.id}, 'negative')" class="flex-1 py-2 rounded-lg bg-danger/10 text-danger text-sm font-medium">无效</button>
-          </div>
-          <button onclick="this.closest('.fixed').remove()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">知道了</button>
-        </div>
-      `;
+        </div>`;
       document.body.appendChild(modal);
     }
 
     async function submitStrategyFeedback(strategyId, feedbackType) {
       try {
         const result = await apiRequest('/strategy/feedback', 'POST', {
+          child_id: 1,
           strategy_id: strategyId,
-          feedback_type: feedbackType
+          effectiveness: feedbackType === 'positive' ? 'effective' : 'ineffective'
         });
 
         if (result.success) {
@@ -1433,6 +1453,11 @@
         console.error('反馈提交失败:', error);
         showToast('网络错误');
       }
+    }
+
+    function reportStrategyConcern(strategyId) {
+      localStorage.setItem(`xingban_strategy_concern_${strategyId}`, new Date().toISOString());
+      showToast('已记录不适反应，请停止使用并咨询专业人员');
     }
 
     // 全局筛选状态
@@ -1610,7 +1635,7 @@
             <div class="flex gap-4">
               <div class="flex-1">
                 <label class="block text-sm text-text-secondary mb-1">行为分类</label>
-                <select id="record-category" class="w-full px-4 py-2.5 rounded-xl border border-border bg-white">
+                <select id="record-category" onchange="handleRiskCategory(this.value)" class="w-full px-4 py-2.5 rounded-xl border border-border bg-white">
                   <option value="情绪爆发">情绪爆发</option>
                   <option value="刻板行为">刻板行为</option>
                   <option value="攻击行为">攻击行为</option>
@@ -1623,6 +1648,9 @@
                   <option value="社交发起">社交发起</option>
                   <option value="进食问题">进食问题</option>
                   <option value="睡眠问题">睡眠问题</option>
+                  <option value="异常兴奋/活动骤增">异常兴奋/活动骤增</option>
+                  <option value="绝望/谈论死亡">绝望/谈论死亡</option>
+                  <option value="幻觉/妄想/意识异常">幻觉/妄想/意识异常</option>
                   <option value="其他">其他</option>
                 </select>
               </div>
@@ -1634,13 +1662,26 @@
                   <option value="消极">消极</option>
                   <option value="焦虑">焦虑</option>
                   <option value="烦躁">烦躁</option>
+                  <option value="异常兴奋">异常兴奋</option>
+                  <option value="易激惹">易激惹</option>
+                  <option value="绝望/麻木">绝望/麻木</option>
                 </select>
               </div>
             </div>
+            <details class="rounded-xl border border-border p-3 bg-background">
+              <summary class="text-sm font-medium cursor-pointer">补充心理健康观察（可选）</summary>
+              <div class="grid grid-cols-2 gap-3 mt-3">
+                <label class="text-xs text-text-secondary">昨夜睡眠（小时）<input id="record-sleep" type="number" min="0" max="24" step="0.5" class="mt-1 w-full p-2 rounded-lg border"></label>
+                <label class="text-xs text-text-secondary">精力/活动水平<select id="record-energy" class="mt-1 w-full p-2 rounded-lg border"><option value="">未记录</option><option>明显降低</option><option>与平时相近</option><option>明显升高</option><option>极高且难以停止</option></select></label>
+                <label class="col-span-2 text-xs text-text-secondary">医疗事件<select id="record-medical-event" class="mt-1 w-full p-2 rounded-lg border"><option value="">无/未记录</option><option>按医嘱调整药物</option><option>漏服或拒绝服药</option><option>疑似药物不良反应</option><option>就诊或急诊</option></select></label>
+              </div>
+              <p class="text-xs text-text-muted mt-2">这里只记录观察，不提供诊断或药物增减建议。</p>
+            </details>
             <div>
               <label class="block text-sm text-text-secondary mb-1">强度等级: <span id="intensity-value">中等</span></label>
               <input type="range" min="1" max="3" value="2" oninput="updateIntensity(this.value)" class="w-full accent-primary">
               <input type="hidden" id="record-intensity" value="medium">
+              <div class="grid grid-cols-3 gap-2 mt-2 text-xs text-text-muted"><span><strong>低：</strong>可继续日常活动</span><span><strong>中：</strong>明显中断，需成人支持</span><span><strong>高：</strong>无法保持安全或基本活动</span></div>
             </div>
             <button onclick="saveRecord()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存记录</button>
           </div>
@@ -1671,6 +1712,10 @@
       const levels = { '1': 'low', '2': 'medium', '3': 'high' };
       document.getElementById('intensity-value').textContent = labels[value];
       document.getElementById('record-intensity').value = levels[value];
+    }
+
+    function handleRiskCategory(category) {
+      if (['自伤行为','绝望/谈论死亡','幻觉/妄想/意识异常'].includes(category)) showMentalHealthTriage();
     }
 
     // 语音录制
@@ -1783,6 +1828,9 @@
       const behavior_category = document.getElementById('record-category').value;
       const emotion_state = document.getElementById('record-emotion').value;
       const intensity_level = document.getElementById('record-intensity').value;
+      const sleep_hours = document.getElementById('record-sleep')?.value || '';
+      const energy_level = document.getElementById('record-energy')?.value || '';
+      const medical_event = document.getElementById('record-medical-event')?.value || '';
 
       if (!content) {
         showToast('请填写行为描述');
@@ -1791,7 +1839,8 @@
 
       try {
         const result = await apiRequest('/behavior', 'POST', {
-          child_id, input_type, content, behavior_category, emotion_state, intensity_level
+          child_id, input_type, content, behavior_category, emotion_state, intensity_level,
+          sleep_hours, energy_level, medical_event
         });
 
         if (result.success) {
@@ -1806,7 +1855,8 @@
             emotion: emotion_state,
             description: content,
             time: '刚刚',
-            intensity: intensity_level === 'low' ? 3 : intensity_level === 'medium' ? 5 : 8
+            intensity: intensity_level === 'low' ? 3 : intensity_level === 'medium' ? 5 : 8,
+            sleep_hours, energy_level, medical_event
           };
           MOCK_DATA.behaviors.unshift(newRecord);
           persistBehaviors();
@@ -1987,12 +2037,48 @@
         await apiRequest(`/behavior/${id}`, 'DELETE');
         showToast('记录已删除');
         // 关闭所有弹窗
-        document.querySelectorAll('.fixed').forEach(el => el.remove());
+        document.querySelectorAll('.fixed[role="dialog"], .fixed[data-modal="true"]').forEach(el => el.remove());
         navigateTo('records');
       } catch (error) {
         showToast('网络错误');
       }
     }
+
+    function showMentalHealthTriage() {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/70 flex items-center justify-center z-[70] p-3';
+      modal.innerHTML = `<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[92vh] overflow-y-auto">
+        <div class="flex justify-between gap-3"><div><span class="text-xs font-bold text-danger">先判断是否需要立即求助</span><h2 class="text-xl font-bold mt-1">孩子现在有以下情况吗？</h2></div><button aria-label="关闭" onclick="closeTopModal()">✕</button></div>
+        <p class="text-sm text-text-secondary mt-2">本工具不做诊断。如果拿不准，请按“有或不确定”处理。</p>
+        <div class="mt-4 space-y-2 text-sm">${['正在自伤、伤害他人，或说不想活了','提到具体自杀计划、工具或地点','服药过量、严重不良反应或意识异常','出现幻觉、妄想、严重混乱或无法沟通','连续极少睡眠且异常兴奋、冲动或冒险','离家失联或正处于道路、高处、水边等危险地点'].map(t=>`<label class="flex gap-3 p-3 rounded-xl border border-border"><input type="checkbox" class="crisis-risk mt-1 accent-danger"><span>${t}</span></label>`).join('')}</div>
+        <div class="mt-5 grid gap-2"><button onclick="showImmediateDangerHelp()" class="w-full py-3 rounded-xl bg-danger text-white font-bold">有或不确定：立即求助</button><button onclick="closeTopModal();startEmergency('red')" class="w-full py-3 rounded-xl border border-border text-text-primary">确认没有即时危险，继续安抚支持</button></div>
+      </div>`;
+      document.body.appendChild(modal);
+    }
+
+    function showImmediateDangerHelp() {
+      closeTopModal();
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-red-950/90 flex items-center justify-center z-[80] p-3';
+      modal.innerHTML = `<div class="bg-white w-full max-w-lg rounded-2xl p-6">
+        <div class="text-danger text-xs font-bold">即时安全优先</div><h2 class="text-2xl font-bold mt-1">现在请立即联系专业急救</h2>
+        <ol class="mt-4 space-y-3 text-sm leading-6 list-decimal pl-5"><li>不要让孩子独处，保持安全距离和冷静语气。</li><li>在不引发冲突的前提下，移开可安全移除的药物、刀具、绳索等危险物。</li><li>拨打 120；存在暴力、失联或公共危险时同时拨打 110。</li><li>联系既往就诊医院或主治精神科医生，并准确说明自伤/伤人、用药、睡眠和异常行为。</li></ol>
+        <p class="mt-4 p-3 rounded-xl bg-amber-50 text-amber-900 text-sm">不要仅依赖本应用、社区回复或呼吸练习处理即时危险。</p>
+        <div class="grid grid-cols-2 gap-2 mt-5"><button onclick="callEmergencyContact('120','急救')" class="py-3 rounded-xl bg-danger text-white font-bold">拨打 120</button><button onclick="callEmergencyContact('110','报警')" class="py-3 rounded-xl bg-red-800 text-white font-bold">拨打 110</button></div>
+        <button onclick="closeTopModal()" class="w-full mt-2 py-3 rounded-xl border border-border">关闭</button>
+      </div>`;
+      document.body.appendChild(modal);
+    }
+
+    function showSafetyPlan() {
+      const saved = JSON.parse(localStorage.getItem('xingban_safety_plan') || '{}');
+      const modal = document.createElement('div'); modal.className='fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[70]';
+      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl p-5 max-h-[92vh] overflow-y-auto"><div class="flex justify-between"><div><h2 class="text-xl font-bold">家庭安全计划</h2><p class="text-xs text-text-muted mt-1">建议与儿童精神科专业人员共同确认</p></div><button onclick="closeTopModal()">✕</button></div>
+      <div class="space-y-3 mt-4">${[['warning','孩子的预警信号','如：连续两晚睡眠少于4小时、谈论死亡'],['calming','确认有效的支持方式','孩子接受的陪伴方式；明确禁用方式'],['hospital','首选医院/科室','医院名称、儿童精神科急诊位置'],['clinician','主治专业人员','姓名、机构、联系电话'],['medication','当前药物与重要提醒','仅记录医嘱；不要在此自行调整剂量'],['school','共同监护人/学校联系人','姓名、关系、电话'],['escalation','何时必须升级求助','自伤、自杀计划、伤人、失联、意识异常等']].map(([id,label,ph])=>`<label class="block text-sm font-medium">${label}<textarea id="safety-${id}" rows="2" placeholder="${ph}" class="mt-1 w-full p-3 rounded-xl border border-border text-sm">${saved[id]||''}</textarea></label>`).join('')}</div>
+      <p class="text-xs text-danger mt-3">体验版保存在当前设备浏览器中，请勿录入身份证号、完整病历或其他不必要的敏感信息。</p><button onclick="saveSafetyPlan()" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">保存安全计划</button></div>`; document.body.appendChild(modal);
+    }
+
+    function saveSafetyPlan(){const ids=['warning','calming','hospital','clinician','medication','school','escalation'];const data={};ids.forEach(id=>data[id]=document.getElementById('safety-'+id).value.trim());localStorage.setItem('xingban_safety_plan',JSON.stringify(data));showToast('安全计划已保存在当前设备');closeTopModal();}
 
     function renderEmergency(container) {
       document.getElementById('page-title').textContent = '紧急模式';
@@ -2012,7 +2098,8 @@
               <line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
             <h1 class="text-2xl font-bold text-white text-center mb-2">当前情况属于？</h1>
-            <p class="text-white/60 text-center mb-8">选择最接近的情况，获取针对性帮助</p>
+            <p class="text-white/60 text-center mb-5">先判断即时危险，再获取针对性帮助</p>
+            <button onclick="showSafetyPlan()" class="mb-4 w-full py-3 rounded-xl bg-white/10 border border-white/20 text-white text-sm font-medium">查看 / 编辑家庭安全计划</button>
 
             <div class="space-y-4">
               <button onclick="startEmergency('green')" class="w-full bg-green-600/20 border-2 border-green-500 rounded-2xl p-5 text-left text-white hover:bg-green-600/30 transition-colors active:scale-[0.98]">
@@ -2044,7 +2131,7 @@
                 </div>
               </button>
 
-              <button onclick="startEmergency('red')" class="w-full bg-red-600/20 border-2 border-red-500 rounded-2xl p-5 text-left text-white hover:bg-red-600/30 transition-colors active:scale-[0.98]">
+              <button onclick="showMentalHealthTriage()" class="w-full bg-red-600/20 border-2 border-red-500 rounded-2xl p-5 text-left text-white hover:bg-red-600/30 transition-colors active:scale-[0.98]">
                 <div class="flex items-center gap-4">
                   <div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center">
                     <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2053,8 +2140,8 @@
                     </svg>
                   </div>
                   <div>
-                    <div class="font-medium">严重自我伤害</div>
-                    <div class="text-sm text-white/60">撞头、咬人、自残</div>
+                    <div class="font-medium">存在伤害或精神科危机风险</div>
+                    <div class="text-sm text-white/60">自伤、自杀言语、伤人、异常兴奋或意识异常</div>
                   </div>
                 </div>
               </button>
@@ -2872,6 +2959,9 @@
     function showReportDetail(id) {
       const report = MOCK_DATA.reports.find(r => r.id === id);
       if (!report) return;
+      const childRecords = MOCK_DATA.behaviors.filter(item => !item.childName || item.childName === report.childName);
+      const highRisk = childRecords.filter(item => /自伤|自杀|死亡|幻觉|妄想|意识|服药过量|异常兴奋/.test(`${item.category || ''}${item.content || ''}`));
+      const healthChanges = childRecords.filter(item => item.sleep_hours || item.energy_level || item.medical_event);
 
       const modal = document.createElement('div');
       modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
@@ -2911,8 +3001,14 @@
               </div>
             </div>
             <div>
-              <div class="text-sm text-text-muted mb-1">AI分析</div>
+              <div class="text-sm text-text-muted mb-1">家庭观察自动摘要</div>
               <p class="text-text-primary">${report.aiComment}</p>
+              <p class="text-xs text-text-muted mt-2">数据来源：家庭记录 · ${report.week} · 自动整理且未经专业复核，不构成诊断或用药建议。</p>
+            </div>
+            <div class="rounded-xl bg-amber-50 border border-amber-200 p-3">
+              <div class="text-sm font-bold text-amber-900 mb-2">就医沟通重点（请家长核对）</div>
+              <p class="text-sm text-amber-900/80">高风险相关记录：${highRisk.length} 条；含睡眠、精力或就医/用药事件：${healthChanges.length} 条。</p>
+              <p class="text-xs text-amber-800 mt-2">若当前存在即时危险，请先进入紧急支持并联系 120/110，不要等待周报。</p>
             </div>
             <div>
               <div class="text-sm text-text-muted mb-1">下周建议</div>
@@ -2964,6 +3060,14 @@
               <div class="text-sm text-text-muted mb-2">备注</div>
               <textarea id="share-note" rows="3" class="w-full p-3 rounded-xl border border-border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="添加备注，如需要重点关注的方向..."></textarea>
             </div>
+            <div class="rounded-xl bg-background p-3 space-y-2">
+              <div class="text-sm font-medium">选择分享范围</div>
+              <label class="flex gap-2 text-sm"><input type="checkbox" name="share-scope" value="summary" checked> 周报摘要与趋势</label>
+              <label class="flex gap-2 text-sm"><input type="checkbox" name="share-scope" value="risk"> 高风险与危机相关记录</label>
+              <label class="flex gap-2 text-sm"><input type="checkbox" name="share-scope" value="medical"> 睡眠、用药和就医事件</label>
+              <label class="block text-sm pt-1">访问有效期<select id="share-expiry" class="ml-2 p-2 rounded-lg border border-border"><option value="7">7 天</option><option value="30">30 天</option><option value="1">1 天</option></select></label>
+            </div>
+            <label class="flex items-start gap-2 text-sm text-text-secondary"><input id="share-consent" type="checkbox" class="mt-1"><span>我已核对接收者、分享范围和有效期，并明确授权本次分享。可在专业协作页查看并撤销。</span></label>
             <button onclick="confirmShareReport(${reportId})" class="w-full py-3 rounded-xl bg-primary text-white font-medium">确认分享</button>
           </div>
         </div>
@@ -2974,13 +3078,18 @@
     async function confirmShareReport(reportId) {
       const therapistInput = document.querySelector('input[name="share-therapist"]:checked');
       const note = document.getElementById('share-note')?.value || '';
+      const consent = document.getElementById('share-consent')?.checked;
+      const scope = [...document.querySelectorAll('input[name="share-scope"]:checked')].map(item => item.value);
+      const expiresDays = Number(document.getElementById('share-expiry')?.value || 7);
       if (!therapistInput) {
         showToast('请选择康复师');
         return;
       }
+      if (!scope.length) { showToast('请至少选择一项分享内容'); return; }
+      if (!consent) { showToast('请先核对并确认本次授权'); return; }
       const therapistId = parseInt(therapistInput.value);
       try {
-        const result = await apiRequest('/therapist/share', 'POST', { report_id: reportId, therapist_id: therapistId, note });
+        const result = await apiRequest('/therapist/share', 'POST', { report_id: reportId, therapist_id: therapistId, note, scope, expires_days: expiresDays });
         if (result.success) {
           showToast('周报已分享给康复师！');
           closeTopModal();
@@ -3003,6 +3112,7 @@
 
       container.innerHTML = `
         <div class="p-4 space-y-4 animate-fade-in">
+          <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-900"><strong>专业边界：</strong>康复师和特教老师主要提供发展与行为支持，不等同于儿童精神科医生。涉及抑郁、躁狂、自伤、自杀风险、精神病性症状或药物问题，请联系具备相应资质的医疗专业人员。</div>
           <!-- 我的康复师 -->
           <div>
             <h3 class="font-bold text-text-primary mb-3">我的康复师</h3>
@@ -3474,6 +3584,7 @@
 
       container.innerHTML = `
         <div class="p-4 space-y-4 animate-fade-in">
+          <div class="rounded-xl bg-danger/5 border border-danger/20 p-4 text-sm"><strong class="text-danger">家庭安全优先：</strong><span class="text-text-secondary">若存在暴力、威胁或人身安全风险，情绪签到和感谢卡不适用；先离开危险环境并联系可信成人，紧急时拨打 110。</span></div>
           <div class="flex bg-white rounded-xl p-1 card-shadow">
             <button onclick="renderFamilyMood(this)" class="flex-1 py-2 rounded-lg bg-primary text-white font-medium">情绪签到</button>
             <button onclick="renderFamilyGratitude(this)" class="flex-1 py-2 rounded-lg text-text-secondary">感谢卡</button>
@@ -4494,7 +4605,7 @@
       const negativeCount = (emotionCounts['消极'] || 0) + (emotionCounts['焦虑'] || 0) + (emotionCounts['烦躁'] || 0);
       const positiveCount = emotionCounts['积极'] || 0;
       if (negativeCount > positiveCount) {
-        aiSuggestions.push({ icon: '🧘', title: '增加感官安抚活动', desc: '近期待改善情绪占比较高，建议每日安排2-3次感官安抚活动，如深压按摩、重力毯休息。', priority: 'high' });
+        aiSuggestions.push({ icon: '📝', title: '近期需要更多关注', desc: '记录中待改善情绪较多。请结合睡眠、精力、用药变化和持续时间观察；若出现自伤、自杀言语、伤人或意识异常，请立即使用紧急支持并联系专业人员。', priority: 'high' });
       }
       if (emotionCounts['焦虑'] > 2) {
         aiSuggestions.push({ icon: '🌬️', title: '焦虑情绪干预', desc: '焦虑行为出现频繁，建议使用视觉日程表减少不确定性，并在焦虑初起时引导深呼吸。', priority: 'high' });
@@ -4502,7 +4613,7 @@
       if (emotionCounts['积极'] >= 3) {
         aiSuggestions.push({ icon: '⭐', title: '巩固积极行为', desc: '积极情绪记录较多，建议在积极行为出现时立即给予社会性赞美和强化，巩固良好表现。', priority: 'medium' });
       }
-      aiSuggestions.push({ icon: '📊', title: '持续记录是关键', desc: '数据越多，AI分析越精准。建议每天至少记录3次行为，保持7天以上可获得趋势分析。', priority: 'low' });
+      aiSuggestions.push({ icon: '📊', title: '按需要记录即可', desc: '本页只汇总家庭观察，不做诊断。无需为了连续天数增加负担；记录明显变化及发生时间更有帮助。', priority: 'low' });
       aiSuggestions.push({ icon: '🎯', title: '制定个性化目标', desc: '基于当前行为模式，建议在儿童档案中设定2-3个可量化的短期目标，配合策略库执行。', priority: 'medium' });
 
       // 能力发展对比
@@ -4519,22 +4630,22 @@
                 <line x1="12" y1="16" x2="12.01" y2="16"/>
               </svg>
               <div>
-                <div class="font-bold">AI 质量监控</div>
-                <div class="text-sm text-white/80">分析服务正常运行</div>
+                <div class="font-bold">家庭观察摘要</div>
+                <div class="text-sm text-white/80">不是诊断，不能替代儿童精神科评估</div>
               </div>
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <div class="text-2xl font-bold">98%</div>
-                <div class="text-xs text-white/70">平均置信度</div>
-              </div>
-              <div>
                 <div class="text-2xl font-bold">${MOCK_DATA.behaviors.length}</div>
-                <div class="text-xs text-white/70">分析记录数</div>
+                <div class="text-xs text-white/70">摘要记录数</div>
               </div>
               <div>
-                <div class="text-2xl font-bold">2</div>
-                <div class="text-xs text-white/70">降级次数</div>
+                <div class="text-2xl font-bold">家庭填写</div>
+                <div class="text-xs text-white/70">数据来源</div>
+              </div>
+              <div>
+                <div class="text-2xl font-bold">未审核</div>
+                <div class="text-xs text-white/70">专业复核状态</div>
               </div>
               <div>
                 <div class="text-2xl font-bold">今天</div>
@@ -4555,7 +4666,7 @@
               </div>
               <div class="flex-1 text-left">
                 <div class="font-medium text-text-primary">分析最近行为记录</div>
-                <div class="text-xs text-text-muted">AI 将自动分析并提供建议</div>
+                <div class="text-xs text-text-muted">生成记录摘要；高风险情况请直接联系专业服务</div>
               </div>
               <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 18l6-6-6-6"/>
@@ -4650,7 +4761,7 @@
               <div class="bg-white p-4 rounded-xl card-shadow">
                 <div class="flex items-center justify-between mb-2">
                   <span class="font-medium text-text-primary">行为分类分析</span>
-                  <span class="text-xs text-success">置信度 95%</span>
+                  <span class="text-xs text-warning">自动摘要 · 未经专业复核</span>
                 </div>
                 <p class="text-sm text-text-secondary">识别到最近一周哭闹行为增加，建议使用正向强化策略。</p>
                 <div class="flex gap-2 mt-2">
@@ -4661,7 +4772,7 @@
               <div class="bg-white p-4 rounded-xl card-shadow">
                 <div class="flex items-center justify-between mb-2">
                   <span class="font-medium text-text-primary">情绪趋势分析</span>
-                  <span class="text-xs text-success">置信度 92%</span>
+                  <span class="text-xs text-warning">自动摘要 · 未经专业复核</span>
                 </div>
                 <p class="text-sm text-text-secondary">孩子情绪波动较大，建议增加感官安抚活动。</p>
                 <div class="flex gap-2 mt-2">
@@ -4692,6 +4803,7 @@
 
       container.innerHTML = `
         <div class="p-4 space-y-4 animate-fade-in">
+          <div class="rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900"><strong>社区不是危机热线。</strong> 如孩子或照护者当前可能伤害自己/他人、意识异常或失控，请不要等待回复，立即使用“紧急支持”并联系 120/110。</div>
           <div class="flex justify-between items-center">
             <h3 class="font-bold text-text-primary">社区帖子</h3>
             <button onclick="showNewPost()" class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium">
@@ -4832,6 +4944,8 @@
               <label class="block text-sm text-text-secondary mb-1">内容</label>
               <textarea id="new-post-content" placeholder="详细描述..." class="w-full px-4 py-3 rounded-xl border border-border" rows="4"></textarea>
             </div>
+            <label class="flex items-start gap-3 p-3 rounded-xl bg-background text-sm"><input id="new-post-anonymous" type="checkbox" checked class="mt-1 accent-primary"><span><strong class="block">匿名发布</strong><span class="text-xs text-text-muted">默认不展示昵称；发布前请删除姓名、学校、电话、诊断证明和照片信息。</span></span></label>
+            <p class="text-xs text-danger">社区不是危机热线。如孩子有即时自伤、自杀或伤人风险，请使用紧急支持并联系 120/110。</p>
             <button onclick="createPost()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">发布</button>
           </div>
         </div>
@@ -4843,6 +4957,7 @@
       const title = document.getElementById('new-post-title').value;
       const category = document.getElementById('new-post-category').value;
       const content = document.getElementById('new-post-content').value;
+      const anonymous = document.getElementById('new-post-anonymous').checked;
 
       if (!title || !content) {
         showToast('请填写完整信息');
@@ -4850,7 +4965,7 @@
       }
 
       try {
-        const result = await apiRequest('/community/posts', 'POST', { title, content, category });
+        const result = await apiRequest('/community/posts', 'POST', { title, content, category, anonymous });
 
         if (result.success) {
           showToast('发布成功！');
@@ -4919,6 +5034,8 @@
                   </svg>
                   <span id="post-likes-${id}">${post.likes}</span>
                 </button>
+                <button onclick="reportCommunityContent(${id})" class="ml-auto text-xs text-text-muted hover:text-danger">举报</button>
+                <button onclick="blockCommunityContent(${id})" class="text-xs text-text-muted hover:text-danger">屏蔽</button>
               </div>
 
               <div class="mb-4">
@@ -4974,6 +5091,9 @@
       }
     }
 
+    function reportCommunityContent(id) { showToast(`已提交帖子 ${id} 的举报，涉及即时危险请同时联系急救服务`); }
+    function blockCommunityContent(id) { MOCK_DATA.communityPosts = MOCK_DATA.communityPosts.filter(p => p.id !== id); closeTopModal(); showToast('已屏蔽该内容'); renderCommunity(document.getElementById('main-content')); }
+
     async function addComment(postId) {
       const content = document.getElementById(`comment-input-${postId}`).value;
 
@@ -5004,6 +5124,7 @@
 
       container.innerHTML = `
         <div class="p-4 space-y-4 animate-fade-in">
+          ${settingsState.quietNight ? '<div class="rounded-xl bg-blue-50 border border-blue-100 p-3 text-sm text-blue-800">安静时段已开启：非紧急互动提醒将在夜间静默；危机处置请勿依赖应用通知。</div>' : ''}
           <div class="flex justify-between items-center">
             <h3 class="font-bold text-text-primary">通知列表</h3>
             <button onclick="markAllRead()" class="text-sm text-primary">全部已读</button>
@@ -5098,11 +5219,45 @@
       }
     }
 
+    function getMentalHealthProfile() {
+      try { return JSON.parse(localStorage.getItem('xingban_mental_health_profile') || '{}'); }
+      catch (_) { return {}; }
+    }
+
+    function showMentalHealthProfileEditor() {
+      const p = getMentalHealthProfile();
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
+      modal.dataset.modal = 'true';
+      modal.innerHTML = `<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">心理健康照护档案</h3><button onclick="closeTopModal()" aria-label="关闭">✕</button></div>
+        <div class="rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900 mb-4">仅记录专业人员已确认或家长观察到的信息，不用于自行诊断。当前体验版保存在本机浏览器，请勿填写身份证号、详细住址等不必要信息。</div>
+        <div class="space-y-3">
+          <label class="block text-sm">诊断/评估状态<input id="mh-status" value="${p.status || ''}" placeholder="如：儿童精神科评估中 / 医生已确诊" class="mt-1 w-full p-3 rounded-xl border border-border"></label>
+          <label class="block text-sm">平常睡眠基线<input id="mh-sleep" value="${p.sleep || ''}" placeholder="如：通常 21:30–07:00" class="mt-1 w-full p-3 rounded-xl border border-border"></label>
+          <label class="block text-sm">已确认的预警表现<textarea id="mh-signs" rows="2" class="mt-1 w-full p-3 rounded-xl border border-border" placeholder="如：连续少睡、异常兴奋、谈及死亡">${p.signs || ''}</textarea></label>
+          <label class="block text-sm">精神科/心理专业人员<input id="mh-clinician" value="${p.clinician || ''}" placeholder="机构或称呼、可联系时间" class="mt-1 w-full p-3 rounded-xl border border-border"></label>
+          <label class="block text-sm">用药与重要医嘱摘要<textarea id="mh-medication" rows="2" class="mt-1 w-full p-3 rounded-xl border border-border" placeholder="只按处方记录；不要在应用内自行调整剂量">${p.medication || ''}</textarea></label>
+          <label class="block text-sm">既往危机与有效处理<textarea id="mh-history" rows="2" class="mt-1 w-full p-3 rounded-xl border border-border">${p.history || ''}</textarea></label>
+          <label class="block text-sm">首选就诊机构<input id="mh-hospital" value="${p.hospital || ''}" class="mt-1 w-full p-3 rounded-xl border border-border"></label>
+        </div>
+        <button onclick="saveMentalHealthProfile()" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-medium">保存档案</button>
+      </div>`;
+      document.body.appendChild(modal);
+    }
+
+    function saveMentalHealthProfile() {
+      const profile = { status: document.getElementById('mh-status').value.trim(), sleep: document.getElementById('mh-sleep').value.trim(), signs: document.getElementById('mh-signs').value.trim(), clinician: document.getElementById('mh-clinician').value.trim(), medication: document.getElementById('mh-medication').value.trim(), history: document.getElementById('mh-history').value.trim(), hospital: document.getElementById('mh-hospital').value.trim(), updatedAt: new Date().toISOString() };
+      localStorage.setItem('xingban_mental_health_profile', JSON.stringify(profile));
+      closeTopModal(); showToast('心理健康照护档案已更新'); navigateTo('profile-detail');
+    }
+
     function renderChildProfileDetail(container) {
       document.getElementById('page-title').textContent = '数字孪生档案';
       document.getElementById('page-subtitle').textContent = '全方位了解孩子';
 
       const profile = MOCK_DATA.childProfile;
+      const mental = getMentalHealthProfile();
 
       container.innerHTML = `
         <div class="p-4 space-y-4 animate-fade-in">
@@ -5115,6 +5270,11 @@
                 <p class="text-white/80 text-sm mt-1">诊断: ${profile.diagnosis} (${profile.diagnosis_level})</p>
               </div>
             </div>
+          </div>
+
+          <div class="bg-white rounded-xl card-shadow p-4 border-l-4 border-primary">
+            <div class="flex items-start justify-between gap-3 mb-3"><div><h3 class="font-bold text-text-primary">心理健康照护档案</h3><p class="text-xs text-text-muted mt-1">用于就医沟通，不构成诊断或用药建议</p></div><button onclick="showMentalHealthProfileEditor()" class="px-3 py-2 rounded-lg bg-primary-light/40 text-primary text-sm">${mental.updatedAt ? '编辑' : '建立档案'}</button></div>
+            ${mental.updatedAt ? `<div class="grid sm:grid-cols-2 gap-2 text-sm"><div><span class="text-text-muted">评估状态：</span>${mental.status || '未填写'}</div><div><span class="text-text-muted">睡眠基线：</span>${mental.sleep || '未填写'}</div><div><span class="text-text-muted">专业人员：</span>${mental.clinician || '未填写'}</div><div><span class="text-text-muted">首选机构：</span>${mental.hospital || '未填写'}</div></div><p class="text-xs text-text-muted mt-3">家庭填写 · 更新于 ${new Date(mental.updatedAt).toLocaleString('zh-CN')} · 未经专业复核</p>` : '<p class="text-sm text-text-secondary">建议在专业人员指导下记录睡眠基线、预警表现、就诊联系人及医嘱摘要。</p>'}
           </div>
 
           <div class="bg-white rounded-xl card-shadow p-4">
@@ -6268,6 +6428,7 @@
       if (savedSettings) {
         try { settingsState = { ...settingsState, ...JSON.parse(savedSettings) }; } catch(e) {}
       }
+      document.body.classList.toggle('low-burden-mode', !!settingsState.lowBurdenMode);
 
       const savedUser = getUser();
       if (savedUser) {
@@ -6289,6 +6450,9 @@
       notifyReport: true,
       notifyCommunity: true,
       notifyTraining: true,
+      lowBurdenMode: false,
+      gamification: true,
+      quietNight: true,
       dataExported: false,
     };
 
@@ -6298,6 +6462,11 @@
 
       container.innerHTML = `
         <div class="p-4 space-y-4 animate-fade-in">
+          <div><h3 class="font-bold text-text-primary mb-3">照护减负</h3><div class="bg-white rounded-xl card-shadow overflow-hidden">
+            <label class="p-4 flex items-center justify-between border-b border-border"><span><span class="block font-medium">低负担模式</span><span class="text-xs text-text-muted">隐藏连续天数与非必要任务，只保留安全、记录和联系人</span></span><input type="checkbox" ${settingsState.lowBurdenMode?'checked':''} onchange="toggleSetting('lowBurdenMode',this.checked)" class="w-5 h-5 accent-primary"></label>
+            <label class="p-4 flex items-center justify-between border-b border-border"><span><span class="block font-medium">积分与成就</span><span class="text-xs text-text-muted">可关闭游戏化，不影响任何核心功能</span></span><input type="checkbox" ${settingsState.gamification?'checked':''} onchange="toggleSetting('gamification',this.checked)" class="w-5 h-5 accent-primary"></label>
+            <label class="p-4 flex items-center justify-between"><span><span class="block font-medium">夜间免打扰</span><span class="text-xs text-text-muted">22:00—08:00 仅保留安全类通知</span></span><input type="checkbox" ${settingsState.quietNight?'checked':''} onchange="toggleSetting('quietNight',this.checked)" class="w-5 h-5 accent-primary"></label>
+          </div></div>
           <!-- 通知偏好 -->
           <div>
             <h3 class="font-bold text-text-primary mb-3">通知偏好</h3>
@@ -6466,6 +6635,7 @@
     function toggleSetting(key, value) {
       settingsState[key] = value;
       localStorage.setItem('xingban_settings', JSON.stringify(settingsState));
+      if (key === 'lowBurdenMode') document.body.classList.toggle('low-burden-mode', value);
       showToast(value ? '已开启' : '已关闭');
     }
 
@@ -6579,10 +6749,11 @@
           </div>
           <div class="space-y-4 text-sm text-text-secondary leading-relaxed">
             <p><strong class="text-text-primary">数据收集：</strong>星伴仅收集您主动提供的孩子信息、行为记录等必要数据，用于提供个性化服务。</p>
-            <p><strong class="text-text-primary">数据存储：</strong>所有数据采用加密存储，确保安全性。数据保存在您的设备本地和加密云端服务器。</p>
-            <p><strong class="text-text-primary">数据共享：</strong>未经您的明确同意，我们不会将您的数据分享给任何第三方。</p>
-            <p><strong class="text-text-primary">数据删除：</strong>您有权随时要求删除所有个人数据。删除后数据不可恢复。</p>
-            <p><strong class="text-text-primary">儿童隐私：</strong>我们特别重视儿童隐私保护，不会在社区公开展示儿童的真实姓名和照片。</p>
+            <p><strong class="text-text-primary">当前体验版存储：</strong>行为记录、安全计划和照护档案可能保存在本机浏览器 localStorage；它不是医疗级加密病历。请勿填写身份证号、详细住址、完整处方照片等不必要信息，共用设备使用后应清理数据。</p>
+            <p><strong class="text-text-primary">监护人责任：</strong>应由具备合法监护/授权关系的成年人使用，并以适龄方式告知孩子记录目的；涉及孩子隐私的分享应尽量征得孩子理解与同意。</p>
+            <p><strong class="text-text-primary">数据共享：</strong>仅在您勾选具体范围、接收者和有效期并确认后分享。社区内容默认匿名，但匿名不等于无法识别，请勿发布真实姓名、学校、住址、联系方式、病历照片。</p>
+            <p><strong class="text-text-primary">导出、撤销与删除：</strong>您可在设置中导出数据；专业协作分享应支持到期与撤销。删除本机数据后可能无法恢复，云端副本及审计留痕仍须依据正式服务政策处理。</p>
+            <p><strong class="text-text-primary">保留期限：</strong>正式上线前须公布各类数据的保留期限、删除响应时间、未成年人保护负责人和投诉渠道；当前体验版尚不承诺医疗数据托管能力。</p>
           </div>
         </div>
       `;
@@ -6612,7 +6783,7 @@
       localStorage.clear();
       if (token) localStorage.setItem('xingban_token', token);
       if (user) localStorage.setItem('xingban_user', user);
-      document.querySelectorAll('.fixed').forEach(el => el.remove());
+      closeTopModal();
       showToast('缓存已清除');
     }
 
