@@ -30,6 +30,19 @@ const milestoneAchievements = [
   { id: 14, milestone_id: 7, title: '独立居住', category: 'self_care', description: '孩子能够独立居住生活' }
 ];
 
+const GOAL_CATEGORIES = new Set(['skill', 'social', 'career', 'education', 'life', 'self_care', 'learning']);
+const clean = (value, max) => typeof value === 'string' ? value.trim().slice(0, max) : '';
+
+router.param('childId', (req, res, next, childId) => {
+  const id = Number.parseInt(childId, 10);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: '儿童编号无效' });
+  db.query('SELECT id FROM children WHERE id = ? AND user_id = ?', [id, req.user.id], (err, rows) => {
+    if (err) return res.status(500).json({ error: '暂时无法核验儿童档案' });
+    if (!rows.length) return res.status(404).json({ error: '儿童档案不存在' });
+    req.childId = id;
+    next();
+  });
+});
 router.get('/timeline', auth, (req, res) => {
   res.json({
     success: true,
@@ -39,7 +52,7 @@ router.get('/timeline', auth, (req, res) => {
 
 router.get('/milestones/:childId', auth, (req, res) => {
   db.query('SELECT * FROM career_milestones WHERE child_id = ? ORDER BY created_at DESC',
-    [req.params.childId],
+    [req.childId],
     (err, results) => {
       if (err) return res.status(500).json({ error: err.message });
       
@@ -60,7 +73,7 @@ router.post('/milestones/:childId', auth, (req, res) => {
   
   db.query(
     'INSERT INTO career_milestones (child_id, milestone_id, title, description, story, photo_url) VALUES (?, ?, ?, ?, ?, ?)',
-    [req.params.childId, milestone_id, title, description || '', story || '', photo_url || null],
+    [req.childId, milestone_id, title, description || '', story || '', photo_url || null],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
       
@@ -75,7 +88,7 @@ router.post('/milestones/:childId', auth, (req, res) => {
 
 router.delete('/milestones/:childId/:achievementId', auth, (req, res) => {
   db.query('DELETE FROM career_milestones WHERE id = ? AND child_id = ?',
-    [req.params.achievementId, req.params.childId],
+    [req.params.achievementId, req.childId],
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
       
@@ -86,7 +99,7 @@ router.delete('/milestones/:childId/:achievementId', auth, (req, res) => {
 
 router.get('/goals/:childId', auth, (req, res) => {
   db.query('SELECT * FROM career_goals WHERE child_id = ? ORDER BY priority DESC',
-    [req.params.childId],
+    [req.childId],
     (err, results) => {
       if (err) return res.status(500).json({ error: err.message });
       
@@ -123,22 +136,33 @@ router.post('/goals/:childId', auth, (req, res) => {
 });
 
 router.put('/goals/:childId/:goalId', auth, (req, res) => {
-  const { category, title, description, target_date, priority, steps, progress } = req.body;
-  
-  db.query(
-    'UPDATE career_goals SET category = ?, title = ?, description = ?, target_date = ?, priority = ?, steps = ?, progress = ? WHERE id = ? AND child_id = ?',
-    [category, title, description, target_date, priority, JSON.stringify(steps), progress, req.params.goalId, req.params.childId],
-    (err) => {
-      if (err) return res.status(500).json({ error: err.message });
-      
-      res.json({ success: true, message: '生涯目标更新成功' });
-    }
-  );
+  const goalId = Number.parseInt(req.params.goalId, 10);
+  if (!Number.isInteger(goalId) || goalId <= 0) return res.status(400).json({ error: '目标编号无效' });
+  db.query('SELECT * FROM career_goals WHERE child_id = ? ORDER BY priority DESC', [req.childId], (findErr, goals) => {
+    if (findErr) return res.status(500).json({ error: '目标暂时无法读取' });
+    const existing = goals.find(item => Number(item.id) === goalId);
+    if (!existing) return res.status(404).json({ error: '目标不存在' });
+    const category = GOAL_CATEGORIES.has(req.body.category) ? req.body.category : existing.category;
+    const title = req.body.title === undefined ? existing.title : clean(req.body.title, 80);
+    if (!title) return res.status(400).json({ error: '目标名称不能为空' });
+    const description = req.body.description === undefined ? existing.description : clean(req.body.description, 1000);
+    const targetDate = req.body.target_date === undefined ? existing.target_date : req.body.target_date || null;
+    const priority = Number.isFinite(Number(req.body.priority)) ? Math.min(5, Math.max(1, Number(req.body.priority))) : existing.priority;
+    let existingSteps = existing.steps || [];
+    if (typeof existingSteps === 'string') { try { existingSteps = JSON.parse(existingSteps || '[]'); } catch (_) { existingSteps = []; } }
+    const steps = Array.isArray(req.body.steps) ? req.body.steps.slice(0, 20) : existingSteps;
+    const progress = Number.isFinite(Number(req.body.progress)) ? Math.min(100, Math.max(0, Number(req.body.progress))) : Number(existing.progress || 0);
+    db.query(
+      'UPDATE career_goals SET category = ?, title = ?, description = ?, target_date = ?, priority = ?, steps = ?, progress = ? WHERE id = ? AND child_id = ?',
+      [category, title, description, targetDate, priority, JSON.stringify(steps), progress, goalId, req.childId],
+      err => err ? res.status(500).json({ error: '目标暂时无法更新' }) : res.json({ success: true, message: '生涯目标更新成功' })
+    );
+  });
 });
 
 router.delete('/goals/:childId/:goalId', auth, (req, res) => {
   db.query('DELETE FROM career_goals WHERE id = ? AND child_id = ?',
-    [req.params.goalId, req.params.childId],
+    [req.params.goalId, req.childId],
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
       

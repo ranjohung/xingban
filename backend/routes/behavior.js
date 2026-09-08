@@ -20,60 +20,37 @@ const behaviorCategories = {
 };
 
 router.post('/', auth, (req, res) => {
-  const { 
+  const {
     child_id, input_type, content, audio_url, photo_url,
     behavior_category, behavior_subtype, emotion_state,
     trigger_factor, behavior_function, intensity_level, location, duration
-  } = req.body;
-  
-  if (!child_id || !input_type) {
-    return res.status(400).json({ error: '请填写必填信息（孩子ID、输入类型）' });
-  }
-  
-  const aiAnalysis = performAIAnalysis(content, behavior_category, behavior_subtype);
-  
-  db.query(
-    'INSERT INTO behavior_records (child_id, user_id, input_type, content, audio_url, photo_url, behavior_category, behavior_subtype, emotion_state, trigger_factor, behavior_function, intensity_level, location, duration, ai_analysis) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [
-      child_id,
-      req.user.id,
-      input_type,
-      content || null,
-      audio_url || null,
-      photo_url || null,
-      behavior_category || null,
-      behavior_subtype || null,
-      emotion_state || null,
-      trigger_factor || null,
-      behavior_function || null,
-      intensity_level || 'medium',
-      location || null,
-      duration || null,
-      JSON.stringify(aiAnalysis)
-    ],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
-      
-      res.status(201).json({
-        success: true,
-        message: '行为记录创建成功',
-        record: { 
-          id: result.insertId,
-          child_id,
-          input_type,
-          ai_analysis: aiAnalysis
-        }
-      });
-    }
-  );
+  } = req.body || {};
+  if (!Number.isInteger(Number(child_id)) || !['voice', 'text', 'photo'].includes(input_type)) return res.status(400).json({ error: '孩子ID或记录方式无效' });
+  if (!String(content || '').trim() && !audio_url && !photo_url) return res.status(400).json({ error: '请至少填写文字、语音或图片记录' });
+  db.query('SELECT id FROM children WHERE id = ? AND user_id = ?', [Number(child_id), req.user.id], (ownerErr, childRows) => {
+    if (ownerErr) return res.status(500).json({ error: '记录服务暂时不可用' });
+    if (!childRows.length) return res.status(404).json({ error: '儿童档案不存在' });
+    const aiAnalysis = performAIAnalysis(String(content || ''), behavior_category, behavior_subtype);
+    db.query(
+      'INSERT INTO behavior_records (child_id, user_id, input_type, content, audio_url, photo_url, behavior_category, behavior_subtype, emotion_state, trigger_factor, behavior_function, intensity_level, location, duration, ai_analysis) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [Number(child_id), req.user.id, input_type, String(content || '').slice(0, 5000) || null, audio_url || null, photo_url || null, behavior_category || null, behavior_subtype || null, emotion_state || null, trigger_factor || null, behavior_function || null, ['low', 'medium', 'high'].includes(intensity_level) ? intensity_level : 'medium', location || null, duration || null, JSON.stringify(aiAnalysis)],
+      (err, result) => {
+        if (err) return res.status(500).json({ error: '记录保存失败' });
+        res.status(201).json({ success: true, message: '行为记录创建成功', record: { id: result.insertId, child_id: Number(child_id), input_type, ai_analysis: aiAnalysis } });
+      }
+    );
+  });
 });
 
+router.get('/categories', (req, res) => {
+  res.json({ success: true, categories: behaviorCategories });
+});
 router.get('/:childId', auth, (req, res) => {
   const { page = 1, limit = 20, category, emotion, date_start, date_end } = req.query;
   const offset = (page - 1) * limit;
   
-  let query = 'SELECT * FROM behavior_records WHERE child_id = ?';
-  const params = [req.params.childId];
+  let query = 'SELECT * FROM behavior_records WHERE child_id = ? AND user_id = ?';
+  const params = [req.params.childId, req.user.id];
   
   if (category) {
     query += ' AND behavior_category = ?';
@@ -101,7 +78,7 @@ router.get('/:childId', auth, (req, res) => {
   db.query(query, params, (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     
-    db.query('SELECT COUNT(*) as total FROM behavior_records WHERE child_id = ?', [req.params.childId], (err, countResults) => {
+    db.query('SELECT COUNT(*) as total FROM behavior_records WHERE child_id = ? AND user_id = ?', [req.params.childId, req.user.id], (err, countResults) => {
       if (err) return res.status(500).json({ error: err.message });
       
       res.json({
@@ -127,9 +104,9 @@ router.get('/:childId/statistics', auth, (req, res) => {
       COUNT(*) as count,
       AVG(CASE WHEN intensity_level = 'high' THEN 3 WHEN intensity_level = 'medium' THEN 2 ELSE 1 END) as avg_intensity
     FROM behavior_records 
-    WHERE child_id = ?
+    WHERE child_id = ? AND user_id = ?
   `;
-  const params = [req.params.childId];
+  const params = [req.params.childId, req.user.id];
   
   if (date_start) {
     query += ' AND created_at >= ?';
@@ -151,9 +128,9 @@ router.get('/:childId/statistics', auth, (req, res) => {
         DATE(created_at) as date,
         COUNT(*) as count
       FROM behavior_records 
-      WHERE child_id = ?
+      WHERE child_id = ? AND user_id = ?
       GROUP BY DATE(created_at) ORDER BY date DESC LIMIT 7
-    `, [req.params.childId], (err, trendStats) => {
+    `, [req.params.childId, req.user.id], (err, trendStats) => {
       if (err) return res.status(500).json({ error: err.message });
       
       res.json({
@@ -173,7 +150,7 @@ router.get('/:childId/timeline', auth, (req, res) => {
       emotion_state,
       COUNT(*) as count
     FROM behavior_records 
-    WHERE child_id = ?
+    WHERE child_id = ? AND user_id = ?
     GROUP BY DATE(created_at), behavior_category, emotion_state
     ORDER BY date DESC
   `, [req.params.childId], (err, results) => {
@@ -183,12 +160,9 @@ router.get('/:childId/timeline', auth, (req, res) => {
   });
 });
 
-router.get('/categories', (req, res) => {
-  res.json({ success: true, categories: behaviorCategories });
-});
+router.get('/record/:id', auth, (req, res) => {
 
-router.get('/:id', auth, (req, res) => {
-  db.query('SELECT * FROM behavior_records WHERE id = ?', [req.params.id], (err, results) => {
+  db.query('SELECT * FROM behavior_records WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     
     if (results.length === 0) {

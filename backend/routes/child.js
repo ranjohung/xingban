@@ -3,11 +3,22 @@ const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
 
+const DIAGNOSIS_TYPES = new Set(['UNCONFIRMED', 'ASD', 'ADHD', 'DD', 'OTHER']);
+const clean = (value, max) => String(value ?? '').trim().slice(0, max);
+const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) && !Number.isNaN(new Date(`${value}T00:00:00`).getTime()) && new Date(`${value}T00:00:00`) <= new Date();
+const validLevel = value => value === undefined || (Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= 5);
+
 router.post('/wizard/step1', auth, (req, res) => {
   const { nickname, birth_date, diagnosis_type, diagnosis_other } = req.body;
   
   if (!nickname || !birth_date || !diagnosis_type) {
     return res.status(400).json({ error: '请填写必填信息（昵称、出生日期、诊断类型）' });
+  }
+  if (String(nickname).trim().length > 40 || !validDate(birth_date) || !DIAGNOSIS_TYPES.has(diagnosis_type)) {
+    return res.status(400).json({ error: '儿童档案字段无效' });
+  }
+  if ([communication_level, social_level, self_care_level, cognitive_level].some(value => !validLevel(value))) {
+    return res.status(400).json({ error: '支持需要记录必须为1至5' });
   }
   
   const draft = {
@@ -163,7 +174,7 @@ router.post('/wizard/step4', auth, (req, res) => {
           if (err) return res.status(500).json({ error: err.message });
           
           const childId = result.insertId;
-          generateInitialGoals(childId);
+          // 目标必须由孩子与照护者、专业人员共同确认，不按分数自动生成。
           
           db.query('DELETE FROM child_profile_drafts WHERE id = ?', [draft_id], () => {});
           
@@ -251,6 +262,12 @@ router.post('/', auth, (req, res) => {
   if (!nickname || !birth_date || !diagnosis_type) {
     return res.status(400).json({ error: '请填写必填信息（昵称、出生日期、诊断类型）' });
   }
+  if (String(nickname).trim().length > 40 || !validDate(birth_date) || !DIAGNOSIS_TYPES.has(diagnosis_type)) {
+    return res.status(400).json({ error: '儿童档案字段无效' });
+  }
+  if ([communication_level, social_level, self_care_level, cognitive_level].some(value => !validLevel(value))) {
+    return res.status(400).json({ error: '支持需要记录必须为1至5' });
+  }
   
   db.query(
     'INSERT INTO children (user_id, nickname, birth_date, diagnosis_type, diagnosis_other, communication_level, social_level, self_care_level, cognitive_level, sensory_hearing, sensory_visual, sensory_tactile, sensory_vestibular, reinforcers, medical_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -275,7 +292,7 @@ router.post('/', auth, (req, res) => {
       if (err) return res.status(500).json({ error: err.message });
       
       const childId = result.insertId;
-      generateInitialGoals(childId);
+      // 目标必须经共同确认，不按诊断或单次分数自动生成。
       
       res.status(201).json({
         success: true,
@@ -286,43 +303,7 @@ router.post('/', auth, (req, res) => {
   );
 });
 
-function generateInitialGoalsForResponse(child) {
-  const goals = [];
-  
-  if (child.social_level <= 2) {
-    goals.push({
-      type: '社交',
-      description: '增加与家人的眼神交流，每天累计达到5分钟',
-      ai_generated: true
-    });
-  }
-  
-  if (child.communication_level === 'none' || child.communication_level === 'single_word') {
-    goals.push({
-      type: '沟通',
-      description: '学会用图片卡表达3种基本需求（吃、喝、玩）',
-      ai_generated: true
-    });
-  }
-  
-  if (child.self_care_level <= 2) {
-    goals.push({
-      type: '自理',
-      description: '在成人辅助下完成洗手流程（打开水龙头、打肥皂、冲洗、擦干）',
-      ai_generated: true
-    });
-  }
-  
-  if (child.cognitive_level <= 2) {
-    goals.push({
-      type: '认知',
-      description: '识别并指出3种日常物品（杯子、勺子、球）',
-      ai_generated: true
-    });
-  }
-  
-  return goals;
-}
+function generateInitialGoalsForResponse() { return []; }
 
 router.get('/', auth, (req, res) => {
   db.query('SELECT * FROM children WHERE user_id = ?', [req.user.id], (err, results) => {
@@ -332,6 +313,16 @@ router.get('/', auth, (req, res) => {
   });
 });
 
+router.param('id', (req, res, next, rawId) => {
+  const id = Number(rawId);
+  if (!Number.isInteger(id) || id < 1) return res.status(400).json({ error: '儿童编号无效' });
+  db.query('SELECT id FROM children WHERE id = ? AND user_id = ?', [id, req.user.id], (err, rows) => {
+    if (err) return res.status(500).json({ error: '儿童档案校验失败' });
+    if (!rows?.length) return res.status(404).json({ error: '儿童档案不存在' });
+    req.childId = id;
+    next();
+  });
+});
 router.get('/:id', auth, (req, res) => {
   db.query('SELECT * FROM children WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -476,47 +467,6 @@ router.get('/:id/capacity-radar', auth, (req, res) => {
   });
 });
 
-function generateInitialGoals(childId) {
-  db.query('SELECT diagnosis_type, communication_level, social_level, self_care_level, cognitive_level FROM children WHERE id = ?', [childId], (err, results) => {
-    if (err || results.length === 0) return;
-    
-    const child = results[0];
-    const goals = [];
-    
-    if (child.social_level <= 2) {
-      goals.push({
-        child_id: childId,
-        goal_type: '社交',
-        description: '增加与家人的眼神交流，每天累计达到5分钟',
-        ai_generated: true
-      });
-    }
-    
-    if (child.communication_level === 'none' || child.communication_level === 'single_word') {
-      goals.push({
-        child_id: childId,
-        goal_type: '沟通',
-        description: '学会用图片卡表达3种基本需求（吃、喝、玩）',
-        ai_generated: true
-      });
-    }
-    
-    if (child.self_care_level <= 2) {
-      goals.push({
-        child_id: childId,
-        goal_type: '自理',
-        description: '在成人辅助下完成洗手流程（打开水龙头、打肥皂、冲洗、擦干）',
-        ai_generated: true
-      });
-    }
-    
-    if (goals.length > 0) {
-      const placeholders = goals.map(() => '(?, ?, ?, ?)').join(',');
-      const values = goals.flatMap(g => [g.child_id, g.goal_type, g.description, g.ai_generated]);
-      
-      db.query(`INSERT INTO intervention_goals (child_id, goal_type, description, ai_generated) VALUES ${placeholders}`, values, () => {});
-    }
-  });
-}
+function generateInitialGoals() { return []; }
 
 module.exports = router;

@@ -5,7 +5,10 @@ let users = [
   { id: 4, phone: '13600136000', password: '$2a$10$9ldCs/fjlE8YpVHQqZu./OtrJN7eoF1spdr/ikhNxznhmikZCiJJK', nickname: '小张家长', role: 'parent', created_at: new Date('2026-07-04') },
   { id: 5, phone: '17351455944', password: '$2a$10$9ldCs/fjlE8YpVHQqZu./OtrJN7eoF1spdr/ikhNxznhmikZCiJJK', nickname: '用户家长', role: 'parent', created_at: new Date('2026-07-13') }
 ];
-let children = [];
+let children = [
+  { id: 1, user_id: 1, parent_id: 1, nickname: '小明', birth_date: '2020-04-12', diagnosis_type: 'ASD', avatar: '👦', created_at: new Date('2026-07-01') },
+  { id: 2, user_id: 2, parent_id: 2, nickname: '小红', birth_date: '2022-03-08', diagnosis_type: 'ASD', avatar: '👧', created_at: new Date('2026-07-02') }
+];
 let behaviors = [];
 let strategies = [
   { id: 1, name: '深呼吸引导法', category: '情绪安抚', description: '通过深呼吸帮助孩子平静下来', difficulty: '简单', effectiveness_rate: 85, usage_count: 128 },
@@ -20,6 +23,7 @@ let strategies = [
   { id: 10, name: '代币系统', category: '行为引导', description: '使用代币奖励系统激励正向行为', difficulty: '简单', effectiveness_rate: 86, usage_count: 278 }
 ];
 let reports = [];
+let strategyFeedback = [];
 let emergencySessions = [];
 
 let familyMoods = [];
@@ -76,7 +80,7 @@ let userSubsidies = [];
 let fraudReports = [];
 
 let userIdCounter = 1;
-let childIdCounter = 1;
+let childIdCounter = 3;
 let behaviorIdCounter = 1;
 let reportIdCounter = 1;
 let moodIdCounter = 1;
@@ -87,6 +91,7 @@ let practiceIdCounter = 1;
 let customStoryIdCounter = 1;
 let playRecordIdCounter = 1;
 let feedbackIdCounter = 1;
+let strategyFeedbackIdCounter = 1;
 let postIdCounter = 6;
 let commentIdCounter = 6;
 let notificationIdCounter = 5;
@@ -160,7 +165,10 @@ function query(sql, params, callback) {
       };
       children.push(child);
       callback(null, { insertId: child.id });
-    } else if (sql.includes('SELECT * FROM children WHERE id')) {
+    } else if (sql.includes('SELECT id FROM children WHERE id') && sql.includes('user_id')) {
+      const id = Number(params[0]);
+      const userId = Number(params[1]);
+      callback(null, children.filter(c => c.id === id && c.user_id === userId).map(c => ({ id: c.id })));    } else if (sql.includes('SELECT * FROM children WHERE id')) {
       const id = params[0];
       const results = children.filter(c => c.id === id);
       callback(null, results);
@@ -178,19 +186,46 @@ function query(sql, params, callback) {
       const id = params[0];
       children = children.filter(c => c.id !== id);
       callback(null, { affectedRows: 1 });
-    } else if (sql.includes('SELECT * FROM behavior_records')) {
+    } else if (sql.includes('COUNT(*) as total_records') && sql.includes('FROM behavior_records')) {
+      const childId = Number(params[0]);
+      const rows = behaviors.filter(b => b.child_id === childId);
+      callback(null, [{
+        total_records: rows.length,
+        high_intensity_count: rows.filter(b => b.intensity_level === 'high').length,
+        medium_intensity_count: rows.filter(b => b.intensity_level === 'medium').length,
+        low_intensity_count: rows.filter(b => b.intensity_level === 'low').length
+      }]);
+    } else if (sql.includes('SELECT behavior_category, COUNT(*) as count') && sql.includes('FROM behavior_records')) {
+      const childId = Number(params[0]);
+      const counts = new Map();
+      behaviors.filter(b => b.child_id === childId).forEach(b => counts.set(b.behavior_category || '其他', (counts.get(b.behavior_category || '其他') || 0) + 1));
+      callback(null, [...counts].map(([behavior_category, count]) => ({ behavior_category, count })).sort((a, b) => b.count - a.count));
+    } else if (sql.includes('SELECT effectiveness, COUNT(*) as count') && sql.includes('FROM strategy_feedback')) {
+      const childId = Number(params[0]);
+      const counts = new Map();
+      strategyFeedback.filter(f => f.child_id === childId).forEach(f => counts.set(f.effectiveness, (counts.get(f.effectiveness) || 0) + 1));
+      callback(null, [...counts].map(([effectiveness, count]) => ({ effectiveness, count })));
+    } else if (sql.includes('JOIN strategies s ON f.strategy_id = s.id')) {
+      const childId = Number(params[0]);
+      callback(null, strategyFeedback.filter(f => f.child_id === childId).map(f => ({ name: strategies.find(s => s.id === f.strategy_id)?.name || '策略', effectiveness: f.effectiveness })));    } else if (sql.includes('SELECT id FROM behavior_records WHERE id')) {
+      const id = Number(params[0]);
+      const childId = Number(params[1]);
+      const userId = Number(params[2]);
+      callback(null, behaviors.filter(b => b.id === id && b.child_id === childId && b.user_id === userId).map(b => ({ id: b.id })));    } else if (sql.includes('SELECT * FROM behavior_records')) {
       const childId = params[0];
       const results = behaviors.filter(b => b.child_id === childId).reverse();
       callback(null, results);
     } else if (sql.includes('INSERT INTO behavior_records')) {
       const behavior = {
         id: behaviorIdCounter++,
-        child_id: params[0],
-        input_type: params[1],
-        content: params[2],
-        behavior_category: params[3],
-        emotion_state: params[4],
-        intensity_level: params[5],
+        child_id: Number(params[0]),
+        user_id: Number(params[1]),
+        input_type: params[2],
+        content: params[3],
+        behavior_category: params[6],
+        emotion_state: params[8],
+        intensity_level: params[11],
+        ai_analysis: params[14],
         created_at: new Date()
       };
       behaviors.push(behavior);
@@ -202,7 +237,9 @@ function query(sql, params, callback) {
       const results = strategies.filter(s => s.category === category);
       callback(null, results);
     } else if (sql.includes('INSERT INTO strategy_feedback')) {
-      callback(null, { insertId: 1 });
+      const feedback = { id: strategyFeedbackIdCounter++, child_id: Number(params[0]), strategy_id: Number(params[1]), user_id: Number(params[2]), behavior_record_id: params[3] ? Number(params[3]) : null, effectiveness: params[4], note: params[5], scene: params[6], created_at: new Date() };
+      strategyFeedback.push(feedback);
+      callback(null, { insertId: feedback.id });
     } else if (sql.includes('INSERT INTO emergency_sessions')) {
       const session = {
         id: Date.now(),

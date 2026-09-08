@@ -4,8 +4,9 @@ const vm = require('vm');
 const pages = ['index.html', '星伴体验版.html', 'docs/index.html'];
 const required = [
   'showMentalHealthTriage', 'showImmediateDangerHelp', 'showSafetyPlan',
-  '心理健康照护档案', '不用于精神科紧急情况', '临床有效率</span> <strong>尚未经验证',
+  '心理健康照护档案', '不用于精神科紧急情况', '证据状态</span> <strong>待专业复核，需个体化调整',
   '家庭观察自动摘要', '社区不是危机热线', 'share-consent', '低负担模式'
+  , '已确认没有即时危险', '当前可尝试的支持', 'renderEmergencyStrategyList(fallbackStrategies'
 ];
 
 for (const page of pages) {
@@ -19,6 +20,10 @@ for (const page of pages) {
   if (html.includes("document.querySelectorAll('.fixed').forEach(el => el.remove())")) {
     throw new Error(`${page} 仍存在无差别删除 fixed 元素的逻辑`);
   }
+  const clickCalls = [...html.matchAll(/onclick="([A-Za-z_$][\w$]*)\s*\(/g)].map(match => match[1]);
+  const functionDefs = new Set([...html.matchAll(/(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/g)].map(match => match[1]));
+  const missingHandlers = [...new Set(clickCalls.filter(name => !functionDefs.has(name)))];
+  if (missingHandlers.length) throw new Error(`${page} 存在未定义点击处理函数: ${missingHandlers.join(', ')}`);
 }
 
 const hashes = pages.map(page => fs.readFileSync(page).toString('base64'));

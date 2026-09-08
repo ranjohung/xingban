@@ -4,6 +4,14 @@ const db = require('../config/db');
 const auth = require('../middleware/auth');
 const { v4: uuidv4 } = require('uuid');
 
+router.param('childId', (req, res, next, childId) => {
+  if (!req.user) return next();
+  db.query('SELECT id FROM children WHERE id = ? AND user_id = ?', [childId, req.user.id], (err, rows) => {
+    if (err) return res.status(500).json({ error: '周报服务暂时不可用' });
+    if (!rows.length) return res.status(404).json({ error: '儿童档案不存在' });
+    next();
+  });
+});
 router.post('/generate/:childId', auth, (req, res) => {
   const { week_start, week_end } = req.body;
   
@@ -51,7 +59,7 @@ router.post('/generate/:childId', auth, (req, res) => {
           expiresAt.setDate(expiresAt.getDate() + 30);
           
           const reportContent = generateReportContent(
-            recordStats[0],
+            recordStats[0] || {},
             categoryStats,
             feedbackStats,
             strategyResults,
@@ -194,7 +202,7 @@ router.post('/:reportId/comment', auth, (req, res) => {
     return res.status(400).json({ error: '评论内容不能为空' });
   }
   
-  db.query('SELECT * FROM weekly_reports WHERE id = ?', [req.params.reportId], (err, results) => {
+  db.query('SELECT * FROM weekly_reports WHERE id = ? AND user_id = ?', [req.params.reportId, req.user.id], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     
     if (results.length === 0) {
@@ -218,7 +226,7 @@ router.post('/:reportId/comment', auth, (req, res) => {
 });
 
 router.get('/:reportId/comments', auth, (req, res) => {
-  db.query('SELECT * FROM report_comments WHERE report_id = ? ORDER BY timestamp DESC', [req.params.reportId], (err, results) => {
+  db.query('SELECT c.* FROM report_comments c JOIN weekly_reports r ON r.id = c.report_id WHERE c.report_id = ? AND r.user_id = ? ORDER BY c.timestamp DESC', [req.params.reportId, req.user.id], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     
     res.json({ success: true, comments: results });
@@ -229,7 +237,7 @@ router.post('/:reportId/extend-share', auth, (req, res) => {
   const newExpiresAt = new Date();
   newExpiresAt.setDate(newExpiresAt.getDate() + 30);
   
-  db.query('UPDATE weekly_reports SET share_expires_at = ? WHERE id = ?', [newExpiresAt, req.params.reportId], (err) => {
+  db.query('UPDATE weekly_reports SET share_expires_at = ? WHERE id = ? AND user_id = ?', [newExpiresAt, req.params.reportId, req.user.id], (err) => {
     if (err) return res.status(500).json({ error: err.message });
     
     res.json({ success: true, message: '分享有效期已延长30天' });
@@ -237,7 +245,7 @@ router.post('/:reportId/extend-share', auth, (req, res) => {
 });
 
 router.post('/:reportId/revoke-share', auth, (req, res) => {
-  db.query('UPDATE weekly_reports SET share_expires_at = NOW() WHERE id = ?', [req.params.reportId], (err) => {
+  db.query('UPDATE weekly_reports SET share_expires_at = NOW() WHERE id = ? AND user_id = ?', [req.params.reportId, req.user.id], (err) => {
     if (err) return res.status(500).json({ error: err.message });
     
     res.json({ success: true, message: '分享链接已失效' });

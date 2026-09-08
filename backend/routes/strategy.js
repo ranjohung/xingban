@@ -4,36 +4,20 @@ const db = require('../config/db');
 const auth = require('../middleware/auth');
 
 router.get('/recommend/:childId', auth, (req, res) => {
-  const { behavior_category, behavior_subtype } = req.query;
-  
-  let query = 'SELECT * FROM strategies WHERE 1=1';
-  const params = [];
-  
-  if (behavior_category) {
-    query += ' AND category = ?';
-    params.push(behavior_category);
-  }
-  
-  query += ' ORDER BY effectiveness_rate DESC, usage_count DESC LIMIT 3';
-  
-  db.query(query, params, (err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
-    
-    const strategies = results.map(s => ({
-      ...s,
-      steps: s.steps?.split('\n') || [],
-      scripts: s.scripts?.split('\n') || []
-    }));
-    
-    db.query('SELECT * FROM intervention_goals WHERE child_id = ? AND status = "active" LIMIT 3', [req.params.childId], (err, goals) => {
-      if (err) return res.status(500).json({ error: err.message });
-      
-      const consistencyCheck = checkConsistency(strategies, goals);
-      
-      res.json({
-        success: true,
-        strategies,
-        consistency_check: consistencyCheck
+  const { behavior_category } = req.query;
+  db.query('SELECT id FROM children WHERE id = ? AND user_id = ?', [req.params.childId, req.user.id], (ownerErr, childRows) => {
+    if (ownerErr) return res.status(500).json({ error: '推荐服务暂时不可用' });
+    if (!childRows.length) return res.status(404).json({ error: '儿童档案不存在' });
+    let query = 'SELECT * FROM strategies WHERE 1=1';
+    const params = [];
+    if (behavior_category) { query += ' AND category = ?'; params.push(behavior_category); }
+    query += ' ORDER BY effectiveness_rate DESC, usage_count DESC LIMIT 3';
+    db.query(query, params, (err, results) => {
+      if (err) return res.status(500).json({ error: '推荐服务暂时不可用' });
+      const strategies = results.map(s => ({ ...s, steps: s.steps?.split('\n') || [], scripts: s.scripts?.split('\n') || [] }));
+      db.query('SELECT * FROM intervention_goals WHERE child_id = ? AND status = "active" LIMIT 3', [req.params.childId], (goalErr, goals) => {
+        if (goalErr) return res.status(500).json({ error: '推荐服务暂时不可用' });
+        res.json({ success: true, strategies, consistency_check: checkConsistency(strategies, goals) });
       });
     });
   });
@@ -98,35 +82,33 @@ router.get('/', auth, (req, res) => {
 
 router.post('/feedback', auth, (req, res) => {
   const { child_id, strategy_id, behavior_record_id, effectiveness, note, scene } = req.body;
-  
-  if (!child_id || !strategy_id || !effectiveness) {
-    return res.status(400).json({ error: '请填写必填信息（孩子ID、策略ID、效果评价）' });
-  }
-  
-  db.query(
-    'INSERT INTO strategy_feedback (child_id, strategy_id, user_id, behavior_record_id, effectiveness, note, scene) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [child_id, strategy_id, req.user.id, behavior_record_id || null, effectiveness, note || null, scene || null],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
-      
-      updateStrategyEffectiveness(strategy_id);
-      
-      if (effectiveness === 'effective') {
-        checkSkillGeneralization(child_id, strategy_id, scene);
+  const allowedEffects = new Set(['effective', 'neutral', 'ineffective']);
+  if (!child_id || !strategy_id || !allowedEffects.has(effectiveness)) return res.status(400).json({ error: '反馈参数无效' });
+  db.query('SELECT id FROM children WHERE id = ? AND user_id = ?', [child_id, req.user.id], (ownerErr, childRows) => {
+    if (ownerErr) return res.status(500).json({ error: '反馈服务暂时不可用' });
+    if (!childRows.length) return res.status(404).json({ error: '儿童档案不存在' });
+    const insertFeedback = () => db.query(
+      'INSERT INTO strategy_feedback (child_id, strategy_id, user_id, behavior_record_id, effectiveness, note, scene) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [child_id, strategy_id, req.user.id, behavior_record_id || null, effectiveness, String(note || '').slice(0, 500) || null, String(scene || '').slice(0, 100) || null],
+      (err, result) => {
+        if (err) return res.status(500).json({ error: '反馈保存失败' });
+        updateStrategyEffectiveness(strategy_id);
+        if (effectiveness === 'effective') checkSkillGeneralization(child_id, strategy_id, scene);
+        res.status(201).json({ success: true, message: '反馈提交成功', feedback: { id: result.insertId, effectiveness, behavior_record_id: behavior_record_id || null } });
       }
-      
-      res.status(201).json({
-        success: true,
-        message: '反馈提交成功',
-        feedback: { id: result.insertId, effectiveness }
-      });
-    }
-  );
+    );
+    if (!behavior_record_id) return insertFeedback();
+    db.query('SELECT id FROM behavior_records WHERE id = ? AND child_id = ? AND user_id = ?', [behavior_record_id, child_id, req.user.id], (recordErr, records) => {
+      if (recordErr) return res.status(500).json({ error: '反馈服务暂时不可用' });
+      if (!records.length) return res.status(400).json({ error: '关联记录不存在或不属于当前家庭' });
+      insertFeedback();
+    });
+  });
 });
 
 router.get('/:strategyId/feedback/:childId', auth, (req, res) => {
-  db.query('SELECT * FROM strategy_feedback WHERE strategy_id = ? AND child_id = ? ORDER BY created_at DESC', 
-    [req.params.strategyId, req.params.childId], (err, results) => {
+  db.query('SELECT * FROM strategy_feedback WHERE strategy_id = ? AND child_id = ? AND user_id = ? ORDER BY created_at DESC',
+    [req.params.strategyId, req.params.childId, req.user.id], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     
     res.json({ success: true, feedback: results });

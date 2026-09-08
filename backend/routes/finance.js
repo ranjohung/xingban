@@ -19,9 +19,21 @@ const fraudCases = [
   { id: 5, title: '保险诈骗', type: 'insurance', description: '虚假保险产品，声称可以全额报销康复费用', location: '浙江', reported_at: '2026-07-01', verified: true }
 ];
 
+const FINANCE_CATEGORIES = new Set(['康复训练', '医疗检查', '教育用品', '日常生活', '政府补贴', '其他']);
+
+router.param('childId', (req, res, next, childId) => {
+  const id = Number.parseInt(childId, 10);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: '儿童编号无效' });
+  db.query('SELECT id FROM children WHERE id = ? AND user_id = ?', [id, req.user.id], (err, rows) => {
+    if (err) return res.status(500).json({ error: '暂时无法核验儿童档案' });
+    if (!rows.length) return res.status(404).json({ error: '儿童档案不存在' });
+    req.childId = id;
+    next();
+  });
+});
 router.get('/expenses/:childId', auth, (req, res) => {
   db.query('SELECT * FROM financial_records WHERE user_id = ? AND child_id = ? ORDER BY date DESC',
-    [req.user.id, req.params.childId],
+    [req.user.id, req.childId],
     (err, results) => {
       if (err) return res.status(500).json({ error: err.message });
       
@@ -32,7 +44,7 @@ router.get('/expenses/:childId', auth, (req, res) => {
       
       res.json({
         success: true,
-        records: results,
+        records: results.map(item => ({ id: item.id, child_id: item.child_id, amount: item.amount, category: item.category, date: item.date, description: item.description, is_reimbursable: Boolean(item.is_reimbursable) })),
         category_totals: categoryTotals,
         total_amount: results.reduce((sum, r) => sum + r.amount, 0)
       });
@@ -41,15 +53,18 @@ router.get('/expenses/:childId', auth, (req, res) => {
 });
 
 router.post('/expenses/:childId', auth, (req, res) => {
-  const { amount, category, date, description, receipt_url, is_reimbursable, insurance_policy } = req.body;
+  const { date, receipt_url, is_reimbursable, insurance_policy } = req.body;
+  const amount = Number(req.body.amount);
+  const category = FINANCE_CATEGORIES.has(req.body.category) ? req.body.category : '';
+  const description = typeof (req.body.description ?? req.body.note) === 'string' ? (req.body.description ?? req.body.note).trim().slice(0, 300) : '';
   
-  if (!amount || !category) {
+  if (!Number.isFinite(amount) || amount === 0 || Math.abs(amount) > 100000000 || !category) {
     return res.status(400).json({ error: '请填写金额和类别' });
   }
   
   db.query(
     'INSERT INTO financial_records (user_id, child_id, amount, category, date, description, receipt_url, is_reimbursable, insurance_policy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [req.user.id, req.params.childId, amount, category, date || new Date(), description || '', receipt_url || null, is_reimbursable || false, insurance_policy || null],
+    [req.user.id, req.childId, amount, category, date || new Date(), description || '', receipt_url || null, is_reimbursable || false, insurance_policy || null],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
       
@@ -64,7 +79,7 @@ router.post('/expenses/:childId', auth, (req, res) => {
 
 router.delete('/expenses/:childId/:recordId', auth, (req, res) => {
   db.query('DELETE FROM financial_records WHERE id = ? AND user_id = ? AND child_id = ?',
-    [req.params.recordId, req.user.id, req.params.childId],
+    [req.params.recordId, req.user.id, req.childId],
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
       
@@ -88,7 +103,8 @@ router.get('/subsidies', auth, (req, res) => {
       
       res.json({
         success: true,
-        subsidies: availableSubsidies
+        subsidies: availableSubsidies,
+        disclaimer: '示例信息，未按地区、时间或个人资格核验，不能作为申领依据'
       });
     }
   );
@@ -129,7 +145,7 @@ router.delete('/subsidies/unfollow/:subsidyId', auth, (req, res) => {
 
 router.get('/reimbursement/:childId', auth, (req, res) => {
   db.query('SELECT * FROM financial_records WHERE user_id = ? AND child_id = ? AND is_reimbursable = TRUE',
-    [req.user.id, req.params.childId],
+    [req.user.id, req.childId],
     (err, results) => {
       if (err) return res.status(500).json({ error: err.message });
       
@@ -137,7 +153,7 @@ router.get('/reimbursement/:childId', auth, (req, res) => {
       
       res.json({
         success: true,
-        reimbursable_records: results,
+        reimbursable_records: results.map(item => ({ id: item.id, child_id: item.child_id, amount: item.amount, category: item.category, date: item.date, description: item.description, is_reimbursable: Boolean(item.is_reimbursable) })),
         total_reimbursable: totalReimbursable,
         materials_checklist: ['发票原件', '费用明细', '诊断证明', '康复机构资质证明', '保险合同']
       });
@@ -148,7 +164,8 @@ router.get('/reimbursement/:childId', auth, (req, res) => {
 router.get('/fraud-alerts', auth, (req, res) => {
   res.json({
     success: true,
-    fraud_cases: fraudCases.sort((a, b) => new Date(b.reported_at) - new Date(a.reported_at))
+    disclaimer: '演示案例，未连接正式监管或审核数据源',
+    fraud_cases: fraudCases.map(item => ({ ...item, verified: false, source_status: '演示未核验' })).sort((a, b) => new Date(b.reported_at) - new Date(a.reported_at))
   });
 });
 
@@ -167,7 +184,7 @@ router.post('/fraud-report', auth, (req, res) => {
       
       res.status(201).json({
         success: true,
-        message: '举报已提交，我们会在24小时内审核',
+        message: '已提交体验记录；正式审核和反馈服务尚未接入',
         report: { id: result.insertId, title, status: 'pending' }
       });
     }

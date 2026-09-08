@@ -182,6 +182,59 @@ CREATE TABLE IF NOT EXISTS skill_generalization (
   FOREIGN KEY (strategy_id) REFERENCES strategies(id) ON DELETE CASCADE
 );
 
+-- P0敏感数据：业务字段只保存AES-256-GCM密文，公开接口使用不可枚举UUID。
+CREATE TABLE IF NOT EXISTS sensitive_records (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  public_id CHAR(36) NOT NULL UNIQUE,
+  user_id INT NOT NULL,
+  child_id INT NOT NULL,
+  kind ENUM('safety_plan','mental_health_profile','wandering_plan','medical_event') NOT NULL,
+  ciphertext MEDIUMTEXT NOT NULL,
+  iv VARCHAR(64) NOT NULL,
+  auth_tag VARCHAR(64) NOT NULL,
+  version INT NOT NULL DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_sensitive_owner_child_kind (user_id, child_id, kind),
+  INDEX idx_sensitive_child (child_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS data_shares (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  public_id CHAR(36) NOT NULL UNIQUE,
+  owner_user_id INT NOT NULL,
+  recipient_user_id INT NOT NULL,
+  resource_public_id CHAR(36) NOT NULL,
+  token_hash CHAR(64) NOT NULL UNIQUE,
+  scopes JSON NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  revoked_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_share_owner (owner_user_id),
+  INDEX idx_share_recipient (recipient_user_id),
+  INDEX idx_share_resource (resource_public_id),
+  FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (recipient_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  actor_user_id INT NULL,
+  actor_role VARCHAR(30) NOT NULL,
+  action VARCHAR(50) NOT NULL,
+  resource_type VARCHAR(50) NOT NULL,
+  resource_public_id VARCHAR(100) NOT NULL,
+  outcome VARCHAR(30) NOT NULL,
+  request_id CHAR(36) NULL,
+  metadata JSON NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_audit_actor_time (actor_user_id, created_at),
+  INDEX idx_audit_resource (resource_type, resource_public_id),
+  FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
 INSERT INTO strategies (category, name, description, steps, scripts, principles, applicable_scenarios, icon, difficulty_level) VALUES
 ('情绪调节', '深呼吸法', '通过深呼吸帮助孩子平静情绪', '1. 引导孩子坐下或站立\\n2. 示范用鼻子深吸气4秒\\n3. 屏住呼吸2秒\\n4. 用嘴巴慢慢呼气6秒\\n5. 重复3-5次', '\"来，跟着我一起深呼吸，吸气...呼气...\"', '利用腹式呼吸激活副交感神经系统，降低心率，缓解焦虑', '情绪爆发初期、焦虑情绪、等待时', 'wind', 'easy'),
 ('情绪调节', '感官安抚', '使用感官物品帮助孩子自我调节', '1. 准备孩子喜欢的感官物品（如泡泡水、压力球）\\n2. 引导孩子使用感官物品\\n3. 观察孩子情绪变化\\n4. 逐渐减少辅助', '\"我们来玩泡泡水吧，看泡泡飞得多高\"', '通过提供适当的感官刺激，帮助孩子自我调节情绪状态', '情绪爆发、感官过载、烦躁时', 'sparkles', 'easy'),
