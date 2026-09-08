@@ -312,14 +312,12 @@
             </svg>
             <span class="text-xs">策略</span>
           </button>
-          <button onclick="navigateTo('community')" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted" id="nav-community">
+          <button onclick="navigateTo('children')" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted" id="nav-children">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              <circle cx="12" cy="8" r="4"/>
+              <path d="M5 21v-2a7 7 0 0 1 14 0v2"/>
             </svg>
-            <span class="text-xs">社区</span>
+            <span class="text-xs">孩子</span>
           </button>
           <button onclick="navigateTo('profile')" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted" id="nav-profile">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1146,7 +1144,7 @@
         el.classList.toggle('active', isCurrent);
         if (isCurrent) el.setAttribute('aria-current', 'page'); else el.removeAttribute('aria-current');
       });
-      const navId = `nav-${page === 'home' || page === 'emergency' || page === 'strategies' || page === 'records' || page === 'profile' || page === 'community' ? page : 'home'}`;
+      const navId = `nav-${page === 'home' || page === 'emergency' || page === 'strategies' || page === 'records' || page === 'profile' || page === 'children' ? page : 'home'}`;
       const navEl = document.getElementById(navId);
       if (navEl) navEl.classList.add('active');
 
@@ -1187,7 +1185,6 @@
       document.getElementById('page-subtitle').textContent = '陪伴孩子每一天';
 
       const todayRecords = MOCK_DATA.behaviors.filter(b => b.time.includes('今天') || b.time.includes('刚刚')).length;
-      const streak = 7;
 
       // 时间问候
       const hour = new Date().getHours();
@@ -1210,8 +1207,8 @@
                 <div class="text-xs text-white/70">今日记录</div>
               </div>
               <div>
-                <div class="text-2xl font-bold">${streak}</div>
-                <div class="text-xs text-white/70">近期陪伴</div>
+                <div class="text-2xl font-bold">${MOCK_DATA.children.length}</div>
+                <div class="text-xs text-white/70">孩子档案</div>
               </div>
               <div>
                 <div class="text-2xl font-bold">${MOCK_DATA.strategies.length}</div>
@@ -1246,78 +1243,15 @@
           `}
 
           <!-- 快速入口 -->
-          <div class="grid grid-cols-4 gap-3">
-            <button onclick="navigateTo('records')" class="flex flex-col items-center gap-2 p-3 bg-white rounded-xl card-shadow hover:shadow-md transition-shadow">
-              <div class="w-10 h-10 bg-primary-light/50 rounded-full flex items-center justify-center">
-                <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14 2 14 8 20 8"/>
-                </svg>
-              </div>
-              <span class="text-xs text-text-secondary">记录</span>
-            </button>
-            <button onclick="navigateTo('strategies')" class="flex flex-col items-center gap-2 p-3 bg-white rounded-xl card-shadow hover:shadow-md transition-shadow">
-              <div class="w-10 h-10 bg-primary-light/50 rounded-full flex items-center justify-center">
-                <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                </svg>
-              </div>
-              <span class="text-xs text-text-secondary">策略</span>
-            </button>
-            <button onclick="navigateTo('reports')" class="flex flex-col items-center gap-2 p-3 bg-white rounded-xl card-shadow hover:shadow-md transition-shadow">
-              <div class="w-10 h-10 bg-primary-light/50 rounded-full flex items-center justify-center">
-                <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <line x1="16" y1="13" x2="8" y2="13"/>
-                  <line x1="16" y1="17" x2="8" y2="17"/>
-                </svg>
-              </div>
-              <span class="text-xs text-text-secondary">周报</span>
-            </button>
-            <button onclick="navigateTo('children')" class="flex flex-col items-center gap-2 p-3 bg-white rounded-xl card-shadow hover:shadow-md transition-shadow">
-              <div class="w-10 h-10 bg-primary-light/50 rounded-full flex items-center justify-center">
-                <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="8" r="5"/>
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                </svg>
-              </div>
-              <span class="text-xs text-text-secondary">档案</span>
-            </button>
-            <button onclick="navigateTo('therapist')" class="flex flex-col items-center gap-2 p-3 bg-white rounded-xl card-shadow hover:shadow-md transition-shadow">
-              <div class="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
-                <svg class="w-5 h-5 text-teal-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-              </div>
-              <span class="text-xs text-text-secondary">专业协作</span>
-            </button>
-            <button onclick="navigateTo('peer')" class="flex flex-col items-center gap-2 p-3 bg-white rounded-xl card-shadow hover:shadow-md transition-shadow">
-              <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                <span class="text-primary text-lg">🤝</span>
-              </div>
-              <span class="text-xs text-text-secondary">同伴</span>
-            </button>
-            <button onclick="navigateTo('achievements')" class="flex flex-col items-center gap-2 p-3 bg-white rounded-xl card-shadow hover:shadow-md transition-shadow">
-              <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-                <svg class="w-5 h-5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="8" r="7"/>
-                  <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
-                </svg>
-              </div>
-              <span class="text-xs text-text-secondary">成就</span>
-            </button>
-            <button onclick="navigateTo('family')" class="flex flex-col items-center gap-2 p-3 bg-white rounded-xl card-shadow hover:shadow-md transition-shadow">
-              <div class="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
-                <svg class="w-5 h-5 text-pink-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                </svg>
-              </div>
-              <span class="text-xs text-text-secondary">家庭</span>
-            </button>
-          </div>
+          <section>
+            <div class="flex items-end justify-between mb-3"><div><h3 class="font-bold text-text-primary">现在要做什么</h3><p class="text-xs text-text-muted mt-1">高频任务放在这里，其他工具在“我的”中</p></div></div>
+            <div class="grid grid-cols-2 gap-3">
+              <button onclick="navigateTo('records')" class="flex items-center gap-3 p-4 bg-white rounded-2xl border border-border card-shadow text-left hover:border-primary transition-colors"><span class="w-10 h-10 shrink-0 bg-primary-light/50 rounded-xl flex items-center justify-center text-xl">✍️</span><span><strong class="block text-sm text-text-primary">快速记录</strong><small class="text-xs text-text-muted">记下刚才发生的事</small></span></button>
+              <button onclick="navigateTo('children')" class="flex items-center gap-3 p-4 bg-white rounded-2xl border border-border card-shadow text-left hover:border-primary transition-colors"><span class="w-10 h-10 shrink-0 bg-primary-light/50 rounded-xl flex items-center justify-center text-xl">🧒</span><span><strong class="block text-sm text-text-primary">孩子与记录</strong><small class="text-xs text-text-muted">按孩子查看变化</small></span></button>
+              <button onclick="navigateTo('strategies')" class="flex items-center gap-3 p-4 bg-white rounded-2xl border border-border card-shadow text-left hover:border-primary transition-colors"><span class="w-10 h-10 shrink-0 bg-primary-light/50 rounded-xl flex items-center justify-center text-xl">🧭</span><span><strong class="block text-sm text-text-primary">按情况找策略</strong><small class="text-xs text-text-muted">现场步骤与停止条件</small></span></button>
+              <button onclick="navigateTo('therapist')" class="flex items-center gap-3 p-4 bg-white rounded-2xl border border-border card-shadow text-left hover:border-primary transition-colors"><span class="w-10 h-10 shrink-0 bg-primary-light/50 rounded-xl flex items-center justify-center text-xl">🤝</span><span><strong class="block text-sm text-text-primary">专业协作</strong><small class="text-xs text-text-muted">整理问题与就诊准备</small></span></button>
+            </div>
+          </section>
 
           <!-- 消息提醒 -->
           ${MOCK_DATA.notifications.filter(n => !n.is_read).length > 0 ? `
@@ -1342,7 +1276,7 @@
               <button onclick="navigateTo('records')" class="text-xs text-primary">查看全部</button>
             </div>
             <div class="space-y-3">
-              ${MOCK_DATA.behaviors.slice(0, 4).map(b => `
+              ${MOCK_DATA.behaviors.slice(0, 3).map(b => `
                 <div class="bg-white p-4 rounded-xl card-shadow flex items-start gap-3">
                   <div class="emoji-avatar bg-primary-light/30">${getAvatar(b.childName)}</div>
                   <div class="flex-1">
@@ -1369,7 +1303,7 @@
               <button onclick="navigateTo('strategies')" class="text-xs text-primary">更多</button>
             </div>
             <div class="grid grid-cols-2 gap-3">
-              ${MOCK_DATA.strategies.slice(0, 4).map(s => `
+              ${MOCK_DATA.strategies.slice(0, 2).map(s => `
                 <div onclick="showStrategyDetail(${s.id})" class="bg-white p-4 rounded-xl card-shadow strategy-card cursor-pointer">
                   <div class="flex items-center justify-between mb-2">
                     <span class="font-medium text-text-primary text-sm">${escapeText(s.name)}</span>
@@ -1385,29 +1319,6 @@
             </div>
           </div>
 
-          <!-- 社区热门 -->
-          <div>
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="font-bold text-text-primary">社区热帖</h3>
-              <button onclick="navigateTo('community')" class="text-xs text-primary">更多</button>
-            </div>
-            <div class="space-y-3">
-              ${MOCK_DATA.communityPosts.slice(0, 2).map(p => `
-                <div onclick="showPostDetail(${p.id})" class="bg-white p-4 rounded-xl card-shadow cursor-pointer hover:shadow-md transition-shadow active:scale-[0.98]">
-                  <div class="flex items-center gap-2 mb-2">
-                    <span class="text-xs px-2 py-0.5 bg-secondary/50 text-text-secondary rounded-full">${escapeText(getCategoryName(p.category))}</span>
-                    <span class="text-xs text-text-muted">${p.created_at}</span>
-                  </div>
-                  <h4 class="font-medium text-text-primary text-sm mb-1 line-clamp-1">${escapeText(p.title)}</h4>
-                  <p class="text-xs text-text-secondary line-clamp-1">${escapeText(p.content)}</p>
-                  <div class="flex items-center gap-3 mt-2 text-xs text-text-muted">
-                    <span>❤️ ${p.likes}</span>
-                    <span>💬 ${p.comments_count}</span>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
         </div>
       `;
     }
@@ -1531,6 +1442,7 @@
     // 全局筛选状态
     let recordsFilter = { search: '', childId: null };
     let strategiesFilter = { search: '', category: '全部' };
+    let strategiesDisplayLimit = 6;
     let communityFilter = { search: '', category: '全部' };
     let currentInterventionContext = null;
 
@@ -2505,6 +2417,7 @@
       document.getElementById('page-title').textContent = '按情况找策略';
       document.getElementById('page-subtitle').textContent = '先安全，再理解，再行动';
       const filteredStrategies = getFilteredStrategies();
+      const visibleStrategies = filteredStrategies.slice(0, strategiesDisplayLimit);
       const urgent = ['自伤风险','跑开走失','异常兴奋','医疗事件'].includes(strategiesFilter.category);
       container.innerHTML = `
         <div class="p-4 sm:p-6 space-y-5 animate-fade-in max-w-5xl mx-auto">
@@ -2535,7 +2448,7 @@
           <section>
             <div class="flex items-center justify-between mb-3"><h3 class="font-bold text-text-primary">${strategiesFilter.category === '全部' ? '常见情况与解决路径' : (STRATEGY_BEHAVIOR_GROUPS.find(g=>g.id===strategiesFilter.category)?.label || strategiesFilter.category)}</h3><span class="text-xs text-text-muted">${filteredStrategies.length} 个方案</span></div>
             <div class="grid sm:grid-cols-2 gap-3">
-              ${filteredStrategies.length ? filteredStrategies.map(s => {
+              ${filteredStrategies.length ? visibleStrategies.map(s => {
                 const context = STRATEGY_CONTEXT[s.id] || {};
                 const highRisk = ['自伤风险','跑开走失','异常兴奋','医疗事件'].includes(s.category);
                 return `<button onclick="showStrategyDetail(${s.id})" class="text-left bg-white p-4 rounded-2xl border ${highRisk ? 'border-red-200' : 'border-border'} card-shadow hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary">
@@ -2546,6 +2459,7 @@
                 </button>`;
               }).join('') : `<div class="sm:col-span-2 rounded-2xl border border-dashed border-border bg-white p-8 text-center"><div class="font-medium text-text-primary">暂时没有完全匹配的方案</div><p class="text-sm text-text-muted mt-2">换一个孩子正在做的动作搜索；如果情况无法判断或正在升级，请先进入紧急支持。</p><button onclick="navigateTo('emergency')" class="mt-4 px-4 py-2.5 rounded-xl bg-primary text-white">去判断安全</button></div>`}
             </div>
+            ${filteredStrategies.length > visibleStrategies.length ? `<button onclick="showMoreStrategies()" class="w-full mt-4 py-3 rounded-xl bg-white border border-primary/30 text-primary-dark font-bold">显示更多（还有 ${filteredStrategies.length - visibleStrategies.length} 个）</button>` : ''}
           </section>
 
           <section class="rounded-2xl bg-white border border-border p-4">
@@ -2568,12 +2482,19 @@
       return strategies;
     }
 
+    function showMoreStrategies() {
+      strategiesDisplayLimit += 6;
+      renderStrategies(document.getElementById('main-content'));
+    }
+
     function onStrategiesSearch(value) {
+      strategiesDisplayLimit = 6;
       strategiesFilter.search = value;
       renderStrategies(document.getElementById('main-content'));
     }
 
     function filterStrategiesByCategory(category) {
+      strategiesDisplayLimit = 6;
       strategiesFilter.category = category;
       strategiesFilter.search = '';
       renderStrategies(document.getElementById('main-content'));
@@ -2626,8 +2547,8 @@
                   </svg>
                 </div>
                 <div class="flex-1 text-left">
-                  <div class="font-medium text-text-primary">儿童档案</div>
-                  <div class="text-xs text-text-muted">管理孩子信息</div>
+                  <div class="font-medium text-text-primary">孩子与记录</div>
+                  <div class="text-xs text-text-muted">查看档案与观察记录</div>
                 </div>
                 <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M9 18l6-6-6-6"/>
