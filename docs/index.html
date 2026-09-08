@@ -233,10 +233,10 @@
         <div class="sidebar-label">核心工作</div>
         <nav class="space-y-1">
           <button class="side-nav-item active" data-page="home" onclick="navigateTo('home')"><span>⌂</span><span>总览</span></button>
-          <button class="side-nav-item" data-page="records" onclick="navigateTo('records')"><span>◫</span><span>行为记录</span></button>
+          <button class="side-nav-item" data-page="records" onclick="navigateTo('records')"><span>◫</span><span>快速记录</span></button>
           <button class="side-nav-item" data-page="strategies" onclick="navigateTo('strategies')"><span>◇</span><span>干预策略</span></button>
           <button class="side-nav-item" data-page="reports" onclick="navigateTo('reports')"><span>▤</span><span>成长周报</span></button>
-          <button class="side-nav-item" data-page="children" onclick="navigateTo('children')"><span>○</span><span>儿童档案</span></button>
+          <button class="side-nav-item" data-page="children" onclick="navigateTo('children')"><span>○</span><span>孩子与记录</span></button>
         </nav>
         <div class="sidebar-label">支持服务</div>
         <nav class="space-y-1">
@@ -294,7 +294,7 @@
               <line x1="16" y1="17" x2="8" y2="17"/>
               <polyline points="10 9 9 9 8 9"/>
             </svg>
-            <span class="text-xs">记录</span>
+            <span class="text-xs">快记</span>
           </button>
           <button onclick="navigateTo('emergency')" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted relative" id="nav-emergency">
             <div class="w-10 h-10 rounded-full bg-emergency flex items-center justify-center -mt-5 shadow-lg">
@@ -1645,7 +1645,7 @@
       }
     }
 
-    function showNewRecord() {
+    function showNewRecord(childId = null) {
       const modal = document.createElement('div');
       modal.className = 'fixed inset-0 bg-black/50 flex items-end justify-center z-50';
       modal.innerHTML = `
@@ -1757,6 +1757,7 @@
         </div>
       `;
       document.body.appendChild(modal);
+      if (childId) document.getElementById('record-child').value = String(childId);
     }
 
     function setRecordType(type, btn) {
@@ -2853,40 +2854,52 @@
     }
 
     function renderChildren(container) {
-      document.getElementById('page-title').textContent = '儿童档案';
-      document.getElementById('page-subtitle').textContent = '管理孩子信息';
+      document.getElementById('page-title').textContent = '孩子与记录';
+      document.getElementById('page-subtitle').textContent = '每个孩子一条连续照护时间线';
 
       container.innerHTML = `
         <div class="p-4 space-y-4 animate-fade-in">
-          <div class="flex justify-between items-center">
-            <h3 class="font-bold text-text-primary">我的孩子</h3>
-            <button onclick="showNewChild()" class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium">
-              + 添加
-            </button>
-          </div>
+          <section class="rounded-2xl bg-primary text-white p-5 shadow-lg shadow-primary/15">
+            <div class="flex items-start justify-between gap-4">
+              <div><p class="text-xs text-white/75">儿童档案是长期归属</p><h2 class="text-xl font-bold mt-1">资料、观察与下一步放在一起</h2><p class="text-sm text-white/80 leading-6 mt-2">底部“快记”用于当下快速留痕；完整记录历史按孩子收进这里。</p></div>
+              <button onclick="showNewChild()" class="shrink-0 px-3 py-2 rounded-xl bg-white text-primary text-sm font-bold">添加孩子</button>
+            </div>
+          </section>
 
-          <div class="space-y-3">
-            ${MOCK_DATA.children.map(c => `
-              <div class="bg-white p-4 rounded-xl card-shadow flex items-center gap-4">
-                <div class="emoji-avatar bg-primary-light/30" style="font-size:24px;width:48px;height:48px">${escapeText(c.avatar)}</div>
-                <div class="flex-1">
-                  <div class="flex items-center gap-2 mb-1">
-                    <span class="font-bold text-text-primary">${escapeText(c.name)}</span>
-                    <span class="text-xs px-2 py-0.5 bg-secondary/50 text-text-secondary rounded-full">${escapeText(c.gender || "未填写")}</span>
-                    <span class="text-xs text-text-muted">${c.age}岁</span>
+          <div class="space-y-4">
+            ${MOCK_DATA.children.map(c => {
+              const records = MOCK_DATA.behaviors.filter(b => b.childName === c.name);
+              const latest = records[0];
+              const highAttention = records.filter(b => /自伤|自杀|死亡|幻觉|妄想|意识|走失|异常兴奋/.test(`${b.category || ''}${b.description || ''}`)).length;
+              return `
+              <article class="bg-white rounded-2xl border border-border overflow-hidden shadow-sm">
+                <div class="p-4 flex items-start gap-3">
+                  <div class="emoji-avatar bg-primary-light/30" style="font-size:24px;width:48px;height:48px">${escapeText(c.avatar)}</div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2 flex-wrap"><h3 class="font-bold text-lg text-text-primary">${escapeText(c.name)}</h3><span class="text-xs px-2 py-0.5 bg-secondary/50 text-text-secondary rounded-full">${Number(c.age) || 0}岁</span></div>
+                    <p class="text-xs text-text-muted mt-1">家庭记录情况：${escapeText(c.diagnosis || '未填写/评估中')}</p>
                   </div>
-                  <p class="text-xs text-text-muted">家庭记录情况：${escapeText(c.diagnosis || "未填写/评估中")}</p>
+                  <button onclick="showChildDetail(${Number(c.id)})" class="text-sm text-primary font-medium">照护主页</button>
                 </div>
-                <button onclick="showChildDetail(${Number(c.id)})" class="px-3 py-1.5 rounded-lg border border-border text-text-secondary text-sm">
-                  查看
-                </button>
-              </div>
-            `).join('')}
+                <div class="grid grid-cols-3 border-y border-border bg-background/70">
+                  <div class="p-3 text-center"><div class="font-bold text-text-primary">${records.length}</div><div class="text-[11px] text-text-muted">记录</div></div>
+                  <div class="p-3 text-center border-x border-border"><div class="font-bold ${highAttention ? 'text-danger' : 'text-text-primary'}">${highAttention}</div><div class="text-[11px] text-text-muted">需核对</div></div>
+                  <div class="p-3 text-center"><div class="font-bold text-text-primary">${latest ? escapeText(latest.time) : '—'}</div><div class="text-[11px] text-text-muted">最近</div></div>
+                </div>
+                <div class="p-3 grid grid-cols-2 gap-2">
+                  <button onclick="showNewRecord(${Number(c.id)})" class="py-2.5 rounded-xl bg-primary text-white text-sm font-bold">为TA快速记录</button>
+                  <button onclick="openChildRecords(${Number(c.id)})" class="py-2.5 rounded-xl border border-primary text-primary text-sm font-bold">查看全部记录</button>
+                </div>
+              </article>`;
+            }).join('')}
           </div>
-        </div>
-      `;
+        </div>`;
     }
 
+    function openChildRecords(childId) {
+      recordsFilter = { search: '', childId: Number(childId) };
+      navigateTo('records');
+    }
     function showNewChild() {
       const modal = document.createElement('div');
       modal.className = 'fixed inset-0 bg-black/50 flex items-end justify-center z-50';
@@ -2963,11 +2976,13 @@
       const child = MOCK_DATA.children.find(c => c.id === id);
       if (!child) return;
       const supportLabel = value => ({ 1: '需要全面支持', 2: '需要较多支持', 3: '需要部分支持', 4: '需要少量支持', 5: '本次观察较独立' }[Number(value)] || '尚未记录');
+      const childRecords = MOCK_DATA.behaviors.filter(item => item.childName === child.name);
+      const recentRecords = childRecords.slice(0, 3);
 
       const modal = document.createElement('div');
       modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
       modal.innerHTML = `
-        <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in">
+        <div class="bg-white w-full max-w-md rounded-2xl p-5 animate-fade-in max-h-[90vh] overflow-y-auto">
           <div class="flex justify-between items-start mb-4">
             <h3 class="text-lg font-bold">孩子详情</h3>
             <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
@@ -2979,7 +2994,17 @@
               <div class="text-text-muted">${escapeText(child.gender || "未填写")} · ${Number(child.age) || 0}岁</div>
             </div>
           </div>
-          <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-2 mb-5">
+            <button onclick="this.closest('.fixed').remove();showNewRecord(${Number(child.id)})" class="py-3 rounded-xl bg-primary text-white font-bold">快速记录</button>
+            <button onclick="this.closest('.fixed').remove();openChildRecords(${Number(child.id)})" class="py-3 rounded-xl border border-primary text-primary font-bold">全部记录</button>
+          </div>
+          <section class="mb-5">
+            <div class="flex items-center justify-between mb-2"><h4 class="font-bold text-text-primary">近期观察</h4><span class="text-xs text-text-muted">${childRecords.length} 条</span></div>
+            <div class="space-y-2">${recentRecords.length ? recentRecords.map(item => `<button onclick="showRecordDetail(${Number(item.id)})" class="w-full text-left p-3 rounded-xl bg-background border border-border"><div class="flex justify-between gap-2"><span class="text-sm font-medium text-text-primary">${escapeText(item.category)}</span><span class="text-xs text-text-muted">${escapeText(item.time)}</span></div><p class="text-xs text-text-secondary mt-1 line-clamp-2">${escapeText(item.description)}</p></button>`).join('') : '<div class="p-4 rounded-xl bg-background text-sm text-text-muted">还没有记录。先写一条可观察事实，之后再一起回看。</div>'}</div>
+          </section>
+          <details class="rounded-xl border border-border p-3">
+            <summary class="font-bold text-text-primary cursor-pointer">基础档案与支持需要</summary>
+          <div class="space-y-4 mt-4">
             <div>
               <div class="text-sm text-text-muted mb-1">家庭记录情况（不代表平台诊断）</div>
               <div class="px-3 py-2 bg-secondary/30 rounded-lg text-text-primary">${escapeText(child.diagnosis || "未填写/评估中")}</div>
@@ -3002,7 +3027,8 @@
               </div>
             </div>
           </div>
-          <button onclick="this.closest('.fixed').remove()" class="w-full mt-6 py-3 rounded-xl bg-primary text-white font-medium">知道了</button>
+          </details>
+          <button onclick="this.closest('.fixed').remove()" class="w-full mt-4 py-3 rounded-xl bg-background text-text-secondary font-medium">关闭</button>
         </div>
       `;
       document.body.appendChild(modal);
@@ -6756,7 +6782,7 @@
             <div class="bg-white rounded-xl card-shadow overflow-hidden">
               <div class="p-4 flex items-center justify-between border-b border-border">
                 <div class="font-medium text-text-primary">版本号</div>
-                <span class="text-sm text-text-muted">3.8.0 受监督测试版</span>
+                <span class="text-sm text-text-muted">4.0.0 受监督测试版</span>
               </div>
               <button onclick="showAbout()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border">
                 <div class="flex-1 text-left">
@@ -6777,7 +6803,7 @@
             </div>
           </div>
 
-          <p class="text-center text-xs text-text-muted py-4">星伴 v3.8.0 受监督体验版 · 安全与现实支持优先</p>
+          <p class="text-center text-xs text-text-muted py-4">星伴 v4.0.0 受监督体验版 · 安全与现实支持优先</p>
         </div>
       `;
     }
@@ -6897,7 +6923,7 @@
         emergencySessions: readLocalJson('xingban_emergency_sessions', []),
         familySupport: ['caregiver','grandparent','sibling','cbt'].reduce((all,key)=>{all[key]=readLocalJson(`xingban_family_${key}`);return all;},{}),
         settings: settingsState,
-        schemaVersion: '3.8.0',
+        schemaVersion: '4.0.0',
         exportDate: new Date().toISOString()
       };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });

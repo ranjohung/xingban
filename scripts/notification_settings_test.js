@@ -11,6 +11,6 @@ const checks = [
   ['preferences capability boundary', html.includes('尚未注册操作系统推送或后台定时任务')],
   ['anonymous boundary', html.includes('仅控制前台昵称显示，不等于不可识别')],
   ['export confirmation', html.includes('export-risk-confirm') && html.includes('文件是未加密的 JSON')],
-  ['current version', html.includes('3.8.0 受监督测试版')]
+  ['current version', html.includes('4.0.0 受监督测试版')]
 ];
 const failed=checks.filter(([,ok])=>!ok);if(failed.length){console.error(failed.map(([n])=>'FAIL: '+n).join('\n'));process.exit(1);}console.log('notification_settings_test: 10/10 passed');

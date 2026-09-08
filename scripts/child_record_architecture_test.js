@@ -1,0 +1,14 @@
+const fs=require('fs');
+const html=fs.readFileSync('index.html','utf8');
+const assert=(ok,msg)=>{if(!ok)throw new Error(msg)};
+assert(html.includes('<span class="text-xs">快记</span>'),'mobile quick label');
+assert(html.includes('<span>快速记录</span>'),'desktop quick label');
+assert(html.includes("textContent = '孩子与记录'"),'child hub title');
+assert(html.includes('需核对')&&html.includes('为TA快速记录'),'child card actions');
+assert(html.includes('function showNewRecord(childId = null)'),'context record signature');
+assert(html.includes("record-child').value = String(childId)"),'child auto selection');
+assert(html.includes('function openChildRecords(childId)'),'filtered child history');
+assert(html.includes('const recentRecords = childRecords.slice(0, 3)'),'recent observations');
+assert(html.includes('基础档案与支持需要'),'profile de-emphasized');
+assert(html.includes('4.0.0 受监督测试版'),'version 4');
+console.log('child_record_architecture_test: 10/10 passed');
