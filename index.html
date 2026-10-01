@@ -376,8 +376,18 @@
 
   <script>
     // === API配置 ===
-    const configuredApiBase = String(window.XINGBAN_API_BASE || '').replace(/\/$/, '');
     const isLocalPreview = location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname);
+    function resolveConfiguredApiBase() {
+      const raw = Object.prototype.hasOwnProperty.call(window, 'XINGBAN_API_BASE') ? window.XINGBAN_API_BASE : '';
+      if (typeof raw !== 'string' || !raw.trim()) return '';
+      try {
+        const parsed = new URL(raw.trim(), location.href);
+        const localHttp = parsed.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(parsed.hostname);
+        if (parsed.protocol !== 'https:' && !localHttp) return '';
+        return parsed.href.replace(/\/$/, '');
+      } catch (_) { return ''; }
+    }
+    const configuredApiBase = resolveConfiguredApiBase();
     const API_BASE = configuredApiBase || (isLocalPreview ? 'http://localhost:3001/api' : '');
     let useMockMode = !API_BASE;
 
@@ -1466,7 +1476,7 @@
       modal.innerHTML = `
         <div class="bg-white w-full max-w-2xl rounded-2xl animate-fade-in max-h-[92vh] overflow-hidden flex flex-col">
           <div class="flex justify-between items-start gap-4 p-5 sm:p-6 border-b border-border bg-white sticky top-0 z-10">
-            <div><div class="flex items-center gap-2 mb-1"><span class="text-xs px-2 py-1 rounded-full bg-primary-light/40 text-primary font-medium">分步实操教程</span><span class="text-xs text-text-muted">约 ${Math.max(3, guide.steps.length * 2)} 分钟</span></div><h3 class="text-xl font-bold">${strategy.name}</h3><p class="text-sm text-text-secondary mt-1">${strategy.description}</p></div>
+            <div><div class="flex items-center gap-2 mb-1"><span class="text-xs px-2 py-1 rounded-full bg-primary-light/40 text-primary font-medium">分步实操教程</span><span class="text-xs text-text-muted">约 ${Math.max(3, guide.steps.length * 2)} 分钟</span></div><h3 class="text-xl font-bold">${escapeText(strategy.name)}</h3><p class="text-sm text-text-secondary mt-1">${escapeText(strategy.description)}</p></div>
             <button onclick="closeTopModal()" aria-label="关闭教程" class="w-9 h-9 shrink-0 rounded-full bg-background text-text-muted hover:text-text-primary">✕</button>
           </div>
           <div class="overflow-y-auto p-5 sm:p-6 space-y-6">
@@ -2066,7 +2076,7 @@
       } catch (_) {}
       const modal = document.createElement('div');
       modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
-      modal.innerHTML = `<div class="bg-white w-full max-w-lg rounded-2xl p-5 animate-fade-in max-h-[90vh] overflow-y-auto"><div class="flex justify-between gap-3 mb-4"><div><div class="text-xs font-semibold text-primary">记录已保存 · 下一步</div><h3 class="text-lg font-bold mt-1">选择一个现在可尝试的策略</h3><p class="text-sm text-text-secondary mt-1">稍后反馈会自动关联刚才的记录，周报会汇总实际尝试结果。</p></div><button onclick="closeTopModal();navigateTo('records')" class="text-text-muted" aria-label="暂不选择">✕</button></div>${consistencyCheck ? '<div class="mb-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">推荐与当前训练目标可能不完全一致，请结合专业人员制定的目标选择。</div>' : ''}<div class="space-y-3">${strategies.map(s => `<button onclick="closeTopModal();showStrategyDetail(${Number(s.id)})" class="w-full text-left border border-border rounded-xl p-4 hover:border-primary"><div class="font-bold text-text-primary">${escapeText(s.name)}</div><div class="text-sm text-text-secondary mt-1">${s.description || '查看分步教程与示范话术'}</div><div class="text-xs text-primary mt-2">查看步骤并尝试 →</div></button>`).join('')}</div><div id="record-kb-ref" class="mt-4"></div><button onclick="closeTopModal();navigateTo('records')" class="w-full mt-4 py-2.5 rounded-xl border border-border text-text-secondary">现在不适合，稍后再看</button></div>`;
+      modal.innerHTML = `<div class="bg-white w-full max-w-lg rounded-2xl p-5 animate-fade-in max-h-[90vh] overflow-y-auto"><div class="flex justify-between gap-3 mb-4"><div><div class="text-xs font-semibold text-primary">记录已保存 · 下一步</div><h3 class="text-lg font-bold mt-1">选择一个现在可尝试的策略</h3><p class="text-sm text-text-secondary mt-1">稍后反馈会自动关联刚才的记录，周报会汇总实际尝试结果。</p></div><button onclick="closeTopModal();navigateTo('records')" class="text-text-muted" aria-label="暂不选择">✕</button></div>${consistencyCheck ? '<div class="mb-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">推荐与当前训练目标可能不完全一致，请结合专业人员制定的目标选择。</div>' : ''}<div class="space-y-3">${strategies.map(s => `<button onclick="closeTopModal();showStrategyDetail(${Number(s.id)})" class="w-full text-left border border-border rounded-xl p-4 hover:border-primary"><div class="font-bold text-text-primary">${escapeText(s.name)}</div><div class="text-sm text-text-secondary mt-1">${escapeText(s.description || '查看分步教程与示范话术')}</div><div class="text-xs text-primary mt-2">查看步骤并尝试 →</div></button>`).join('')}</div><div id="record-kb-ref" class="mt-4"></div><button onclick="closeTopModal();navigateTo('records')" class="w-full mt-4 py-2.5 rounded-xl border border-border text-text-secondary">现在不适合，稍后再看</button></div>`;
       document.body.appendChild(modal);
       loadRecordKbRef(record, category);
     }
@@ -2346,7 +2356,7 @@
       const saved = JSON.parse(localStorage.getItem('xingban_safety_plan') || '{}');
       const modal = document.createElement('div'); modal.className='fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[70]';
       modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl p-5 max-h-[92vh] overflow-y-auto"><div class="flex justify-between"><div><h2 class="text-xl font-bold">家庭安全计划</h2><p class="text-xs text-text-muted mt-1">建议与儿童精神科专业人员共同确认</p></div><button onclick="closeTopModal()">✕</button></div>
-      <div class="space-y-3 mt-4">${[['warning','孩子的预警信号','如：连续两晚睡眠少于4小时、谈论死亡'],['calming','确认有效的支持方式','孩子接受的陪伴方式；明确禁用方式'],['hospital','首选医院/科室','医院名称、儿童精神科急诊位置'],['clinician','主治专业人员','姓名、机构、联系电话'],['medication','当前药物与重要提醒','仅记录医嘱；不要在此自行调整剂量'],['school','共同监护人/学校联系人','姓名、关系、电话'],['escalation','何时必须升级求助','自伤、自杀计划、伤人、失联、意识异常等']].map(([id,label,ph])=>`<label class="block text-sm font-medium">${label}<textarea id="safety-${id}" rows="2" placeholder="${ph}" class="mt-1 w-full p-3 rounded-xl border border-border text-sm">${saved[id]||''}</textarea></label>`).join('')}</div>
+      <div class="space-y-3 mt-4">${[['warning','孩子的预警信号','如：连续两晚睡眠少于4小时、谈论死亡'],['calming','确认有效的支持方式','孩子接受的陪伴方式；明确禁用方式'],['hospital','首选医院/科室','医院名称、儿童精神科急诊位置'],['clinician','主治专业人员','姓名、机构、联系电话'],['medication','当前药物与重要提醒','仅记录医嘱；不要在此自行调整剂量'],['school','共同监护人/学校联系人','姓名、关系、电话'],['escalation','何时必须升级求助','自伤、自杀计划、伤人、失联、意识异常等']].map(([id,label,ph])=>`<label class="block text-sm font-medium">${escapeText(label)}<textarea id="safety-${id}" rows="2" placeholder="${escapeText(ph)}" class="mt-1 w-full p-3 rounded-xl border border-border text-sm">${escapeText(saved[id]||'')}</textarea></label>`).join('')}</div>
       <p class="text-xs text-danger mt-3">体验版保存在当前设备浏览器中，请勿录入身份证号、完整病历或其他不必要的敏感信息。</p><button onclick="saveSafetyPlan()" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">保存安全计划</button></div>`; document.body.appendChild(modal);
     }
 
@@ -4294,15 +4304,15 @@
         <div class="bg-white w-full max-w-md rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto animate-fade-in safe-area-bottom">
           <div class="flex justify-between items-center mb-4">
             <div class="flex items-center gap-2">
-              <span class="text-2xl">${group.avatar}</span>
-              <h3 class="text-lg font-bold">${group.name}</h3>
+              <span class="text-2xl">${escapeText(group.avatar)}</span>
+              <h3 class="text-lg font-bold">${escapeText(group.name)}</h3>
             </div>
             <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
           </div>
-          <p class="text-sm text-text-secondary mb-3">${group.description}</p>
+          <p class="text-sm text-text-secondary mb-3">${escapeText(group.description)}</p>
           <div class="flex items-center gap-3 mb-4">
             <span class="text-xs text-text-muted">👥 ${group.member_count}/${group.max_members}人</span>
-            <span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs">${group.category}</span>
+            <span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs">${escapeText(group.category)}</span>
             ${group.tags.map(t => `<span class="px-2 py-0.5 rounded-full bg-gray-100 text-text-muted text-xs">${escapeText(t)}</span>`).join('')}
           </div>
           <h4 class="font-medium text-text-primary mb-2">最近动态</h4>
@@ -4595,7 +4605,7 @@
       const [title, fields, warning] = configs[type];
       const saved = JSON.parse(sessionStorage.getItem(`xingban_family_${type}`) || '{}');
       const modal = document.createElement('div'); modal.className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'; modal.dataset.modal='true';
-      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[90vh] overflow-y-auto"><div class="flex justify-between mb-4"><h2 class="text-lg font-bold">${title}</h2><button onclick="closeTopModal()">✕</button></div><div class="space-y-3">${fields.map(([id,label,ph])=>`<label class="block text-sm font-medium">${label}<textarea id="family-${type}-${id}" rows="2" placeholder="${ph}" class="mt-1 w-full p-3 rounded-xl border border-border">${saved[id]||''}</textarea></label>`).join('')}</div><p class="mt-3 text-xs text-text-muted">${warning}</p><button onclick="saveFamilyTool('${type}',${JSON.stringify(fields.map(f=>f[0])).replace(/"/g,"'")})" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">保存到当前标签页</button></div>`;
+      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[90vh] overflow-y-auto"><div class="flex justify-between mb-4"><h2 class="text-lg font-bold">${escapeText(title)}</h2><button onclick="closeTopModal()">✕</button></div><div class="space-y-3">${fields.map(([id,label,ph])=>`<label class="block text-sm font-medium">${escapeText(label)}<textarea id="family-${type}-${id}" rows="2" placeholder="${escapeText(ph)}" class="mt-1 w-full p-3 rounded-xl border border-border">${escapeText(saved[id]||'')}</textarea></label>`).join('')}</div><p class="mt-3 text-xs text-text-muted">${escapeText(warning)}</p><button onclick="saveFamilyTool('${type}',${JSON.stringify(fields.map(f=>f[0])).replace(/"/g,"'")})" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">保存到当前标签页</button></div>`;
       document.body.appendChild(modal);
     }
 

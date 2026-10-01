@@ -42,6 +42,9 @@ async function main() {
   const readiness = await request('/health/ready');
   if (readiness.response.status !== 200 || readiness.body.database !== 'mock') throw new Error('开发数据库就绪状态不正确');
 
+  const forgedProfessional = await request('/therapist/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: 1, name: '冒用人员', phone: '13800000000' }) });
+  if (forgedProfessional.response.status !== 401) throw new Error('专业人员自助注册未被阻止');
+
   const unauthorized = await request('/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'bug', content: '测试反馈' }) });
   if (unauthorized.response.status !== 401) throw new Error('反馈接口未保护');
 
@@ -61,6 +64,11 @@ async function main() {
   const lowhits = await request('/knowledge/lowhits');
   if (lowhits.response.status !== 401) throw new Error('低命中统计不应公开');
 
+  const legacyShare = await request('/report/share/guessable-token');
+  if (legacyShare.response.status !== 410) throw new Error('旧版匿名周报链接未停用');
+  const legacyComment = await request('/report/share/guessable-token/comment', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: '冒用评论', therapist_id: 1 }) });
+  if (legacyComment.response.status !== 410) throw new Error('旧版匿名评论未停用');
+
   const wizard = await request('/child/wizard/step1', { method: 'POST', headers, body: JSON.stringify({ nickname: '测试昵称', birth_date: '2020-01-02', diagnosis_type: 'UNCONFIRMED' }) });
   if (wizard.response.status !== 201 || !wizard.body.draft_id) throw new Error('儿童建档第一步不可用');
 
@@ -68,6 +76,8 @@ async function main() {
   if (crossFamilyGoals.response.status !== 404) throw new Error(`跨家庭目标读取未被阻止：HTTP ${crossFamilyGoals.response.status} ${JSON.stringify(crossFamilyGoals.body)} ${stderr.slice(-1000)}`);
   const crossFamilyRadar = await request('/child/2/capacity-radar', { headers });
   if (crossFamilyRadar.response.status !== 404) throw new Error('跨家庭支持需要读取未被阻止');
+  const crossFamilyReport = await request('/report/generate/2', { method: 'POST', headers, body: JSON.stringify({}) });
+  if (crossFamilyReport.response.status !== 404) throw new Error('跨家庭周报生成未被阻止');
 
   console.log('PASS backend API contract: health, auth, feedback, child wizard, ownership, analytics protection');
 }

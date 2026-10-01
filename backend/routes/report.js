@@ -3,16 +3,28 @@ const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
 const { parseDbJson } = require('../utils/json');
-const { v4: uuidv4 } = require('uuid');
 
 router.param('childId', (req, res, next, childId) => {
-  if (!req.user) return next();
-  db.query('SELECT id FROM children WHERE id = ? AND user_id = ?', [childId, req.user.id], (err, rows) => {
+  const id = Number.parseInt(childId, 10);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: '儿童编号无效' });
+  db.query('SELECT id FROM children WHERE id = ? AND user_id = ?', [id, req.user.id], (err, rows) => {
     if (err) return res.status(500).json({ error: '周报服务暂时不可用' });
     if (!rows.length) return res.status(404).json({ error: '儿童档案不存在' });
     next();
   });
 });
+
+// 必须放在 `/:childId/:reportId` 之前，避免 Express 将 `share` 误当作儿童编号。
+router.get('/share/:token', (req, res) => {
+  res.status(410).json({ error: '匿名周报链接已停用，请由已核验的专业人员登录后按授权范围查看' });
+});
+router.post('/share/:token/comment', (req, res) => {
+  res.status(410).json({ error: '匿名评论已停用，请登录已核验的专业账号后操作' });
+});
+
+// 其余周报接口全部要求登录，确保 router.param 能拿到 req.user 做儿童归属核验。
+router.use(auth);
+
 router.post('/generate/:childId', auth, (req, res) => {
   const { week_start, week_end } = req.body;
   
@@ -55,10 +67,6 @@ router.post('/generate/:childId', auth, (req, res) => {
         `, [req.params.childId, startDate, endDate], (err, strategyResults) => {
           if (err) return res.status(500).json({ error: err.message });
           
-          const shareToken = uuidv4();
-          const expiresAt = new Date();
-          expiresAt.setDate(expiresAt.getDate() + 30);
-          
           const reportContent = generateReportContent(
             recordStats[0] || {},
             categoryStats,
@@ -69,8 +77,8 @@ router.post('/generate/:childId', auth, (req, res) => {
           );
           
           db.query(
-            'INSERT INTO weekly_reports (child_id, user_id, week_start, week_end, content, share_token, share_expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [req.params.childId, req.user.id, startDate, endDate, JSON.stringify(reportContent), shareToken, expiresAt],
+            'INSERT INTO weekly_reports (child_id, user_id, week_start, week_end, content) VALUES (?, ?, ?, ?, ?)',
+            [req.params.childId, req.user.id, startDate, endDate, JSON.stringify(reportContent)],
             (err, result) => {
               if (err) return res.status(500).json({ error: err.message });
               
@@ -81,8 +89,6 @@ router.post('/generate/:childId', auth, (req, res) => {
                   id: result.insertId,
                   week_start: startDate,
                   week_end: endDate,
-                  share_token: shareToken,
-                  share_url: `${process.env.BASE_URL || 'http://localhost:3001'}/api/report/share/${shareToken}`,
                   content: reportContent
                 }
               });
@@ -99,7 +105,7 @@ router.get('/:childId/list', auth, (req, res) => {
   const offset = (page - 1) * limit;
   
   db.query(
-    'SELECT id, week_start, week_end, generated_at, share_token FROM weekly_reports WHERE child_id = ? ORDER BY week_start DESC LIMIT ? OFFSET ?',
+    'SELECT id, week_start, week_end, generated_at FROM weekly_reports WHERE child_id = ? ORDER BY week_start DESC LIMIT ? OFFSET ?',
     [req.params.childId, parseInt(limit), offset],
     (err, results) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -132,67 +138,9 @@ router.get('/:childId/:reportId', auth, (req, res) => {
       success: true, 
       report: {
         ...report,
-        content: parseDbJson(report.content, {}),
-        share_url: `${process.env.BASE_URL || 'http://localhost:3001'}/api/report/share/${report.share_token}`
+        content: parseDbJson(report.content, {})
       }
     });
-  });
-});
-
-router.get('/share/:token', (req, res) => {
-  db.query('SELECT * FROM weekly_reports WHERE share_token = ? AND share_expires_at > NOW()', [req.params.token], (err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
-    
-    if (results.length === 0) {
-      return res.status(404).json({ error: '分享链接无效或已过期' });
-    }
-    
-    const report = results[0];
-    
-    db.query('SELECT * FROM report_comments WHERE report_id = ? ORDER BY timestamp DESC', [report.id], (err, comments) => {
-      if (err) return res.status(500).json({ error: err.message });
-      
-      res.json({ 
-        success: true, 
-        report: {
-          ...report,
-          content: parseDbJson(report.content, {}),
-          comments
-        }
-      });
-    });
-  });
-});
-
-router.post('/share/:token/comment', (req, res) => {
-  const { content, therapist_id } = req.body;
-  
-  if (!content) {
-    return res.status(400).json({ error: '评论内容不能为空' });
-  }
-  
-  db.query('SELECT id FROM weekly_reports WHERE share_token = ? AND share_expires_at > NOW()', [req.params.token], (err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
-    
-    if (results.length === 0) {
-      return res.status(404).json({ error: '分享链接无效或已过期' });
-    }
-    
-    const reportId = results[0].id;
-    
-    db.query(
-      'INSERT INTO report_comments (report_id, therapist_id, content) VALUES (?, ?, ?)',
-      [reportId, therapist_id || null, content],
-      (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
-        
-        res.status(201).json({
-          success: true,
-          message: '评论提交成功',
-          comment: { id: result.insertId, content }
-        });
-      }
-    );
   });
 });
 
@@ -235,22 +183,13 @@ router.get('/:reportId/comments', auth, (req, res) => {
 });
 
 router.post('/:reportId/extend-share', auth, (req, res) => {
-  const newExpiresAt = new Date();
-  newExpiresAt.setDate(newExpiresAt.getDate() + 30);
-  
-  db.query('UPDATE weekly_reports SET share_expires_at = ? WHERE id = ? AND user_id = ?', [newExpiresAt, req.params.reportId, req.user.id], (err) => {
-    if (err) return res.status(500).json({ error: err.message });
-    
-    res.json({ success: true, message: '分享有效期已延长30天' });
-  });
+  res.status(410).json({ error: '旧版匿名分享已停用，请重新选择接收者、范围和有效期' });
 });
 
 router.post('/:reportId/revoke-share', auth, (req, res) => {
-  db.query('UPDATE weekly_reports SET share_expires_at = NOW() WHERE id = ? AND user_id = ?', [req.params.reportId, req.user.id], (err) => {
-    if (err) return res.status(500).json({ error: err.message });
-    
-    res.json({ success: true, message: '分享链接已失效' });
-  });
+  db.query('UPDATE report_shares SET revoked_at=NOW() WHERE report_id=? AND owner_user_id=? AND revoked_at IS NULL', [req.params.reportId, req.user.id], (err, result) => err
+    ? res.status(500).json({ error: '授权暂时无法撤销' })
+    : res.json({ success: true, message: '该周报的有效授权已全部撤销', revoked: Number(result.affectedRows || 0) }));
 });
 
 function getWeekStart() {

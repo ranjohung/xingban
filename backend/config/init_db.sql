@@ -149,6 +149,7 @@ CREATE TABLE IF NOT EXISTS report_comments (
 
 CREATE TABLE IF NOT EXISTS therapists (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NULL UNIQUE,
   name VARCHAR(50) NOT NULL,
   phone VARCHAR(20) UNIQUE,
   email VARCHAR(100),
@@ -161,7 +162,25 @@ CREATE TABLE IF NOT EXISTS therapists (
   professional_score INT DEFAULT 100,
   is_certified BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS report_shares (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  report_id INT NOT NULL,
+  owner_user_id INT NOT NULL,
+  therapist_id INT NOT NULL,
+  scope JSON NOT NULL,
+  note VARCHAR(500) NOT NULL DEFAULT '',
+  expires_at TIMESTAMP NOT NULL,
+  revoked_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_report_share_therapist (therapist_id, expires_at),
+  INDEX idx_report_share_owner (owner_user_id, created_at),
+  FOREIGN KEY (report_id) REFERENCES weekly_reports(id) ON DELETE CASCADE,
+  FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (therapist_id) REFERENCES therapists(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS energy_station (
