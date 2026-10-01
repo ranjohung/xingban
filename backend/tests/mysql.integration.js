@@ -52,20 +52,23 @@ async function main() {
   if (behavior.response.status !== 201) throw new Error(`记录失败：${JSON.stringify(behavior.body)}`);
   const report = await request(`/report/generate/${childId}`, { method: 'POST', headers, body: '{}' });
   if (report.response.status !== 201) throw new Error(`周报失败：${JSON.stringify(report.body)}`);
+  const feedback = await request('/strategy/feedback', { method: 'POST', headers, body: JSON.stringify({ child_id: childId, strategy_id: 1, behavior_record_id: behavior.body.record.id, effectiveness: 'effective', note: '转换支持有效', scene: '活动转换' }) });
+  if (feedback.response.status !== 201) throw new Error(`策略反馈失败：${JSON.stringify(feedback.body)}`);
   const plan = await request('/therapist/plans', { method: 'POST', headers, body: JSON.stringify({ title: '待确认的转换支持计划', goal: '孩子可表达暂停', status: 'pending_confirmation' }) });
   if (plan.response.status !== 201) throw new Error(`计划失败：${JSON.stringify(plan.body)}`);
   const held = await request('/community/posts', { method: 'POST', headers, body: JSON.stringify({ title: '需要马上帮助', content: '孩子说不想活并准备吞药', category: 'emotion' }) });
   if (held.response.status !== 202 || !held.body.case_ref) throw new Error(`危机审核失败：${JSON.stringify(held.body)}`);
 
-  const [children, records, reports, plans, cases] = await Promise.all([
+  const [children, records, reports, feedbackList, plans, cases] = await Promise.all([
     request('/child', { headers }), request(`/behavior/${childId}`, { headers }), request(`/report/${childId}/list`, { headers }),
+    request('/strategy/feedback/mine', { headers }),
     request('/therapist/plans/mine', { headers }), request('/community/reports/mine', { headers })
   ]);
-  if (children.body.children?.length !== 1 || records.body.records?.length !== 1 || reports.body.reports?.length !== 1 || plans.body.plans?.length !== 1 || cases.body.reports?.length !== 1) {
+  if (children.body.children?.length !== 1 || records.body.records?.length !== 1 || reports.body.reports?.length !== 1 || feedbackList.body.feedback?.length !== 1 || plans.body.plans?.length !== 1 || cases.body.reports?.length !== 1) {
     throw new Error('真实数据库回读数量不一致');
   }
-  console.log(JSON.stringify({ database: 'mysql', child_id: childId, behavior_id: behavior.body.record.id, report_id: report.body.report.id, plan_id: plan.body.plan.id, moderation_case: held.body.case_ref }));
-  console.log('PASS real MySQL integration: register, child, behavior, report, plan, crisis moderation, readback');
+  console.log(JSON.stringify({ database: 'mysql', child_id: childId, behavior_id: behavior.body.record.id, report_id: report.body.report.id, feedback_id: feedback.body.feedback.id, plan_id: plan.body.plan.id, moderation_case: held.body.case_ref }));
+  console.log('PASS real MySQL integration: register, child, behavior, strategy feedback, report, plan, crisis moderation, readback');
 }
 
 async function cleanup() {

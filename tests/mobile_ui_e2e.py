@@ -24,12 +24,18 @@ with sync_playwright() as p:
             mode: sessionDataMode,
             children: MOCK_DATA.children.map(item => item.name),
             behaviors: MOCK_DATA.behaviors.length,
-            reports: MOCK_DATA.reports.length
+            reports: MOCK_DATA.reports.length,
+            feedback: strategyFeedbackHistory.length,
+            plans: professionalActions.length,
+            shares: reportShareRecords.length
         })""")
         assert hydrated["mode"] == "server", f"真实账号未进入服务端数据模式：{hydrated}"
         assert hydrated["children"] == ["真机验收儿童"], f"儿童档案混入演示数据：{hydrated['children']}"
         assert hydrated["behaviors"] == 1, f"真实行为记录数量异常：{hydrated['behaviors']}"
         assert hydrated["reports"] == 1, f"真实周报数量异常：{hydrated['reports']}"
+        assert hydrated["feedback"] == 1, f"真实策略反馈数量异常：{hydrated['feedback']}"
+        assert hydrated["plans"] == 1, f"真实协作计划数量异常：{hydrated['plans']}"
+        assert hydrated["shares"] == 0, f"真实周报授权数量异常：{hydrated['shares']}"
         assert page.get_by_text("已连接家庭数据", exact=True).count() == 1, "首页缺少真实数据来源标识"
 
     routes = [

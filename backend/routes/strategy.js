@@ -106,6 +106,19 @@ router.post('/feedback', auth, (req, res) => {
   });
 });
 
+// 当前家长的反馈时间线用于跨设备恢复；必须放在动态 strategyId 路由之前。
+router.get('/feedback/mine', auth, (req, res) => {
+  const limit = Math.max(1, Math.min(200, Number.parseInt(req.query.limit, 10) || 100));
+  db.query(
+    `SELECT id, child_id, strategy_id, behavior_record_id, effectiveness, note, scene, created_at
+     FROM strategy_feedback WHERE user_id = ? ORDER BY created_at DESC LIMIT ?`,
+    [req.user.id, limit],
+    (err, rows) => err
+      ? res.status(500).json({ error: '策略反馈暂时无法读取' })
+      : res.json({ success: true, feedback: rows })
+  );
+});
+
 router.get('/:strategyId/feedback/:childId', auth, (req, res) => {
   db.query('SELECT * FROM strategy_feedback WHERE strategy_id = ? AND child_id = ? AND user_id = ? ORDER BY created_at DESC',
     [req.params.strategyId, req.params.childId, req.user.id], (err, results) => {

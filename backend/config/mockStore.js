@@ -242,6 +242,10 @@ function query(sql, params, callback) {
       const category = params[0];
       const results = strategies.filter(s => s.category === category);
       callback(null, results);
+    } else if (sql.includes('FROM strategy_feedback WHERE user_id = ?')) {
+      const userId = Number(params[0]);
+      const limit = Number(params[1]) || 100;
+      callback(null, strategyFeedback.filter(f => f.user_id === userId).slice().reverse().slice(0, limit));
     } else if (sql.includes('INSERT INTO strategy_feedback')) {
       const feedback = { id: strategyFeedbackIdCounter++, child_id: Number(params[0]), strategy_id: Number(params[1]), user_id: Number(params[2]), behavior_record_id: params[3] ? Number(params[3]) : null, effectiveness: params[4], note: params[5], scene: params[6], created_at: new Date() };
       strategyFeedback.push(feedback);

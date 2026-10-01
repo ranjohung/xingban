@@ -1227,8 +1227,14 @@
       const failed = bundles.find(item => !item.success);
       if (failed) return failed;
 
-      const therapistResult = await apiRequest('/therapist?limit=50', 'GET');
-      if (!therapistResult.success) return therapistResult;
+      const [therapistResult, plansResult, sharesResult, feedbackResult] = await Promise.all([
+        apiRequest('/therapist?limit=50', 'GET'),
+        apiRequest('/therapist/plans/mine', 'GET'),
+        apiRequest('/therapist/shares/mine', 'GET'),
+        apiRequest('/strategy/feedback/mine?limit=200', 'GET')
+      ]);
+      const relatedFailure = [therapistResult, plansResult, sharesResult, feedbackResult].find(item => !item.success);
+      if (relatedFailure) return relatedFailure;
       MOCK_DATA.children = children;
       MOCK_DATA.behaviors = bundles.flatMap(bundle => bundle.behaviors.map(record => ({
         id: Number(record.id), childId: bundle.child.id, childName: bundle.child.name,
@@ -1248,6 +1254,12 @@
       MOCK_DATA.therapists = (therapistResult.therapists || []).map(item => ({
         id: Number(item.id), name: item.name, title: item.professional_title || '专业人员', specialty: item.specialty || '服务范围待补充',
         avatar: '🩺', is_certified: !!item.is_certified, years_of_experience: Number(item.years_of_experience || 0)
+      }));
+      professionalActions = plansResult.plans || [];
+      reportShareRecords = sharesResult.shares || [];
+      strategyFeedbackHistory = (feedbackResult.feedback || []).map(item => ({
+        ...item, id: Number(item.id), childId: Number(item.child_id), strategyId: Number(item.strategy_id),
+        behaviorRecordId: item.behavior_record_id ? Number(item.behavior_record_id) : null, createdAt: item.created_at
       }));
       sessionDataMode = 'server';
       return { success: true, mode: 'server' };
@@ -1709,11 +1721,9 @@
           scene: context?.category || null
         });
         if (result.success) {
-          if (mayUsePrototypeStorage()) {
-            const history = JSON.parse(localStorage.getItem('xingban_strategy_feedback') || '[]');
-            history.unshift({ id: result.feedback?.id || Date.now(), strategyId, behaviorRecordId: context?.behaviorRecordId || null, childId: context?.childId || 1, effectiveness: feedbackType, note, createdAt: new Date().toISOString() });
-            localStorage.setItem('xingban_strategy_feedback', JSON.stringify(history.slice(0, 200)));
-          }
+          strategyFeedbackHistory.unshift({ id: result.feedback?.id || Date.now(), strategyId, behaviorRecordId: context?.behaviorRecordId || null, childId: context?.childId || 1, effectiveness: feedbackType, note, createdAt: new Date().toISOString() });
+          strategyFeedbackHistory = strategyFeedbackHistory.slice(0, 200);
+          if (mayUsePrototypeStorage() && useMockMode) localStorage.setItem('xingban_strategy_feedback', JSON.stringify(strategyFeedbackHistory));
           addGrowthRecord('完成策略反馈', feedbackType === 'positive' ? 8 : 4, 'strategy');
           currentInterventionContext = null;
           showToast(feedbackType === 'positive' ? '感谢反馈！已关联到本周周报' : '已记录反馈并关联原始记录');
@@ -1749,6 +1759,9 @@
     let communityFilter = { search: '', category: '全部' };
     let mockCommunityReports = [];
     let sessionDataMode = 'demo';
+    let professionalActions = [];
+    let reportShareRecords = [];
+    let strategyFeedbackHistory = [];
     let currentInterventionContext = null;
 
     function renderRecords(container) {
@@ -3566,6 +3579,10 @@
       localStorage.removeItem('xingban_token');
       token = null;
       currentUser = null;
+      sessionDataMode = 'demo';
+      professionalActions = [];
+      reportShareRecords = [];
+      strategyFeedbackHistory = [];
       document.getElementById('main-app').classList.add('hidden');
       document.getElementById('login-page').classList.remove('hidden');
       showToast('已退出登录');
@@ -3867,9 +3884,8 @@
 
     function getReportFeedbackCount(report) {
       if (Array.isArray(report.serverContent?.strategy_effectiveness)) return report.serverContent.strategy_effectiveness.reduce((sum, item) => sum + Number(item.count || 0), 0);
-      if (!mayUsePrototypeStorage()) return 0;
       const child = MOCK_DATA.children.find(item => item.name === report.childName);
-      try { return JSON.parse(localStorage.getItem('xingban_strategy_feedback') || '[]').filter(item => item.childId === child?.id).length; } catch (_) { return 0; }
+      return strategyFeedbackHistory.filter(item => Number(item.childId) === Number(child?.id)).length;
     }
     function showReportDetail(id) {
       const report = MOCK_DATA.reports.find(r => r.id === id);
@@ -4048,6 +4064,8 @@
       try {
         const result = await apiRequest('/therapist/share', 'POST', { report_id: reportId, therapist_id: therapistId, note, scope, expires_days: expiresDays });
         if (result.success) {
+          const therapist = MOCK_DATA.therapists.find(item => Number(item.id) === therapistId);
+          reportShareRecords.unshift({ ...result.share, report_id: reportId, therapist_id: therapistId, therapist_name: therapist?.name || `专业人员 #${therapistId}`, note, scope, expires_at: new Date(Date.now() + expiresDays * 86400000).toISOString(), revoked_at: null, created_at: new Date().toISOString() });
           showToast('周报已分享给专业人员');
           closeTopModal();
         } else {
@@ -4057,6 +4075,15 @@
         console.error('分享失败:', error);
         showToast('网络错误');
       }
+    }
+
+    async function revokeReportShare(shareId) {
+      const result = await apiRequest(`/therapist/shares/${Number(shareId)}`, 'DELETE');
+      if (!result.success) { showToast(result.error || '授权撤销失败'); return; }
+      const item = reportShareRecords.find(share => Number(share.id) === Number(shareId));
+      if (item) item.revoked_at = new Date().toISOString();
+      showToast('周报授权已撤销');
+      renderTherapist(document.getElementById('main-content'));
     }
 
     function escapeText(value) {
@@ -4125,14 +4152,14 @@
       const suggestion=feedback?.suggestions?.[suggestionIndex];if(!suggestion)return;
       const data={source_feedback_id:feedbackId,title:document.getElementById('plan-title')?.value.trim(),goal:document.getElementById('plan-goal')?.value.trim(),frequency:document.getElementById('plan-frequency')?.value.trim(),responsible_person:document.getElementById('plan-owner')?.value.trim(),stop_conditions:document.getElementById('plan-stop')?.value.trim(),review_date:document.getElementById('plan-review')?.value||null,status:document.getElementById('plan-confirmed')?.checked?'active':'pending_confirmation'};
       if(!data.title){showToast('请填写计划标题');return} if(data.status==='active'&&(!data.goal||!data.frequency||!data.responsible_person||!data.stop_conditions||!data.review_date)){showToast('开始计划前请补全目标、频率、执行人、停止条件和复核日期');return}
-      try{const result=await apiRequest('/therapist/plans','POST',data);if(!result.success)throw new Error(result.error||'保存失败');const actions=JSON.parse(sessionStorage.getItem('xingban_professional_actions')||'[]');actions.unshift({...result.plan,suggestion,status:data.status,createdAt:new Date().toISOString()});sessionStorage.setItem('xingban_professional_actions',JSON.stringify(actions.slice(0,100)));closeTopModal();showToast(data.status==='active'?'计划已保存并标记为已确认':'已保存为待确认计划');renderTherapist(document.getElementById('main-content'))}catch(error){showToast(error.message||'计划保存失败')}
+      try{const result=await apiRequest('/therapist/plans','POST',data);if(!result.success)throw new Error(result.error||'保存失败');professionalActions.unshift({...result.plan,suggestion,status:data.status,createdAt:new Date().toISOString()});professionalActions=professionalActions.slice(0,100);if(useMockMode)sessionStorage.setItem('xingban_professional_actions',JSON.stringify(professionalActions));closeTopModal();showToast(data.status==='active'?'计划已保存并标记为已确认':'已保存为待确认计划');renderTherapist(document.getElementById('main-content'))}catch(error){showToast(error.message||'计划保存失败')}
     }
 
     async function updateProfessionalPlan(index,status){
       const allowed=['paused','completed','escalated'];if(!allowed.includes(status))return;
-      const actions=JSON.parse(sessionStorage.getItem('xingban_professional_actions')||'[]');const plan=actions[index];if(!plan)return;
+      const plan=professionalActions[index];if(!plan)return;
       const next={...plan,status};
-      try{if(plan.id&&!useMockMode){const result=await apiRequest(`/therapist/plans/${Number(plan.id)}`,'PATCH',next);if(!result.success)throw new Error(result.error||'更新失败')}actions[index]=next;sessionStorage.setItem('xingban_professional_actions',JSON.stringify(actions));showToast(status==='paused'?'计划已暂停':status==='completed'?'计划已完成':'已标记为需要升级联系专业人员');renderTherapist(document.getElementById('main-content'))}catch(error){showToast(error.message||'计划状态更新失败')}
+      try{if(plan.id&&!useMockMode){const result=await apiRequest(`/therapist/plans/${Number(plan.id)}`,'PATCH',next);if(!result.success)throw new Error(result.error||'更新失败')}professionalActions[index]=next;if(useMockMode)sessionStorage.setItem('xingban_professional_actions',JSON.stringify(professionalActions));showToast(status==='paused'?'计划已暂停':status==='completed'?'计划已完成':'已标记为需要升级联系专业人员');renderTherapist(document.getElementById('main-content'))}catch(error){showToast(error.message||'计划状态更新失败')}
     }
 
     function renderTherapist(container) {
@@ -4140,7 +4167,7 @@
       document.getElementById('page-subtitle').textContent = '把问题说清楚，把建议落下去';
       const therapists=MOCK_DATA.therapists,feedback=sessionDataMode==='server'?[]:MOCK_DATA.therapistFeedback,reports=MOCK_DATA.reports;
       const brief=getProfessionalBrief();
-      const actions=JSON.parse(sessionStorage.getItem('xingban_professional_actions')||'[]');
+      const actions=professionalActions;
       container.innerHTML=`<div class="p-4 sm:p-6 space-y-5 max-w-5xl mx-auto animate-fade-in">
         <section class="rounded-2xl bg-primary-dark text-white p-5 sm:p-6"><p class="text-sm text-white/75">不知道该找谁、该怎么说？</p><h2 class="text-2xl font-bold mt-1">AI先帮你整理，专业人员负责判断</h2><p class="text-sm leading-6 text-white/85 mt-3">把变化、时间、诱因、已尝试方法和用药信息整理成一页会前沟通单。AI不诊断、不决定治疗、不修改药物。</p><div class="flex flex-wrap gap-2 mt-4"><button onclick="showProfessionalIntake()" class="px-4 py-2.5 rounded-xl bg-white text-primary-dark font-bold">整理一个新问题</button><button onclick="navigateTo('emergency')" class="px-4 py-2.5 rounded-xl border border-white/60 text-white font-bold">现在有危险</button></div></section>
         ${brief?`<section class="rounded-2xl bg-white border border-primary/30 p-5"><div class="flex justify-between gap-3"><div><div class="text-xs font-bold text-primary">AI整理 · 请家长核对</div><h3 class="font-bold text-lg mt-1">会前沟通单</h3></div><button onclick="clearProfessionalBrief()" class="text-sm text-text-muted">清除</button></div><div class="mt-4 rounded-xl bg-primary-light/20 p-4"><div class="font-bold">建议首先联系：${escapeText(brief.role)}</div><p class="text-sm mt-1">${escapeText(brief.reason)}</p></div><dl class="mt-4 grid gap-3 text-sm"><div><dt class="font-bold">持续与频率</dt><dd class="text-text-secondary">${escapeText(brief.duration)}；${escapeText(brief.frequency)}</dd></div><div><dt class="font-bold">与平时相比</dt><dd class="text-text-secondary">${escapeText(brief.baseline)}</dd></div><div><dt class="font-bold">前后情境</dt><dd class="text-text-secondary whitespace-pre-wrap">${escapeText(brief.context)}</dd></div><div><dt class="font-bold">已经尝试及反应</dt><dd class="text-text-secondary whitespace-pre-wrap">${escapeText(brief.tried)}</dd></div><div><dt class="font-bold">药物与变化</dt><dd class="text-text-secondary whitespace-pre-wrap">${escapeText(brief.meds)}</dd></div><div><dt class="font-bold">本次最重要的问题</dt><dd class="text-text-primary">${escapeText(brief.question)}</dd></div></dl><div class="grid sm:grid-cols-2 gap-2 mt-4"><button onclick="copyProfessionalBrief()" class="py-3 rounded-xl bg-primary text-white font-bold">复制沟通单</button>${reports.length?`<button onclick="showShareToTherapistModal(${Number(reports[0].id)})" class="py-3 rounded-xl border border-primary text-primary font-bold">连同周报分享</button>`:''}</div><p class="text-xs text-text-muted mt-3">分享前再次确认接收人、范围和有效期；紧急情况不要等待回复。</p></section>`:''}
@@ -4148,6 +4175,7 @@
         <section><div class="flex items-end justify-between"><div><h3 class="font-bold text-text-primary">协作联系人</h3><p class="text-xs text-text-muted mt-1">${sessionDataMode==='server'?'仅显示后端已标记认证的资料；仍需家长确认实际服务关系':'以下均为虚构体验数据，资质和服务关系尚未核验'}</p></div></div><div class="space-y-3 mt-3">${therapists.length?therapists.map(t=>`<div class="bg-white rounded-xl border border-border p-4 flex gap-3"><div class="w-12 h-12 bg-primary-light/30 rounded-full flex items-center justify-center text-2xl">${escapeText(t.avatar)}</div><div><div class="font-bold">${escapeText(t.name)} <span class="text-xs font-normal ${sessionDataMode==='server'?'text-success bg-success/10':'text-amber-700 bg-amber-50'} px-2 py-1 rounded-lg">${sessionDataMode==='server'?'后台已核验':'演示资料·未核验'}</span></div><div class="text-sm text-text-secondary mt-1">${escapeText(t.title)} · ${escapeText(t.specialty)}</div>${t.years_of_experience?`<div class="text-xs text-text-muted">从业年限：${Number(t.years_of_experience)} 年</div>`:''}</div></div>`).join(''):'<div class="p-4 rounded-xl bg-background text-sm text-text-muted">暂无已认证的协作联系人。请通过当地正规医疗或专业渠道联系，不要等待平台回复。</div>'}</div></section>
         <section><h3 class="font-bold text-text-primary">收到建议后，不要只收藏</h3><div class="space-y-3 mt-3">${feedback.length?feedback.map(f=>`<article class="bg-white rounded-xl border border-border p-4"><div class="text-xs text-text-muted">${escapeText(f.therapist_name)} · ${formatDate(f.created_at)} · 演示反馈</div><p class="text-sm leading-6 mt-2">${escapeText(f.content)}</p><div class="mt-3 space-y-2">${(f.suggestions||[]).map((s,index)=>`<div class="flex items-center justify-between gap-3 rounded-lg bg-background p-3"><span class="text-sm">${escapeText(s)}</span><button onclick="showProfessionalPlanEditor(${Number(f.id)},${index})" class="shrink-0 text-sm text-primary font-bold">制定计划</button></div>`).join('')}</div></article>`).join(''):'<div class="p-4 rounded-xl bg-background text-sm text-text-muted">真实专业反馈尚未接入当前账号。请先通过已核验渠道沟通，再把确认后的内容整理为协作计划。</div>'}</div></section>
         ${actions.length?`<section class="rounded-2xl bg-white border border-border p-4"><h3 class="font-bold">协作计划</h3><p class="text-xs text-text-muted mt-1">只有已和专业人员确认且补全关键条件的计划才标记为执行中</p><div class="mt-3 space-y-2">${actions.map((a,index)=>`<div class="p-3 bg-background rounded-xl text-sm"><div><strong>${({active:'执行中',paused:'已暂停',completed:'已完成',escalated:'需升级',pending_confirmation:'待确认'})[a.status]||'待确认'}</strong> · ${escapeText(a.title||a.suggestion)}</div>${a.goal?`<div class="text-text-secondary mt-1">目标：${escapeText(a.goal)}</div>`:''}${a.review_date?`<div class="text-xs text-text-muted mt-1">复核：${escapeText(a.review_date)}</div>`:''}${a.status==='active'?`<div class="flex flex-wrap gap-2 mt-3"><button onclick="updateProfessionalPlan(${index},'paused')" class="px-3 py-1.5 rounded-lg border border-border">暂停</button><button onclick="updateProfessionalPlan(${index},'completed')" class="px-3 py-1.5 rounded-lg border border-success text-success">完成</button><button onclick="updateProfessionalPlan(${index},'escalated')" class="px-3 py-1.5 rounded-lg border border-danger text-danger">情况变化·升级求助</button></div>`:''}</div>`).join('')}</div></section>`:''}
+        ${reportShareRecords.length?`<section class="rounded-2xl bg-white border border-border p-4"><h3 class="font-bold">周报授权</h3><p class="text-xs text-text-muted mt-1">只显示当前账号创建的授权，可随时撤销</p><div class="mt-3 space-y-2">${reportShareRecords.map(share=>{const active=!share.revoked_at&&new Date(share.expires_at)>new Date();return`<div class="p-3 bg-background rounded-xl text-sm"><div class="font-medium">${escapeText(share.therapist_name||`专业人员 #${share.therapist_id}`)} · 周报 #${Number(share.report_id)}</div><div class="text-xs text-text-muted mt-1">范围：${(share.scope||[]).map(escapeText).join('、')} · ${active?'有效至 '+new Date(share.expires_at).toLocaleDateString('zh-CN'):share.revoked_at?'已撤销':'已到期'}</div>${active?`<button onclick="revokeReportShare(${Number(share.id)})" class="mt-2 px-3 py-1.5 rounded-lg border border-danger text-danger">撤销授权</button>`:''}</div>`}).join('')}</div></section>`:''}
         <section class="rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-900"><strong>角色边界：</strong>“专业协作”不代表平台已经提供医疗服务。抑郁、躁狂、自伤/自杀、精神病性症状和药物问题应由儿童精神科等具备相应资质的人员处理；紧急时联系120/110，不等待平台回复。</section>
       </div>`;
     }
@@ -7394,6 +7422,8 @@
       }
       const savedChildren = mayUsePrototypeStorage() ? localStorage.getItem('xingban_children') : null;
       if (savedChildren) { try { const parsed=JSON.parse(savedChildren); if(Array.isArray(parsed)&&parsed.length) MOCK_DATA.children=parsed; } catch(e) {} }
+      try { strategyFeedbackHistory = JSON.parse(localStorage.getItem('xingban_strategy_feedback') || '[]'); } catch (_) { strategyFeedbackHistory = []; }
+      try { professionalActions = JSON.parse(sessionStorage.getItem('xingban_professional_actions') || '[]'); } catch (_) { professionalActions = []; }
 
       // 恢复设置
       const savedSettings = localStorage.getItem('xingban_settings');

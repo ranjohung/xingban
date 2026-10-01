@@ -30,6 +30,8 @@ async function setup() {
     body: JSON.stringify({ child_id: created.child.id, input_type: 'text', content: '转换活动前哭泣三分钟，给出两个选择后逐渐平静', behavior_category: '情绪爆发', emotion_state: '难过', intensity_level: 'medium' })
   });
   await request(`/report/generate/${created.child.id}`, { method: 'POST', headers, body: '{}' });
+  await request('/strategy/feedback', { method: 'POST', headers, body: JSON.stringify({ child_id: created.child.id, strategy_id: 1, effectiveness: 'effective', note: '测试反馈', scene: '活动转换' }) });
+  await request('/therapist/plans', { method: 'POST', headers, body: JSON.stringify({ title: '真机验收计划', goal: '表达暂停', status: 'pending_confirmation' }) });
   process.stdout.write(JSON.stringify({ phone, password: PASSWORD }));
 }
 
