@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
+const { parseDbJson } = require('../utils/json');
 
 const DIAGNOSIS_TYPES = new Set(['UNCONFIRMED', 'ASD', 'ADHD', 'DD', 'OTHER']);
 const clean = (value, max) => String(value ?? '').trim().slice(0, max);
@@ -61,7 +62,7 @@ router.post('/wizard/step2', auth, (req, res) => {
       }
       
       const draft = results[0];
-      const draftData = JSON.parse(draft.data || '{}');
+      const draftData = parseDbJson(draft.data, {});
       
       const updatedData = {
         ...draftData,
@@ -104,7 +105,7 @@ router.post('/wizard/step3', auth, (req, res) => {
       }
       
       const draft = results[0];
-      const draftData = JSON.parse(draft.data || '{}');
+      const draftData = parseDbJson(draft.data, {});
       
       const updatedData = {
         ...draftData,
@@ -149,7 +150,7 @@ router.post('/wizard/step4', auth, (req, res) => {
       }
       
       const draft = results[0];
-      const data = JSON.parse(draft.data || '{}');
+      const data = parseDbJson(draft.data, {});
       
       db.query(
         'INSERT INTO children (user_id, nickname, birth_date, diagnosis_type, diagnosis_other, communication_level, social_level, self_care_level, cognitive_level, sensory_hearing, sensory_visual, sensory_tactile, sensory_vestibular, reinforcers, medical_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -243,7 +244,7 @@ router.get('/wizard/draft', auth, (req, res) => {
         draft: {
           id: draft.id,
           step: draft.step,
-          data: JSON.parse(draft.data || '{}'),
+          data: parseDbJson(draft.data, {}),
           updated_at: draft.updated_at
         }
       });
@@ -340,7 +341,7 @@ router.get('/:id', auth, (req, res) => {
         success: true, 
         child: {
           ...child,
-          reinforcers: JSON.parse(child.reinforcers || '[]'),
+          reinforcers: parseDbJson(child.reinforcers, []),
           goals
         } 
       });

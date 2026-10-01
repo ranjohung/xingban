@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
+const { parseDbJson } = require('../utils/json');
 
 const behaviorCategories = {
   '情绪爆发': ['尖叫', '哭闹', '倒地', '摔东西'],
@@ -85,7 +86,7 @@ router.get('/:childId', auth, (req, res) => {
         success: true,
         records: results.map(r => ({
           ...r,
-          ai_analysis: JSON.parse(r.ai_analysis || '{}')
+          ai_analysis: parseDbJson(r.ai_analysis, {})
         })),
         total: countResults[0].total,
         page: parseInt(page),
@@ -174,7 +175,7 @@ router.get('/record/:id', auth, (req, res) => {
       success: true, 
       record: {
         ...record,
-        ai_analysis: JSON.parse(record.ai_analysis || '{}')
+        ai_analysis: parseDbJson(record.ai_analysis, {})
       }
     });
   });

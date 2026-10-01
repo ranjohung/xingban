@@ -21,6 +21,9 @@ const fraudCases = [
 
 const FINANCE_CATEGORIES = new Set(['康复训练', '医疗检查', '教育用品', '日常生活', '政府补贴', '其他']);
 
+// 参数归属校验依赖 req.user，必须先完成鉴权。
+router.use(auth);
+
 router.param('childId', (req, res, next, childId) => {
   const id = Number.parseInt(childId, 10);
   if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: '儿童编号无效' });

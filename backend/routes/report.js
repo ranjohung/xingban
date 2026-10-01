@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
+const { parseDbJson } = require('../utils/json');
 const { v4: uuidv4 } = require('uuid');
 
 router.param('childId', (req, res, next, childId) => {
@@ -131,7 +132,7 @@ router.get('/:childId/:reportId', auth, (req, res) => {
       success: true, 
       report: {
         ...report,
-        content: JSON.parse(report.content || '{}'),
+        content: parseDbJson(report.content, {}),
         share_url: `${process.env.BASE_URL || 'http://localhost:3001'}/api/report/share/${report.share_token}`
       }
     });
@@ -155,7 +156,7 @@ router.get('/share/:token', (req, res) => {
         success: true, 
         report: {
           ...report,
-          content: JSON.parse(report.content || '{}'),
+          content: parseDbJson(report.content, {}),
           comments
         }
       });

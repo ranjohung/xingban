@@ -29,7 +29,8 @@ async function request(pathname, options = {}) {
 
 async function main() {
   let ready = false;
-  for (let i = 0; i < 40; i += 1) {
+  // 冷启动需要载入本地知识库索引；较慢磁盘上预留最多15秒，避免把启动耗时误判为接口故障。
+  for (let i = 0; i < 150; i += 1) {
     try {
       const result = await request('/health/live');
       if (result.response.ok) { ready = true; break; }

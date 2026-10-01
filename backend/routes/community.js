@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
+const { parseDbJson } = require('../utils/json');
 
 const CATEGORIES = new Set(['general', 'training', 'emotion', 'resource', 'question']);
 const cleanText = (value, max) => typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -75,10 +76,8 @@ router.post('/posts/:id/like', auth, (req, res) => {
     if (err) return res.status(500).json({ error: '暂时无法操作' });
     if (results.length === 0) return res.status(404).json({ error: '帖子不存在' });
     let likedUsers = [];
-    try {
-      const parsed = JSON.parse(results[0].liked_user_ids || '[]');
-      if (Array.isArray(parsed)) likedUsers = parsed.filter(Number.isInteger);
-    } catch (_) {}
+    const parsed = parseDbJson(results[0].liked_user_ids, []);
+    if (Array.isArray(parsed)) likedUsers = parsed.map(Number).filter(Number.isInteger);
     const userId = req.user.id;
     likedUsers = likedUsers.includes(userId) ? likedUsers.filter(item => item !== userId) : [...likedUsers, userId];
     db.query('UPDATE community_posts SET likes = ?, liked_user_ids = ? WHERE id = ?',

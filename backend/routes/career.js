@@ -33,6 +33,9 @@ const milestoneAchievements = [
 const GOAL_CATEGORIES = new Set(['skill', 'social', 'career', 'education', 'life', 'self_care', 'learning']);
 const clean = (value, max) => typeof value === 'string' ? value.trim().slice(0, max) : '';
 
+// 参数归属校验依赖 req.user，必须先完成鉴权。
+router.use(auth);
+
 router.param('childId', (req, res, next, childId) => {
   const id = Number.parseInt(childId, 10);
   if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: '儿童编号无效' });

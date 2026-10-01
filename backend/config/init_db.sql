@@ -1,6 +1,7 @@
-CREATE DATABASE IF NOT EXISTS xingban DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- Express API 使用独立数据库，避免与历史 Prisma/Next.js 的 xingban 库混用。
+CREATE DATABASE IF NOT EXISTS xingban_api DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-USE xingban;
+USE xingban_api;
 
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -17,7 +18,7 @@ CREATE TABLE IF NOT EXISTS children (
   user_id INT NOT NULL,
   nickname VARCHAR(50) NOT NULL,
   birth_date DATE NOT NULL,
-  diagnosis_type ENUM('ASD', 'ADHD', 'DD', 'OTHER') NOT NULL,
+  diagnosis_type ENUM('UNCONFIRMED', 'ASD', 'ADHD', 'DD', 'OTHER') NOT NULL,
   diagnosis_other VARCHAR(200),
   communication_level ENUM('none', 'single_word', 'phrase', 'sentence', 'fluent') DEFAULT 'none',
   social_level INT DEFAULT 1,
@@ -27,13 +28,17 @@ CREATE TABLE IF NOT EXISTS children (
   sensory_visual ENUM('sensitive', 'dull', 'seeking', 'avoiding', 'normal') DEFAULT 'normal',
   sensory_tactile ENUM('sensitive', 'dull', 'seeking', 'avoiding', 'normal') DEFAULT 'normal',
   sensory_vestibular ENUM('sensitive', 'dull', 'seeking', 'avoiding', 'normal') DEFAULT 'normal',
-  reinforcers JSON DEFAULT '[]',
+  -- MySQL 9.x forbids defaults on JSON columns; application code treats NULL as an empty list.
+  reinforcers JSON NULL,
   medical_info TEXT,
   avatar VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- 兼容早期初始化过的数据库：建档接口允许“尚未确诊”。
+ALTER TABLE children MODIFY diagnosis_type ENUM('UNCONFIRMED', 'ASD', 'ADHD', 'DD', 'OTHER') NOT NULL;
 
 CREATE TABLE IF NOT EXISTS intervention_goals (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -83,7 +88,8 @@ CREATE TABLE IF NOT EXISTS strategies (
   difficulty_level ENUM('easy', 'medium', 'advanced') DEFAULT 'medium',
   effectiveness_rate DECIMAL(5,2) DEFAULT 0,
   usage_count INT DEFAULT 0,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_strategy_name (name)
 );
 
 CREATE TABLE IF NOT EXISTS strategy_feedback (
@@ -247,7 +253,151 @@ CREATE TABLE IF NOT EXISTS product_feedback (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-INSERT INTO strategies (category, name, description, steps, scripts, principles, applicable_scenarios, icon, difficulty_level) VALUES
+-- 下列业务表与现有 API 一一对应，避免模拟存储通过、真实 MySQL 却缺表。
+CREATE TABLE IF NOT EXISTS child_profile_drafts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  step TINYINT NOT NULL DEFAULT 1,
+  data JSON NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_draft_user_time (user_id, updated_at),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS family_moods (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL,
+  mood VARCHAR(50) NOT NULL, emoji VARCHAR(20) NOT NULL, note VARCHAR(500) NOT NULL DEFAULT '',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_mood_user_time (user_id, created_at), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS gratitude_cards (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL,
+  partner VARCHAR(80) NOT NULL, content TEXT NOT NULL, sent BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_gratitude_user_time (user_id, created_at), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS growth_profile (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL UNIQUE,
+  points INT NOT NULL DEFAULT 0, level VARCHAR(10) NOT NULL DEFAULT 'L1', dimensions JSON NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS growth_records (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL,
+  action VARCHAR(50) NOT NULL, points INT NOT NULL, description VARCHAR(200) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_growth_user_time (user_id, created_at), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS safety_profiles (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, child_id INT NOT NULL,
+  emergency_contact VARCHAR(300), medical_info TEXT, allergies VARCHAR(500), special_notes TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_safety_user_child (user_id, child_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS safety_skills (
+  id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100) NOT NULL UNIQUE,
+  description TEXT NOT NULL, difficulty TINYINT NOT NULL DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS safety_practice_records (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, child_id INT NOT NULL, skill_id INT NOT NULL,
+  completed BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_safety_practice_child_time (child_id, created_at),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE,
+  FOREIGN KEY (skill_id) REFERENCES safety_skills(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS story_library (
+  id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(80) NOT NULL UNIQUE, content TEXT NOT NULL,
+  category ENUM('emotion','social','daily','safety') NOT NULL DEFAULT 'daily', cover_image VARCHAR(500),
+  play_count INT NOT NULL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS custom_stories (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, child_id INT NULL,
+  title VARCHAR(80) NOT NULL, content TEXT NOT NULL, category ENUM('emotion','social','daily','safety') NOT NULL DEFAULT 'daily',
+  cover_image VARCHAR(500), play_count INT NOT NULL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_custom_story_user_time (user_id, created_at), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS story_play_records (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, child_id INT NULL, story_id BIGINT NOT NULL,
+  story_type ENUM('library','custom') NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_story_play_user_time (user_id, created_at), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS story_feedback (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, story_id BIGINT NOT NULL,
+  rating TINYINT NOT NULL, feedback VARCHAR(500), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_story_feedback_story (story_id), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS community_posts (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, title VARCHAR(80) NOT NULL, content TEXT NOT NULL,
+  category ENUM('general','training','emotion','resource','question') NOT NULL DEFAULT 'general',
+  likes INT NOT NULL DEFAULT 0, comments_count INT NOT NULL DEFAULT 0, liked_user_ids JSON NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_community_category_time (category, created_at), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS community_comments (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, post_id BIGINT NOT NULL, content VARCHAR(500) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_comment_post_time (post_id, created_at),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY (post_id) REFERENCES community_posts(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, title VARCHAR(80) NOT NULL, content VARCHAR(500) NOT NULL,
+  type ENUM('comment','like','system','training','safety') NOT NULL DEFAULT 'system', is_read BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_notification_user_read_time (user_id, is_read, created_at),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS career_milestones (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, child_id INT NOT NULL, milestone_id INT NOT NULL,
+  title VARCHAR(100) NOT NULL, description TEXT, story TEXT, photo_url VARCHAR(500), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_career_milestone_child_time (child_id, created_at), FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS career_goals (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, child_id INT NOT NULL, category VARCHAR(30) NOT NULL,
+  title VARCHAR(80) NOT NULL, description TEXT, target_date DATE, priority TINYINT NOT NULL DEFAULT 1,
+  steps JSON NULL, progress TINYINT NOT NULL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_career_goal_child_priority (child_id, priority), FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS financial_records (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, child_id INT NOT NULL,
+  amount DECIMAL(12,2) NOT NULL, category VARCHAR(50) NOT NULL, date DATE NOT NULL, description VARCHAR(300) NOT NULL DEFAULT '',
+  receipt_url VARCHAR(500), is_reimbursable BOOLEAN NOT NULL DEFAULT FALSE, insurance_policy VARCHAR(200),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_finance_child_date (child_id, date),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS user_subsidies (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, subsidy_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uq_user_subsidy (user_id, subsidy_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS fraud_reports (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, title VARCHAR(100) NOT NULL, type VARCHAR(50) NOT NULL DEFAULT 'other',
+  description TEXT NOT NULL, location VARCHAR(100), evidence_url VARCHAR(500), status VARCHAR(30) NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_fraud_user_time (user_id, created_at),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+INSERT IGNORE INTO safety_skills (name, description, difficulty) VALUES
+('记住照护者联系电话', '在平静状态下分步骤练习说出或展示主要照护者联系电话。', 1),
+('走失后的求助步骤', '停在安全位置，寻找穿制服的工作人员，并出示信息卡。', 2),
+('识别身体边界', '学习可接受与不可接受的触碰，并练习明确拒绝和求助。', 2),
+('道路与交通安全', '练习停、看、听以及在成人陪同下通过道路。', 3);
+
+INSERT IGNORE INTO story_library (title, content, category) VALUES
+('当我需要休息时', '我可以说“我需要休息”，走到安静角落，做三次慢呼吸。等身体舒服一些，再告诉大人我是否准备好了。', 'emotion'),
+('在公共场所和家人走散', '我先停下来，不继续乱跑。找到穿制服的工作人员，出示联系卡，请他帮助联系家人。', 'safety'),
+('轮流玩玩具', '轮到别人时，我可以等待或选择另一个玩具。轮到我时，我会说“现在轮到我了吗？”', 'social');
+
+INSERT IGNORE INTO strategies (category, name, description, steps, scripts, principles, applicable_scenarios, icon, difficulty_level) VALUES
 ('情绪调节', '深呼吸法', '通过深呼吸帮助孩子平静情绪', '1. 引导孩子坐下或站立\\n2. 示范用鼻子深吸气4秒\\n3. 屏住呼吸2秒\\n4. 用嘴巴慢慢呼气6秒\\n5. 重复3-5次', '\"来，跟着我一起深呼吸，吸气...呼气...\"', '利用腹式呼吸激活副交感神经系统，降低心率，缓解焦虑', '情绪爆发初期、焦虑情绪、等待时', 'wind', 'easy'),
 ('情绪调节', '感官安抚', '使用感官物品帮助孩子自我调节', '1. 准备孩子喜欢的感官物品（如泡泡水、压力球）\\n2. 引导孩子使用感官物品\\n3. 观察孩子情绪变化\\n4. 逐渐减少辅助', '\"我们来玩泡泡水吧，看泡泡飞得多高\"', '通过提供适当的感官刺激，帮助孩子自我调节情绪状态', '情绪爆发、感官过载、烦躁时', 'sparkles', 'easy'),
 ('行为管理', '视觉时间表', '使用视觉图片帮助孩子理解日常流程', '1. 准备日常活动的图片卡片\\n2. 按顺序排列卡片\\n3. 每完成一项打勾或取下卡片\\n4. 完成后给予表扬', '\"看，我们接下来要做什么？\"', '视觉支持帮助自闭症孩子理解时间概念和活动顺序', '日常活动转换、作息安排、任务完成', 'calendar', 'medium'),

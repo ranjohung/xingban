@@ -20,6 +20,7 @@ const kb = require('../services/knowledgeBase');
 const kbFeedback = require('../services/kbFeedback');
 const { answer, llmConfig } = require('../services/answer');
 const auth = require('../middleware/auth');
+const cache = require('../services/cache');
 
 const asList = (v) => (v ? String(v).split(',').map((x) => x.trim()).filter(Boolean) : []);
 
@@ -78,22 +79,18 @@ router.get('/tag/:tag', (req, res) => {
   res.json({ success: true, tag: req.params.tag, count: list.length, sections: list });
 });
 
-// ---- 体验版：免登录问答（内存限流，防止刷量）----
-const HITS = new Map();
-const WINDOW_MS = 60 * 1000;
+// ---- 体验版：免登录问答（Redis/Memurai 限流，故障时自动回退内存）----
 const MAX_PER_WINDOW = 20;
 
-function publicRateLimit(req, res, next) {
+async function publicRateLimit(req, res, next) {
   const ip = req.ip || req.connection?.remoteAddress || 'unknown';
-  const now = Date.now();
-  let rec = HITS.get(ip);
-  if (!rec || now - rec.start > WINDOW_MS) { rec = { start: now, n: 0 }; HITS.set(ip, rec); }
-  rec.n += 1;
-  if (rec.n > MAX_PER_WINDOW) return res.status(429).json({ error: '请求过于频繁，请稍后再试' });
-  if (HITS.size > 5000) {
-    for (const [k, v] of HITS) if (now - v.start > WINDOW_MS) HITS.delete(k);
+  try {
+    const result = await cache.consumeRateLimit(`knowledge:${ip}`, MAX_PER_WINDOW, 60);
+    if (!result.allowed) return res.status(429).json({ error: '请求过于频繁，请稍后再试' });
+    next();
+  } catch (error) {
+    next(error);
   }
-  next();
 }
 
 async function handleAsk(req, res) {

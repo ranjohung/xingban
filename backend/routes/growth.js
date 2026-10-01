@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
+const { parseDbJson } = require('../utils/json');
 
 const EARNING_RULES = Object.freeze({
   course_learning: { points: 5, label: '完成课程章节' },
@@ -23,8 +24,7 @@ router.get('/profile', auth, (req, res) => {
     if (err) return res.status(500).json({ error: '学习记录暂时无法读取' });
     const profile = results[0] || { points: 0, dimensions: '{}' };
     const points = Math.max(0, Number(profile.points || 0));
-    let dimensions = {};
-    try { dimensions = JSON.parse(profile.dimensions || '{}'); } catch (_) {}
+    const dimensions = parseDbJson(profile.dimensions, {});
     res.json({ success: true, profile: {
       points,
       level: calculateLevel(points),

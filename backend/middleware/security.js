@@ -1,14 +1,15 @@
 const crypto = require('crypto');
+const cache = require('../services/cache');
 
-const buckets = new Map();
-function authRateLimit(req, res, next) {
+async function authRateLimit(req, res, next) {
   const key = `${req.ip}:${req.path}`;
-  const now = Date.now();
-  const current = buckets.get(key) || { start: now, count: 0 };
-  if (now - current.start > 15 * 60 * 1000) { current.start = now; current.count = 0; }
-  current.count += 1; buckets.set(key, current);
-  if (current.count > 20) return res.status(429).json({ error: '尝试次数过多，请稍后再试' });
-  next();
+  try {
+    const result = await cache.consumeRateLimit(`auth:${key}`, 20, 15 * 60);
+    if (!result.allowed) return res.status(429).json({ error: '尝试次数过多，请稍后再试' });
+    next();
+  } catch (error) {
+    next(error);
+  }
 }
 
 function securityHeaders(req, res, next) {

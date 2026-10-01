@@ -45,7 +45,7 @@ router.post('/custom', auth, (req, res) => {
   const childId = positiveId(req.body.child_id);
   if (!title || !content) return res.status(400).json({ error: '标题和内容不能为空' });
   const save = () => db.query('INSERT INTO custom_stories (user_id, child_id, title, content, category) VALUES (?, ?, ?, ?, ?)',
-    [req.user.id, childId, title, content, category],
+    [req.user.id, childId || null, title, content, category],
     (err, result) => err ? res.status(500).json({ error: '故事暂时无法创建' }) : res.json({ success: true, message: '自定义故事创建成功', story: { id: result.insertId, title, content, category } })
   );
   if (!childId) return save();
@@ -79,7 +79,7 @@ router.post('/play', auth, (req, res) => {
   const storyType = req.body.story_type === 'custom' ? 'custom' : 'library';
   if (!storyId) return res.status(400).json({ error: '故事编号无效' });
   db.query('INSERT INTO story_play_records (user_id, child_id, story_id, story_type) VALUES (?, ?, ?, ?)',
-    [req.user.id, childId, storyId, storyType],
+    [req.user.id, childId || null, storyId, storyType],
     (err, result) => err ? res.status(500).json({ error: '播放记录暂时无法保存' }) : res.json({ success: true, message: '故事播放记录成功', record: { id: result.insertId, story_id: storyId, story_type: storyType } })
   );
 });

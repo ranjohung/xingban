@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const db = require('./config/db');
+const cache = require('./services/cache');
 const { securityHeaders, authRateLimit } = require('./middleware/security');
 
 const app = express();
@@ -22,6 +23,9 @@ db.connect((err) => {
   } else {
     console.log('✅ 数据库连接成功');
   }
+});
+cache.connect().then((cacheState) => {
+  console.log(`✅ 限流缓存已就绪（${cacheState.mode}）`);
 });
 
 app.use('/api/auth', authRateLimit, require('./routes/auth'));
@@ -45,12 +49,14 @@ app.use('/api/feedback', require('./routes/feedback'));
 
 app.get('/api/health', (req, res) => {
   const database = db.status();
-  res.status(database.ready ? 200 : 503).json({ status: database.ready ? 'ok' : 'degraded', database: database.mode, message: database.ready ? '星伴后端服务运行正常' : '数据库尚未就绪' });
+  const cacheState = cache.status();
+  res.status(database.ready ? 200 : 503).json({ status: database.ready ? 'ok' : 'degraded', database: database.mode, cache: cacheState.mode, message: database.ready ? '星伴后端服务运行正常' : '数据库尚未就绪' });
 });
 app.get('/api/health/live', (req, res) => res.json({ status: 'ok' }));
 app.get('/api/health/ready', (req, res) => {
   const database = db.status();
-  res.status(database.ready ? 200 : 503).json({ status: database.ready ? 'ready' : 'not_ready', database: database.mode });
+  const cacheState = cache.status();
+  res.status(database.ready ? 200 : 503).json({ status: database.ready ? 'ready' : 'not_ready', database: database.mode, cache: cacheState.mode });
 });
 
 app.use((req, res) => res.status(404).json({ error: '接口不存在', request_id: req.requestId }));
