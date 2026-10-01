@@ -61,6 +61,20 @@ async function main() {
   const mine = await request('/feedback/mine', { headers });
   if (!mine.response.ok || mine.body.feedback.length !== 1) throw new Error('反馈列表读取失败');
 
+  const planCreated = await request('/therapist/plans', { method: 'POST', headers, body: JSON.stringify({
+    title: '与专业人员确认情绪卡片使用方案', goal: '孩子能在升级前表达需要暂停', frequency: '每天一次自然练习',
+    responsible_person: '家长', stop_conditions: '孩子明显不适或冲突升级', review_date: '2026-10-15'
+  }) });
+  if (planCreated.response.status !== 201 || !planCreated.body.plan?.id) throw new Error('专业协作计划保存失败');
+  const planId = planCreated.body.plan.id;
+  const plans = await request('/therapist/plans/mine', { headers });
+  if (!plans.response.ok || plans.body.plans.length !== 1 || plans.body.plans[0].status !== 'pending_confirmation') throw new Error('专业协作计划读取失败');
+  const planUpdated = await request(`/therapist/plans/${planId}`, { method: 'PATCH', headers, body: JSON.stringify({
+    title: '情绪卡片使用方案', goal: '孩子表达暂停', frequency: '每天一次', responsible_person: '家长',
+    stop_conditions: '孩子明显不适', review_date: '2026-10-15', status: 'active', notes: '已与专业人员确认'
+  }) });
+  if (!planUpdated.response.ok) throw new Error('专业协作计划状态更新失败');
+
   const lowhits = await request('/knowledge/lowhits');
   if (lowhits.response.status !== 401) throw new Error('低命中统计不应公开');
 
@@ -79,7 +93,7 @@ async function main() {
   const crossFamilyReport = await request('/report/generate/2', { method: 'POST', headers, body: JSON.stringify({}) });
   if (crossFamilyReport.response.status !== 404) throw new Error('跨家庭周报生成未被阻止');
 
-  console.log('PASS backend API contract: health, auth, feedback, child wizard, ownership, analytics protection');
+  console.log('PASS backend API contract: health, auth, feedback, professional plans, child wizard, ownership, analytics protection');
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => child.kill());

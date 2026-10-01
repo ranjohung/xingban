@@ -8,6 +8,7 @@ node_modules/
 out/
 .playwright-cli/
 output/playwright/
+tests/artifacts/
 
 # 本地检索埋点（只落在本机，不进版本库）
 backend/logs/

@@ -13,6 +13,22 @@ const positiveId = value => {
   return Number.isInteger(id) && id > 0 ? id : 0;
 };
 const PUBLIC_FIELDS = 'id, name, professional_title, specialty, years_of_experience, profile_photo, rating, review_count, is_certified';
+const PLAN_STATUSES = new Set(['pending_confirmation', 'active', 'paused', 'completed', 'escalated']);
+
+function planPayload(body, partial = false) {
+  const payload = {
+    title: clean(body.title, 200),
+    goal: clean(body.goal, 500) || null,
+    frequency: clean(body.frequency, 200) || null,
+    responsible_person: clean(body.responsible_person, 100) || null,
+    stop_conditions: clean(body.stop_conditions, 500) || null,
+    review_date: /^\d{4}-\d{2}-\d{2}$/.test(String(body.review_date || '')) ? body.review_date : null,
+    status: clean(body.status, 30) || 'pending_confirmation',
+    notes: clean(body.notes, 1000) || null,
+  };
+  if ((!partial && !payload.title) || !PLAN_STATUSES.has(payload.status)) return null;
+  return payload;
+}
 
 function filterReport(content, scopes) {
   const source = parseDbJson(content, {});
@@ -122,6 +138,54 @@ router.delete('/shares/:shareId', auth, requireRole('parent', 'admin'), (req, re
     if (!result.affectedRows) return res.status(404).json({ error: '有效授权不存在' });
     res.json({ success: true, message: '授权已撤销' });
   });
+});
+
+router.get('/plans/mine', auth, requireRole('parent', 'admin'), (req, res) => {
+  db.query(
+    `SELECT p.id, p.therapist_id, p.source_feedback_id, p.title, p.goal, p.frequency,
+            p.responsible_person, p.stop_conditions, p.review_date, p.status, p.notes,
+            p.created_at, p.updated_at, t.name therapist_name
+     FROM professional_plans p LEFT JOIN therapists t ON t.id=p.therapist_id
+     WHERE p.owner_user_id=? ORDER BY p.updated_at DESC LIMIT 100`,
+    [req.user.id],
+    (err, rows) => err ? res.status(500).json({ error: '协作计划暂时无法读取' }) : res.json({ success: true, plans: rows })
+  );
+});
+
+router.post('/plans', auth, requireRole('parent', 'admin'), (req, res) => {
+  const payload = planPayload(req.body);
+  const therapistId = positiveId(req.body.therapist_id) || null;
+  const feedbackId = positiveId(req.body.source_feedback_id) || null;
+  if (!payload) return res.status(400).json({ error: '计划标题和状态必须有效' });
+  const insert = () => db.query(
+    `INSERT INTO professional_plans
+      (owner_user_id, therapist_id, source_feedback_id, title, goal, frequency, responsible_person, stop_conditions, review_date, status, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [req.user.id, therapistId, feedbackId, payload.title, payload.goal, payload.frequency, payload.responsible_person, payload.stop_conditions, payload.review_date, payload.status, payload.notes],
+    (err, result) => err ? res.status(500).json({ error: '协作计划暂时无法保存' }) : res.status(201).json({ success: true, plan: { id: result.insertId, ...payload, therapist_id: therapistId, source_feedback_id: feedbackId } })
+  );
+  if (!therapistId) return insert();
+  db.query('SELECT id FROM therapists WHERE id=? AND is_certified=TRUE', [therapistId], (err, rows) => {
+    if (err) return res.status(500).json({ error: '暂时无法核验专业人员' });
+    if (!rows.length) return res.status(400).json({ error: '只能关联已认证专业人员' });
+    insert();
+  });
+});
+
+router.patch('/plans/:planId', auth, requireRole('parent', 'admin'), (req, res) => {
+  const planId = positiveId(req.params.planId);
+  const payload = planPayload(req.body, true);
+  if (!planId || !payload) return res.status(400).json({ error: '计划编号或状态无效' });
+  db.query(
+    `UPDATE professional_plans SET title=?, goal=?, frequency=?, responsible_person=?, stop_conditions=?, review_date=?, status=?, notes=?
+     WHERE id=? AND owner_user_id=?`,
+    [payload.title, payload.goal, payload.frequency, payload.responsible_person, payload.stop_conditions, payload.review_date, payload.status, payload.notes, planId, req.user.id],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: '协作计划暂时无法更新' });
+      if (!result.affectedRows) return res.status(404).json({ error: '协作计划不存在' });
+      res.json({ success: true, message: '协作计划已更新' });
+    }
+  );
 });
 
 router.get('/:id', (req, res) => {

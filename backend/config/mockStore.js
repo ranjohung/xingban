@@ -79,6 +79,7 @@ let financialRecords = [];
 let userSubsidies = [];
 let fraudReports = [];
 let productFeedback = [];
+let professionalPlans = [];
 
 let userIdCounter = 1;
 let childIdCounter = 3;
@@ -103,6 +104,7 @@ let expenseIdCounter = 1;
 let subsidyIdCounter = 1;
 let fraudReportIdCounter = 1;
 let productFeedbackIdCounter = 1;
+let professionalPlanIdCounter = 1;
 
 function query(sql, params, callback) {
   try {
@@ -730,6 +732,23 @@ function query(sql, params, callback) {
       const userId = params[0];
       const results = fraudReports.filter(r => r.user_id === userId).reverse();
       callback(null, results);
+    } else if (sql.includes('FROM professional_plans p LEFT JOIN therapists')) {
+      const userId = Number(params[0]);
+      callback(null, professionalPlans.filter(item => item.owner_user_id === userId).slice().reverse());
+    } else if (sql.includes('INSERT INTO professional_plans')) {
+      const plan = {
+        id: professionalPlanIdCounter++, owner_user_id: Number(params[0]), therapist_id: params[1], source_feedback_id: params[2],
+        title: params[3], goal: params[4], frequency: params[5], responsible_person: params[6], stop_conditions: params[7],
+        review_date: params[8], status: params[9], notes: params[10], created_at: new Date(), updated_at: new Date()
+      };
+      professionalPlans.push(plan);
+      callback(null, { insertId: plan.id });
+    } else if (sql.includes('UPDATE professional_plans SET')) {
+      const planId = Number(params[8]);
+      const userId = Number(params[9]);
+      const plan = professionalPlans.find(item => item.id === planId && item.owner_user_id === userId);
+      if (plan) Object.assign(plan, { title: params[0], goal: params[1], frequency: params[2], responsible_person: params[3], stop_conditions: params[4], review_date: params[5], status: params[6], notes: params[7], updated_at: new Date() });
+      callback(null, { affectedRows: plan ? 1 : 0 });
     } else if (sql.includes('INSERT INTO product_feedback')) {
       const feedback = {
         id: productFeedbackIdCounter++,

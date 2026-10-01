@@ -5,7 +5,7 @@ const fs=require('fs');const assert=require('assert');const path=require('path')
   '现在无法保证安全，或我不确定', "navigateTo('emergency')", '持续多久', '频率或强度',
   '与平时相比', '发生前后与可能诱因', '已经尝试过什么，孩子如何反应',
   '药物、补充剂和近期变化', '这次最想得到什么帮助', '演示资料·未核验',
-  '加入待确认计划', '确认目标、频率、执行人、停止条件和复查日期', 'escapeText'
+  '建议 → 可执行计划', '待确认计划', '目标、频率、执行人、停止条件和复核日期', 'escapeText'
 ].forEach(marker=>assert(html.includes(marker),`专业协作缺少关键内容: ${marker}`));
 ['发育行为儿科','儿童精神科','言语语言治疗师','作业治疗师','营养/吞咽团队','特教老师','开药医生'].forEach(role=>assert(html.includes(role),`缺少专业分流角色: ${role}`));
 assert(!html.includes('${t.rating}'),'不得展示未核验人员星级');
