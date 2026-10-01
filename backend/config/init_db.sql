@@ -377,13 +377,36 @@ CREATE TABLE IF NOT EXISTS community_posts (
   id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, title VARCHAR(80) NOT NULL, content TEXT NOT NULL,
   category ENUM('general','training','emotion','resource','question') NOT NULL DEFAULT 'general',
   likes INT NOT NULL DEFAULT 0, comments_count INT NOT NULL DEFAULT 0, liked_user_ids JSON NULL,
+  moderation_status ENUM('visible','held','removed') NOT NULL DEFAULT 'visible',
+  risk_level ENUM('none','review','urgent') NOT NULL DEFAULT 'none',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_community_category_time (category, created_at), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS community_comments (
   id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, post_id BIGINT NOT NULL, content VARCHAR(500) NOT NULL,
+  moderation_status ENUM('visible','held','removed') NOT NULL DEFAULT 'visible',
+  risk_level ENUM('none','review','urgent') NOT NULL DEFAULT 'none',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_comment_post_time (post_id, created_at),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY (post_id) REFERENCES community_posts(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS community_reports (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  case_ref CHAR(36) NOT NULL UNIQUE,
+  reporter_user_id INT NOT NULL,
+  target_type ENUM('post','comment') NOT NULL,
+  target_id BIGINT NOT NULL,
+  reason ENUM('crisis','harassment','privacy','misinformation','fraud','other') NOT NULL,
+  details VARCHAR(500) NULL,
+  risk_level ENUM('review','urgent') NOT NULL DEFAULT 'review',
+  status ENUM('open','reviewing','resolved','dismissed') NOT NULL DEFAULT 'open',
+  moderator_user_id INT NULL,
+  resolution_note VARCHAR(500) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_community_report_queue (status, risk_level, created_at),
+  INDEX idx_community_report_reporter (reporter_user_id, created_at),
+  FOREIGN KEY (reporter_user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (moderator_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS notifications (

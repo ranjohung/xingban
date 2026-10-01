@@ -53,6 +53,27 @@ with sync_playwright() as p:
     assert page.get_by_text("120", exact=False).count() >= 1, "紧急支持缺少120指引"
     page.screenshot(path=str(OUT / "emergency-mobile.png"), full_page=True)
 
+    page.evaluate("navigateTo('community')")
+    page.evaluate("showNewPost()")
+    page.locator("#new-post-title").fill("现在很危险")
+    page.locator("#new-post-content").fill("孩子说不想活并准备吞药")
+    page.locator('button[onclick="createPost()"]:visible').click()
+    page.wait_for_selector('button[onclick*="navigateTo(\'emergency\')"]:visible')
+    assert page.locator("text=120/110").count() >= 1, "危机内容暂缓公开后缺少即时求助指引"
+    page.screenshot(path=str(OUT / "community-crisis-hold-mobile.png"), full_page=True)
+    page.locator('button[onclick*="navigateTo(\'community\')"]:visible').click()
+
+    page.evaluate("reportCommunityContent(1)")
+    page.locator("#community-report-reason").select_option("privacy")
+    page.locator("#community-report-details").fill("帖子包含可识别的学校信息")
+    page.locator('button[onclick^="submitCommunityReport"]:visible').click()
+    page.wait_for_timeout(100)
+    assert page.locator("#community-report-reason").count() == 0, "普通举报提交后弹窗未关闭"
+    page.evaluate("showMyCommunityReports()")
+    page.wait_for_timeout(100)
+    assert page.locator('[data-modal="true"]:visible').inner_text().find("demo-") >= 0, "本人举报记录未显示可追踪工单号"
+    page.evaluate("closeTopModal()")
+
     assert not errors, "浏览器脚本异常：" + " | ".join(errors)
-    print(f"PASS mobile UI: {len(routes)} areas, no horizontal overflow or unnamed buttons, professional plan flow, emergency guidance")
+    print(f"PASS mobile UI: {len(routes)} areas, no horizontal overflow or unnamed buttons, professional plan flow, emergency guidance, community crisis moderation")
     browser.close()

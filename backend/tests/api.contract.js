@@ -75,6 +75,23 @@ async function main() {
   }) });
   if (!planUpdated.response.ok) throw new Error('专业协作计划状态更新失败');
 
+  const normalPost = await request('/community/posts', { method: 'POST', headers, body: JSON.stringify({ title: '记录一次成功沟通', content: '今天先给孩子选择，再一起完成了收拾。', category: 'training' }) });
+  if (normalPost.response.status !== 201 || normalPost.body.held_for_review) throw new Error('普通社区内容不应进入危机审核');
+  const urgentPost = await request('/community/posts', { method: 'POST', headers, body: JSON.stringify({ title: '现在很危险', content: '孩子说不想活并准备吞药', category: 'emotion' }) });
+  if (urgentPost.response.status !== 202 || !urgentPost.body.held_for_review || !urgentPost.body.case_ref || !urgentPost.body.safety?.actions?.length) throw new Error('危机内容未被暂缓公开或缺少即时安全分流');
+  const publicPosts = await request('/community/posts', { headers });
+  if (!publicPosts.response.ok || publicPosts.body.posts.some(post => post.id === urgentPost.body.post_id)) throw new Error('待审核危机内容不应进入公开列表');
+  const urgentComment = await request('/community/posts/1/comments', { method: 'POST', headers, body: JSON.stringify({ content: '我准备服药过量结束生命' }) });
+  if (urgentComment.response.status !== 202 || !urgentComment.body.held_for_review || !urgentComment.body.case_ref) throw new Error('危机评论未被暂缓公开');
+  const publicComments = await request('/community/posts/1/comments', { headers });
+  if (!publicComments.response.ok || publicComments.body.comments.some(comment => comment.id === urgentComment.body.comment_id)) throw new Error('待审核危机评论不应进入公开列表');
+  const reported = await request('/community/reports', { method: 'POST', headers, body: JSON.stringify({ target_type: 'post', target_id: 1, reason: 'privacy', details: '包含可识别学校信息' }) });
+  if (reported.response.status !== 201 || !reported.body.case_ref) throw new Error('社区举报工单创建失败');
+  const myReports = await request('/community/reports/mine', { headers });
+  if (!myReports.response.ok || myReports.body.reports.length < 2) throw new Error('本人举报记录读取失败');
+  const moderationDenied = await request('/community/moderation/reports', { headers });
+  if (moderationDenied.response.status !== 403) throw new Error('普通家长不应读取管理员审核队列');
+
   const lowhits = await request('/knowledge/lowhits');
   if (lowhits.response.status !== 401) throw new Error('低命中统计不应公开');
 
@@ -93,7 +110,7 @@ async function main() {
   const crossFamilyReport = await request('/report/generate/2', { method: 'POST', headers, body: JSON.stringify({}) });
   if (crossFamilyReport.response.status !== 404) throw new Error('跨家庭周报生成未被阻止');
 
-  console.log('PASS backend API contract: health, auth, feedback, professional plans, child wizard, ownership, analytics protection');
+  console.log('PASS backend API contract: health, auth, feedback, professional plans, community moderation, child wizard, ownership, analytics protection');
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => child.kill());

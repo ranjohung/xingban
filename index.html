@@ -555,11 +555,24 @@
                   return { success: true, strategies: allStrategies[level] || allStrategies.green };
                 }
                 if (url === '/community/posts' && method === 'POST') {
+                  if (/自杀|不想活|结束生命|伤害自己|伤害孩子|服药过量|吞药|幻觉|妄想|意识不清/.test(`${data.title}\n${data.content}`)) {
+                    return { success: true, held_for_review: true, case_ref: `demo-${Date.now()}`, safety: { title: '这条内容可能涉及即时安全风险，已暂缓公开', actions: ['不要等待社区回复', '陪伴处于风险中的孩子，不让其独处', '立即联系120/110、既往就诊机构或当地危机资源'] } };
+                  }
                   const newPost = { id: MOCK_DATA.communityPosts.length + 1, user_id: 1, title: data.title, content: data.content, category: data.category, likes: 0, comments_count: 0, liked_user_ids: '[]', created_at: new Date().toISOString().split('T')[0] };
                   MOCK_DATA.communityPosts.unshift(newPost);
                   return { success: true, post: newPost, message: '发布成功' };
                 }
+                if (url === '/community/reports' && method === 'POST') {
+                  const report={case_ref:`demo-${Date.now()}`,target_type:data.target_type,target_id:data.target_id,reason:data.reason,risk_level:data.reason==='crisis'?'urgent':'review',status:'open',created_at:new Date().toISOString()};mockCommunityReports.unshift(report);
+                  return { success: true, ...report, safety: data.reason === 'crisis' ? { actions: ['不要等待社区回复', '立即联系120/110或既往就诊机构'] } : undefined };
+                }
+                if (url === '/community/reports/mine' && method === 'GET') {
+                  return { success: true, reports: mockCommunityReports };
+                }
                 if (url.includes('/comments') && method === 'POST') {
+                  if (/自杀|不想活|结束生命|伤害自己|伤害孩子|服药过量|吞药|幻觉|妄想|意识不清/.test(data.content || '')) {
+                    return { success: true, held_for_review: true, case_ref: `demo-${Date.now()}`, safety: { title: '这条评论可能涉及即时安全风险，已暂缓公开', actions: ['不要等待社区回复', '立即联系120/110、既往就诊机构或当地危机资源'] } };
+                  }
                   return { success: true, comment: { id: Date.now(), content: data.content, user_name: currentUser?.name || '我', created_at: new Date().toISOString().split('T')[0] }, message: '评论成功' };
                 }
                 if (url.startsWith('/community/posts/') && method === 'GET') {
@@ -1210,6 +1223,12 @@
       }
     }
 
+    function showCommunitySafetyHold(result) {
+      const modal=document.createElement('div');modal.className='fixed inset-0 bg-red-950/80 flex items-end sm:items-center justify-center z-[80] p-0 sm:p-4';modal.dataset.modal='true';
+      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl p-5"><div class="text-xs font-bold text-red-700">安全优先 · 内容未公开</div><h2 class="text-xl font-bold mt-1">${escapeText(result.safety?.title||'这条内容需要先进行安全核查')}</h2><p class="text-sm text-text-secondary mt-2">自动识别只用于安全分流，不代表对孩子或照护者作出诊断。审核编号：${escapeText(result.case_ref||'待生成')}</p><ol class="mt-4 space-y-2">${(result.safety?.actions||[]).map((item,index)=>`<li class="flex gap-3 p-3 rounded-xl bg-red-50 text-sm"><strong class="text-red-700">${index+1}</strong><span>${escapeText(item)}</span></li>`).join('')}</ol><div class="grid grid-cols-2 gap-2 mt-4"><button onclick="closeTopModal();navigateTo('emergency')" class="py-3 rounded-xl bg-red-700 text-white font-bold">进入紧急支持</button><button onclick="closeTopModal();navigateTo('community')" class="py-3 rounded-xl border border-border font-medium">返回社区</button></div></div>`;
+      document.body.appendChild(modal);
+    }
+
     function showRegister() {
       document.getElementById('register-modal').classList.remove('hidden');
     }
@@ -1651,6 +1670,7 @@
     let strategiesFilter = { search: '', category: '全部' };
     let strategiesDisplayLimit = 6;
     let communityFilter = { search: '', category: '全部' };
+    let mockCommunityReports = [];
     let currentInterventionContext = null;
 
     function renderRecords(container) {
@@ -5668,11 +5688,9 @@
       container.innerHTML = `
         <div class="p-4 space-y-4 animate-fade-in">
           <div class="rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900"><strong>社区不是危机热线。</strong> 如孩子或照护者当前可能伤害自己/他人、意识异常或失控，请不要等待回复，立即使用“紧急支持”并联系 120/110。</div>
-          <div class="flex justify-between items-center">
+          <div class="flex justify-between items-center gap-2">
             <h3 class="font-bold text-text-primary">社区帖子</h3>
-            <button onclick="showNewPost()" class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium">
-              + 发帖
-            </button>
+            <div class="flex gap-2"><button onclick="showMyCommunityReports()" class="px-3 py-2 border border-border bg-white rounded-xl text-sm font-medium">我的举报</button><button onclick="showNewPost()" class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium">+ 发帖</button></div>
           </div>
 
           <!-- 搜索栏 -->
@@ -5831,7 +5849,10 @@
       try {
         const result = await apiRequest('/community/posts', 'POST', { title, content, category, anonymous });
 
-        if (result.success) {
+        if (result.success && result.held_for_review) {
+          closeTopModal();
+          showCommunitySafetyHold(result);
+        } else if (result.success) {
           showToast('发布成功！');
 
           // 数据联动：社区互动 ↔ 成就（检查"社区之星"成就）
@@ -5955,8 +5976,14 @@
       }
     }
 
-    function reportCommunityContent(id) { showToast(`已提交帖子 ${id} 的举报，涉及即时危险请同时联系急救服务`); }
-    function blockCommunityContent(id) { MOCK_DATA.communityPosts = MOCK_DATA.communityPosts.filter(p => p.id !== id); closeTopModal(); showToast('已屏蔽该内容'); renderCommunity(document.getElementById('main-content')); }
+    function reportCommunityContent(id) {
+      const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[70] p-0 sm:p-4';modal.dataset.modal='true';
+      modal.innerHTML=`<div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">举报社区内容</h2><button onclick="closeTopModal()">✕</button></div><p class="text-xs text-text-muted mt-2">举报会生成可查询工单；若有人当前可能受伤，不要等待审核。</p><label class="block text-sm font-medium mt-4">原因<select id="community-report-reason" class="mt-1 w-full p-3 rounded-xl border border-border"><option value="crisis">涉及自伤、伤人或即时危险</option><option value="privacy">泄露儿童或家庭隐私</option><option value="harassment">骚扰、攻击或歧视</option><option value="misinformation">疑似医疗错误信息</option><option value="fraud">诈骗或违规推销</option><option value="other">其他</option></select></label><label class="block text-sm font-medium mt-3">补充说明<textarea id="community-report-details" maxlength="500" rows="3" class="mt-1 w-full p-3 rounded-xl border border-border" placeholder="不要重复粘贴不必要的隐私信息"></textarea></label><button onclick="submitCommunityReport(${Number(id)})" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">提交举报</button></div>`;
+      document.body.appendChild(modal);
+    }
+    async function submitCommunityReport(id){const reason=document.getElementById('community-report-reason')?.value;const details=document.getElementById('community-report-details')?.value.trim()||'';try{const result=await apiRequest('/community/reports','POST',{target_type:'post',target_id:id,reason,details});if(!result.success)throw new Error(result.error||'举报失败');closeTopModal();if(reason==='crisis'){showCommunitySafetyHold({...result,safety:{title:'举报已进入紧急优先队列',actions:result.safety?.actions||['不要等待社区回复','立即联系120/110或既往就诊机构']}})}else{showToast(`举报已提交，工单号 ${result.case_ref}`)}}catch(error){showToast(error.message||'举报失败')}}
+    async function showMyCommunityReports(){const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[70] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML='<div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">我的举报记录</h2><button onclick="closeTopModal()">✕</button></div><div class="py-8 text-center text-text-muted">加载中…</div></div>';document.body.appendChild(modal);try{const result=await apiRequest('/community/reports/mine','GET');if(!result.success)throw new Error(result.error||'读取失败');const names={crisis:'即时危险',harassment:'骚扰攻击',privacy:'隐私泄露',misinformation:'错误信息',fraud:'诈骗推销',other:'其他'};const statuses={open:'待处理',reviewing:'处理中',resolved:'已处理',dismissed:'不成立'};modal.firstElementChild.innerHTML=`<div class="flex justify-between"><div><h2 class="text-lg font-bold">我的举报记录</h2><p class="text-xs text-text-muted mt-1">这里显示处理状态，不展示其他用户身份</p></div><button onclick="closeTopModal()">✕</button></div><div class="mt-4 space-y-3 max-h-[65vh] overflow-y-auto">${result.reports.length?result.reports.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>${escapeText(names[item.reason]||item.reason)}</strong><span class="text-primary">${escapeText(statuses[item.status]||item.status)}</span></div><div class="text-xs text-text-muted mt-1 break-all">工单：${escapeText(item.case_ref)}</div><div class="text-xs text-text-muted mt-1">${formatDate(item.created_at)}</div></div>`).join(''):'<div class="py-8 text-center text-text-muted">暂无举报记录</div>'}</div>`}catch(error){modal.firstElementChild.innerHTML=`<div class="text-center py-8 text-text-muted">${escapeText(error.message||'读取失败')}</div><button onclick="closeTopModal()" class="w-full py-3 rounded-xl bg-primary text-white">关闭</button>`}}
+    function blockCommunityContent(id) { MOCK_DATA.communityPosts = MOCK_DATA.communityPosts.filter(p => p.id !== id); closeTopModal(); showToast('已在当前设备屏蔽该内容'); renderCommunity(document.getElementById('main-content')); }
 
     async function addComment(postId) {
       const content = document.getElementById(`comment-input-${postId}`).value;
@@ -5969,7 +5996,11 @@
       try {
         const result = await apiRequest(`/community/posts/${postId}/comments`, 'POST', { content });
 
-        if (result.success) {
+        if (result.success && result.held_for_review) {
+          document.getElementById(`comment-input-${postId}`).value = '';
+          closeTopModal();
+          showCommunitySafetyHold(result);
+        } else if (result.success) {
           showToast('评论成功');
           document.getElementById(`comment-input-${postId}`).value = '';
           showPostDetail(postId);

@@ -65,6 +65,7 @@ let communityComments = [
   { id: 4, user_id: 4, post_id: 2, content: '我也有过类似的经历', created_at: new Date('2026-07-11') },
   { id: 5, user_id: 1, post_id: 3, content: '学习了！谢谢分享', created_at: new Date('2026-07-09') }
 ];
+let communityReports = [];
 let notifications = [
   { id: 1, user_id: 1, title: '新评论', content: '有人评论了你的帖子', type: 'comment', is_read: false, created_at: new Date('2026-07-12') },
   { id: 2, user_id: 1, title: '点赞通知', content: '有人点赞了你的帖子', type: 'like', is_read: false, created_at: new Date('2026-07-12') },
@@ -96,6 +97,7 @@ let feedbackIdCounter = 1;
 let strategyFeedbackIdCounter = 1;
 let postIdCounter = 6;
 let commentIdCounter = 6;
+let communityReportIdCounter = 1;
 let notificationIdCounter = 5;
 let draftIdCounter = 1;
 let milestoneIdCounter = 1;
@@ -465,19 +467,19 @@ function query(sql, params, callback) {
       };
       storyFeedback.push(feedback);
       callback(null, { insertId: feedback.id });
-    } else if (sql.includes('community_posts') && sql.includes('ORDER BY created_at DESC') && !sql.includes('WHERE')) {
+    } else if (sql.includes('community_posts') && sql.includes("moderation_status = 'visible'") && sql.includes('ORDER BY created_at DESC') && !sql.includes('category = ?')) {
       const limit = params[0];
       const offset = params[1];
-      const results = [...communityPosts].reverse().slice(offset, offset + limit);
+      const results = communityPosts.filter(p => (p.moderation_status || 'visible') === 'visible').reverse().slice(offset, offset + limit);
       callback(null, results);
-    } else if (sql.includes('community_posts') && sql.includes('WHERE category')) {
+    } else if (sql.includes('community_posts') && sql.includes('category = ?')) {
       const category = params[0];
       const limit = params[1];
       const offset = params[2];
-      const results = communityPosts.filter(p => p.category === category).reverse().slice(offset, offset + limit);
+      const results = communityPosts.filter(p => p.category === category && (p.moderation_status || 'visible') === 'visible').reverse().slice(offset, offset + limit);
       callback(null, results);
     } else if (sql.includes('COUNT(*) as total') && sql.includes('community_posts')) {
-      callback(null, [{ total: communityPosts.length }]);
+      callback(null, [{ total: communityPosts.filter(p => (p.moderation_status || 'visible') === 'visible').length }]);
     } else if (sql.includes('INSERT INTO community_posts')) {
       const post = {
         id: postIdCounter++,
@@ -488,13 +490,15 @@ function query(sql, params, callback) {
         likes: 0,
         comments_count: 0,
         liked_user_ids: JSON.stringify([]),
+        moderation_status: params[4] || 'visible',
+        risk_level: params[5] || 'none',
         created_at: new Date()
       };
       communityPosts.push(post);
       callback(null, { insertId: post.id });
     } else if (sql.includes('SELECT * FROM community_posts WHERE id')) {
       const id = params[0];
-      const results = communityPosts.filter(p => p.id === id);
+      const results = communityPosts.filter(p => p.id === id && (!sql.includes('moderation_status') || (p.moderation_status || 'visible') === 'visible'));
       callback(null, results);
     } else if (sql.includes('UPDATE community_posts SET likes')) {
       const likes = params[0];
@@ -513,7 +517,7 @@ function query(sql, params, callback) {
       callback(null, { affectedRows: 1 });
     } else if (sql.includes('SELECT * FROM community_comments WHERE post_id')) {
       const postId = params[0];
-      const results = communityComments.filter(c => c.post_id === postId).sort((a, b) => a.id - b.id);
+      const results = communityComments.filter(c => c.post_id === postId && (c.moderation_status || 'visible') === 'visible').sort((a, b) => a.id - b.id);
       callback(null, results);
     } else if (sql.includes('INSERT INTO community_comments')) {
       const comment = {
@@ -521,10 +525,31 @@ function query(sql, params, callback) {
         user_id: params[0],
         post_id: params[1],
         content: params[2],
+        moderation_status: params[3] || 'visible',
+        risk_level: params[4] || 'none',
         created_at: new Date()
       };
       communityComments.push(comment);
       callback(null, { insertId: comment.id });
+    } else if (sql.includes('SELECT id FROM community_posts WHERE id')) {
+      const id = Number(params[0]);
+      callback(null, communityPosts.filter(p => p.id === id).map(p => ({ id: p.id })));
+    } else if (sql.includes('SELECT id FROM community_comments WHERE id')) {
+      const id = Number(params[0]);
+      callback(null, communityComments.filter(c => c.id === id).map(c => ({ id: c.id })));
+    } else if (sql.includes('INSERT INTO community_reports')) {
+      const report = { id: communityReportIdCounter++, case_ref: params[0], reporter_user_id: Number(params[1]), target_type: params[2], target_id: Number(params[3]), reason: params[4], details: params[5], risk_level: params[6], status: 'open', created_at: new Date(), updated_at: new Date() };
+      communityReports.push(report);
+      callback(null, { insertId: report.id });
+    } else if (sql.includes('FROM community_reports WHERE reporter_user_id')) {
+      const userId = Number(params[0]);
+      callback(null, communityReports.filter(r => r.reporter_user_id === userId).slice().reverse());
+    } else if (sql.includes('FROM community_reports WHERE status')) {
+      callback(null, communityReports.filter(r => r.status === params[0]));
+    } else if (sql.includes('UPDATE community_reports SET status')) {
+      const report = communityReports.find(r => r.case_ref === params[3]);
+      if (report) Object.assign(report, { status: params[0], moderator_user_id: params[1], resolution_note: params[2], updated_at: new Date() });
+      callback(null, { affectedRows: report ? 1 : 0 });
     } else if (sql.includes('SELECT * FROM notifications WHERE user_id')) {
       const userId = params[0];
       const limit = params[1];
