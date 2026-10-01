@@ -8,6 +8,7 @@
     "dev": "nodemon server.js",
     "test": "node tests/api.contract.js",
     "test:api": "node tests/api.contract.js",
+    "test:mysql": "node tests/mysql.integration.js",
     "db:migrate": "node tools/apply_migration.js",
     "kb:selftest": "node tests/kb.selftest.js",
     "kb:eval": "node tests/kb.eval.js",
