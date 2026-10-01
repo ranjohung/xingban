@@ -8,3 +8,13 @@ node_modules/
 out/
 .playwright-cli/
 output/playwright/
+
+# 本地检索埋点（只落在本机，不进版本库）
+backend/logs/
+backend/tests/.tmp-*.cjs
+
+# 语义索引：可重建的派生产物，不入库（约 53MB）
+# 重建：backend/ 下 `npm run kb:embed`（首次需联网拉 bge-small-zh-v1.5 权重，之后离线）
+# 校验：`npm run kb:embed:check`；缺失时检索层会静默降级为纯词面
+backend/models/
+CBT知识库/04_检索索引/语义索引/

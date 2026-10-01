@@ -78,6 +78,7 @@ let careerGoals = [];
 let financialRecords = [];
 let userSubsidies = [];
 let fraudReports = [];
+let productFeedback = [];
 
 let userIdCounter = 1;
 let childIdCounter = 3;
@@ -101,6 +102,7 @@ let goalIdCounter = 1;
 let expenseIdCounter = 1;
 let subsidyIdCounter = 1;
 let fraudReportIdCounter = 1;
+let productFeedbackIdCounter = 1;
 
 function query(sql, params, callback) {
   try {
@@ -728,6 +730,20 @@ function query(sql, params, callback) {
       const userId = params[0];
       const results = fraudReports.filter(r => r.user_id === userId).reverse();
       callback(null, results);
+    } else if (sql.includes('INSERT INTO product_feedback')) {
+      const feedback = {
+        id: productFeedbackIdCounter++,
+        user_id: Number(params[0]),
+        type: params[1],
+        content: params[2],
+        status: params[3] || 'open',
+        created_at: new Date()
+      };
+      productFeedback.push(feedback);
+      callback(null, { insertId: feedback.id });
+    } else if (sql.includes('FROM product_feedback WHERE user_id')) {
+      const userId = Number(params[0]);
+      callback(null, productFeedback.filter(item => item.user_id === userId).slice().reverse().slice(0, 100));
     } else {
       callback(null, []);
     }

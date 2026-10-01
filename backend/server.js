@@ -8,6 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.disable('x-powered-by');
+if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY));
 app.use(securityHeaders);
 const allowedOrigins = new Set((process.env.CORS_ORIGINS || 'http://127.0.0.1:8001,http://localhost:8001').split(',').map(v => v.trim()).filter(Boolean));
 app.use(cors({ origin(origin, callback) { if (!origin || allowedOrigins.has(origin)) return callback(null, true); callback(new Error('不允许的跨域来源')); }, methods: ['GET','POST','PUT','PATCH','DELETE'], allowedHeaders: ['Content-Type','Authorization','X-Request-Id'], credentials: false, maxAge: 600 }));
@@ -39,14 +40,22 @@ app.use('/api/notification', require('./routes/notification'));
 app.use('/api/career', require('./routes/career'));
 app.use('/api/finance', require('./routes/finance'));
 app.use('/api/sensitive', require('./routes/sensitive'));
+app.use('/api/knowledge', require('./routes/knowledge'));
+app.use('/api/feedback', require('./routes/feedback'));
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: '星伴后端服务运行正常' });
+  const database = db.status();
+  res.status(database.ready ? 200 : 503).json({ status: database.ready ? 'ok' : 'degraded', database: database.mode, message: database.ready ? '星伴后端服务运行正常' : '数据库尚未就绪' });
+});
+app.get('/api/health/live', (req, res) => res.json({ status: 'ok' }));
+app.get('/api/health/ready', (req, res) => {
+  const database = db.status();
+  res.status(database.ready ? 200 : 503).json({ status: database.ready ? 'ready' : 'not_ready', database: database.mode });
 });
 
 app.use((req, res) => res.status(404).json({ error: '接口不存在', request_id: req.requestId }));
 app.use((err, req, res, next) => {
-  if (process.env.NODE_ENV !== 'test') console.error(`[${req.requestId}] 请求处理失败`);
+  if (process.env.NODE_ENV !== 'test') console.error(`[${req.requestId}] 请求处理失败`, process.env.NODE_ENV === 'production' ? err.message : err);
   res.status(err.message === '不允许的跨域来源' ? 403 : 500).json({ error: err.message === '不允许的跨域来源' ? err.message : '服务暂时不可用', request_id: req.requestId });
 });
 

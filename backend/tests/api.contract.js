@@ -1,0 +1,74 @@
+'use strict';
+
+const { spawn } = require('child_process');
+const path = require('path');
+
+const PORT = 3199;
+const BASE = `http://127.0.0.1:${PORT}/api`;
+const child = spawn(process.execPath, ['server.js'], {
+  cwd: path.resolve(__dirname, '..'),
+  env: {
+    ...process.env,
+    PORT: String(PORT),
+    NODE_ENV: 'development',
+    USE_MOCK_DB: 'true',
+    JWT_SECRET: 'xingban-contract-test-secret-at-least-32-characters',
+    CORS_ORIGINS: 'http://127.0.0.1:8001'
+  },
+  stdio: ['ignore', 'pipe', 'pipe']
+});
+let stderr = '';
+child.stderr.on('data', chunk => { stderr += chunk.toString(); });
+
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+async function request(pathname, options = {}) {
+  const response = await fetch(BASE + pathname, options);
+  const body = await response.json();
+  return { response, body };
+}
+
+async function main() {
+  let ready = false;
+  for (let i = 0; i < 40; i += 1) {
+    try {
+      const result = await request('/health/live');
+      if (result.response.ok) { ready = true; break; }
+    } catch (_) {}
+    await wait(100);
+  }
+  if (!ready) throw new Error(`后端未在预期时间内启动：${stderr.slice(0, 1000)}`);
+
+  const readiness = await request('/health/ready');
+  if (readiness.response.status !== 200 || readiness.body.database !== 'mock') throw new Error('开发数据库就绪状态不正确');
+
+  const unauthorized = await request('/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'bug', content: '测试反馈' }) });
+  if (unauthorized.response.status !== 401) throw new Error('反馈接口未保护');
+
+  const login = await request('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: '13800138000', password: '123456' }) });
+  if (!login.response.ok || !login.body.token) throw new Error('演示账号登录失败');
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${login.body.token}` };
+
+  const invalid = await request('/feedback', { method: 'POST', headers, body: JSON.stringify({ type: 'unknown', content: '测试反馈' }) });
+  if (invalid.response.status !== 400) throw new Error('反馈类型校验未生效');
+
+  const created = await request('/feedback', { method: 'POST', headers, body: JSON.stringify({ type: 'bug', content: '策略页按钮在小屏设备上无法点击' }) });
+  if (created.response.status !== 201 || !created.body.feedback?.id) throw new Error('反馈保存失败');
+
+  const mine = await request('/feedback/mine', { headers });
+  if (!mine.response.ok || mine.body.feedback.length !== 1) throw new Error('反馈列表读取失败');
+
+  const lowhits = await request('/knowledge/lowhits');
+  if (lowhits.response.status !== 401) throw new Error('低命中统计不应公开');
+
+  const wizard = await request('/child/wizard/step1', { method: 'POST', headers, body: JSON.stringify({ nickname: '测试昵称', birth_date: '2020-01-02', diagnosis_type: 'UNCONFIRMED' }) });
+  if (wizard.response.status !== 201 || !wizard.body.draft_id) throw new Error('儿童建档第一步不可用');
+
+  const crossFamilyGoals = await request('/child/2/goals', { headers });
+  if (crossFamilyGoals.response.status !== 404) throw new Error(`跨家庭目标读取未被阻止：HTTP ${crossFamilyGoals.response.status} ${JSON.stringify(crossFamilyGoals.body)} ${stderr.slice(-1000)}`);
+  const crossFamilyRadar = await request('/child/2/capacity-radar', { headers });
+  if (crossFamilyRadar.response.status !== 404) throw new Error('跨家庭支持需要读取未被阻止');
+
+  console.log('PASS backend API contract: health, auth, feedback, child wizard, ownership, analytics protection');
+}
+
+main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => child.kill());

@@ -235,6 +235,18 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
+CREATE TABLE IF NOT EXISTS product_feedback (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  type ENUM('bug','feature','content','experience','other') NOT NULL DEFAULT 'other',
+  content TEXT NOT NULL,
+  status ENUM('open','reviewing','resolved','closed') NOT NULL DEFAULT 'open',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_feedback_user_time (user_id, created_at),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 INSERT INTO strategies (category, name, description, steps, scripts, principles, applicable_scenarios, icon, difficulty_level) VALUES
 ('情绪调节', '深呼吸法', '通过深呼吸帮助孩子平静情绪', '1. 引导孩子坐下或站立\\n2. 示范用鼻子深吸气4秒\\n3. 屏住呼吸2秒\\n4. 用嘴巴慢慢呼气6秒\\n5. 重复3-5次', '\"来，跟着我一起深呼吸，吸气...呼气...\"', '利用腹式呼吸激活副交感神经系统，降低心率，缓解焦虑', '情绪爆发初期、焦虑情绪、等待时', 'wind', 'easy'),
 ('情绪调节', '感官安抚', '使用感官物品帮助孩子自我调节', '1. 准备孩子喜欢的感官物品（如泡泡水、压力球）\\n2. 引导孩子使用感官物品\\n3. 观察孩子情绪变化\\n4. 逐渐减少辅助', '\"我们来玩泡泡水吧，看泡泡飞得多高\"', '通过提供适当的感官刺激，帮助孩子自我调节情绪状态', '情绪爆发、感官过载、烦躁时', 'sparkles', 'easy'),

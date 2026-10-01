@@ -8,6 +8,10 @@ const clean = (value, max) => String(value ?? '').trim().slice(0, max);
 const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) && !Number.isNaN(new Date(`${value}T00:00:00`).getTime()) && new Date(`${value}T00:00:00`) <= new Date();
 const validLevel = value => value === undefined || (Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= 5);
 
+// router.param 会在具体路由中间件之前运行，因此必须先完成鉴权，
+// 否则参数归属校验读取不到 req.user。
+router.use(auth);
+
 router.post('/wizard/step1', auth, (req, res) => {
   const { nickname, birth_date, diagnosis_type, diagnosis_other } = req.body;
   
@@ -17,10 +21,6 @@ router.post('/wizard/step1', auth, (req, res) => {
   if (String(nickname).trim().length > 40 || !validDate(birth_date) || !DIAGNOSIS_TYPES.has(diagnosis_type)) {
     return res.status(400).json({ error: '儿童档案字段无效' });
   }
-  if ([communication_level, social_level, self_care_level, cognitive_level].some(value => !validLevel(value))) {
-    return res.status(400).json({ error: '支持需要记录必须为1至5' });
-  }
-  
   const draft = {
     user_id: req.user.id,
     step: 1,
@@ -392,7 +392,17 @@ router.delete('/:id', auth, (req, res) => {
   });
 });
 
-router.get('/:id/goals', auth, (req, res) => {
+const verifyOwnedChild = (req, res, next) => {
+  const childId = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(childId) || childId <= 0) return res.status(400).json({ error: '儿童编号无效' });
+  db.query('SELECT id FROM children WHERE id = ? AND user_id = ?', [childId, req.user.id], (err, rows) => {
+    if (err) return res.status(500).json({ error: '暂时无法核验儿童档案' });
+    if (!rows.length) return res.status(404).json({ error: '儿童档案不存在' });
+    next();
+  });
+};
+
+router.get('/:id/goals', auth, verifyOwnedChild, (req, res) => {
   db.query('SELECT * FROM intervention_goals WHERE child_id = ? ORDER BY created_at DESC', [req.params.id], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     
@@ -400,7 +410,7 @@ router.get('/:id/goals', auth, (req, res) => {
   });
 });
 
-router.post('/:id/goals', auth, (req, res) => {
+router.post('/:id/goals', auth, verifyOwnedChild, (req, res) => {
   const { goal_type, description, target_date } = req.body;
   
   if (!goal_type || !description) {
@@ -422,7 +432,7 @@ router.post('/:id/goals', auth, (req, res) => {
   );
 });
 
-router.put('/:id/goals/:goalId', auth, (req, res) => {
+router.put('/:id/goals/:goalId', auth, verifyOwnedChild, (req, res) => {
   const { goal_type, description, target_date, status, progress } = req.body;
   
   db.query(
@@ -436,7 +446,7 @@ router.put('/:id/goals/:goalId', auth, (req, res) => {
   );
 });
 
-router.delete('/:id/goals/:goalId', auth, (req, res) => {
+router.delete('/:id/goals/:goalId', auth, verifyOwnedChild, (req, res) => {
   db.query('DELETE FROM intervention_goals WHERE id = ? AND child_id = ?', [req.params.goalId, req.params.id], (err) => {
     if (err) return res.status(500).json({ error: err.message });
     
@@ -445,7 +455,7 @@ router.delete('/:id/goals/:goalId', auth, (req, res) => {
 });
 
 router.get('/:id/capacity-radar', auth, (req, res) => {
-  db.query('SELECT communication_level, social_level, self_care_level, cognitive_level FROM children WHERE id = ?', [req.params.id], (err, results) => {
+  db.query('SELECT communication_level, social_level, self_care_level, cognitive_level FROM children WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     
     if (results.length === 0) {
