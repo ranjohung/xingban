@@ -3,6 +3,7 @@
 const { createClient } = require('redis');
 
 const memoryBuckets = new Map();
+const revokedSessions = new Map();
 let client = null;
 let connecting = null;
 let lastError = null;
@@ -71,4 +72,24 @@ async function consumeRateLimit(key, limit, windowSeconds) {
   }
 }
 
-module.exports = { connect, status, consumeRateLimit };
+async function revokeSession(jti, expiresAtSeconds) {
+  if (!jti) return;
+  const ttl = Math.max(1, Number(expiresAtSeconds || 0) - Math.floor(Date.now() / 1000));
+  revokedSessions.set(jti, Date.now() + ttl * 1000);
+  if (client?.isReady) {
+    try { await client.set(`xingban:revoked:${jti}`, '1', { EX: ttl }); } catch (error) { lastError = error; }
+  }
+}
+
+async function isSessionRevoked(jti) {
+  if (!jti) return true;
+  const localExpiry = revokedSessions.get(jti);
+  if (localExpiry && localExpiry > Date.now()) return true;
+  if (localExpiry) revokedSessions.delete(jti);
+  if (client?.isReady) {
+    try { return Boolean(await client.get(`xingban:revoked:${jti}`)); } catch (error) { lastError = error; }
+  }
+  return false;
+}
+
+module.exports = { connect, status, consumeRateLimit, revokeSession, isSessionRevoked };

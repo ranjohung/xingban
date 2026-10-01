@@ -6,6 +6,7 @@ BASE = "http://127.0.0.1:8001/"
 OUT = Path(__file__).resolve().parent / "artifacts"
 OUT.mkdir(exist_ok=True)
 EXPECT_SERVER = os.environ.get("XINGBAN_EXPECT_SERVER") == "1"
+EXPECT_COOKIE = os.environ.get("XINGBAN_EXPECT_COOKIE") == "1"
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
@@ -30,6 +31,9 @@ with sync_playwright() as p:
             shares: reportShareRecords.length
         })""")
         assert hydrated["mode"] == "server", f"真实账号未进入服务端数据模式：{hydrated}"
+        if EXPECT_COOKIE:
+            assert page.evaluate("getToken()") is None, "Cookie模式不应向前端脚本暴露Bearer令牌"
+            assert page.evaluate("document.cookie.includes('xingban_csrf=')"), "Cookie模式缺少可供请求头使用的CSRF令牌"
         assert hydrated["children"] == ["真机验收儿童"], f"儿童档案混入演示数据：{hydrated['children']}"
         assert hydrated["behaviors"] == 1, f"真实行为记录数量异常：{hydrated['behaviors']}"
         assert hydrated["reports"] == 1, f"真实周报数量异常：{hydrated['reports']}"

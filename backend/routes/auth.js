@@ -2,16 +2,25 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const db = require('../config/db');
 const auth = require('../middleware/auth');
+const cache = require('../services/cache');
+const { setSessionCookies, clearSessionCookies } = require('../middleware/session');
 
 function issueToken(payload) {
   const secret = process.env.JWT_SECRET;
   if (!secret || secret.length < 32) throw new Error('JWT_SECRET_NOT_CONFIGURED');
-  return jwt.sign(payload, secret, {
+  return jwt.sign({ ...payload, jti: crypto.randomUUID() }, secret, {
     algorithm: 'HS256',
     expiresIn: process.env.JWT_EXPIRE || '2h'
   });
+}
+
+function sendAuthenticated(res, status, body, token) {
+  setSessionCookies(res, token);
+  const exposeBearer = process.env.NODE_ENV !== 'production' && process.env.RETURN_BEARER_TOKEN !== 'false';
+  res.status(status).json({ ...body, ...(exposeBearer ? { token } : {}) });
 }
 
 function serviceError(res, req) {
@@ -44,12 +53,11 @@ router.post('/register', (req, res) => {
           try { token = issueToken({ id: result.insertId, phone, role: 'parent' }); }
           catch (_) { return res.status(503).json({ error: '登录服务配置不完整' }); }
           
-          res.status(201).json({
+          sendAuthenticated(res, 201, {
             success: true,
             message: '注册成功',
-            token,
             user: { id: result.insertId, phone, nickname: nickname || '家长', role: 'parent' }
-          });
+          }, token);
         }
       );
     });
@@ -83,12 +91,11 @@ router.post('/login', (req, res) => {
       try { token = issueToken({ id: user.id, phone: user.phone, role: user.role }); }
       catch (_) { return res.status(503).json({ error: '登录服务配置不完整' }); }
       
-      res.json({
+      sendAuthenticated(res, 200, {
         success: true,
         message: '登录成功',
-        token,
         user: { id: user.id, phone: user.phone, nickname: user.nickname, role: user.role }
-      });
+      }, token);
     });
   });
 });
@@ -112,12 +119,11 @@ router.post('/sms-login', (req, res) => {
       try { token = issueToken({ id: user.id, phone: user.phone, role: user.role }); }
       catch (_) { return res.status(503).json({ error: '登录服务配置不完整' }); }
       
-      res.json({
+      sendAuthenticated(res, 200, {
         success: true,
         message: '登录成功',
-        token,
         user: { id: user.id, phone: user.phone, nickname: user.nickname, role: user.role }
-      });
+      }, token);
     } else {
       bcrypt.hash('123456', 10, (err, hash) => {
         if (err) return serviceError(res, req);
@@ -131,12 +137,11 @@ router.post('/sms-login', (req, res) => {
             try { token = issueToken({ id: result.insertId, phone, role: 'parent' }); }
             catch (_) { return res.status(503).json({ error: '登录服务配置不完整' }); }
             
-            res.status(201).json({
+            sendAuthenticated(res, 201, {
               success: true,
               message: '注册并登录成功',
-              token,
               user: { id: result.insertId, phone, nickname: '家长', role: 'parent' }
-            });
+            }, token);
           }
         );
       });
@@ -170,14 +175,21 @@ router.post('/reset-password', auth, (req, res) => {
       bcrypt.hash(newPassword, 10, (err, hash) => {
         if (err) return serviceError(res, req);
         
-        db.query('UPDATE users SET password = ? WHERE id = ?', [hash, req.user.id], (err) => {
+        db.query('UPDATE users SET password = ? WHERE id = ?', [hash, req.user.id], async (err) => {
           if (err) return serviceError(res, req);
-          
-          res.json({ success: true, message: '密码修改成功' });
+          await cache.revokeSession(req.user.jti, req.user.exp);
+          clearSessionCookies(res);
+          res.json({ success: true, message: '密码修改成功，请重新登录' });
         });
       });
     });
   });
+});
+
+router.post('/logout', auth, async (req, res) => {
+  await cache.revokeSession(req.user.jti, req.user.exp);
+  clearSessionCookies(res);
+  res.json({ success: true, message: '已安全退出' });
 });
 
 router.get('/me', auth, (req, res) => {

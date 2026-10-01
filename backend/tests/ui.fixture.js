@@ -7,9 +7,21 @@ require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 const BASE = process.env.UI_FIXTURE_API || 'http://127.0.0.1:3001/api';
 const PASSWORD = 'Xingban-Ui-2026!';
+let sessionCookie = '';
+let csrfToken = '';
 
 async function request(pathname, options = {}) {
-  const response = await fetch(BASE + pathname, options);
+  const headers = { ...(options.headers || {}) };
+  if (sessionCookie) headers.Cookie = sessionCookie;
+  if (sessionCookie && !['GET', 'HEAD'].includes(options.method || 'GET') && csrfToken) headers['X-CSRF-Token'] = csrfToken;
+  const response = await fetch(BASE + pathname, { ...options, headers });
+  const setCookies = typeof response.headers.getSetCookie === 'function' ? response.headers.getSetCookie() : [];
+  if (setCookies.length) {
+    const pairs = setCookies.map(line => line.split(';')[0]);
+    sessionCookie = pairs.join('; ');
+    const csrfPair = pairs.find(item => item.startsWith('xingban_csrf='));
+    if (csrfPair) csrfToken = decodeURIComponent(csrfPair.slice('xingban_csrf='.length));
+  }
   const body = await response.json();
   if (!response.ok) throw new Error(`${pathname} ${response.status}: ${JSON.stringify(body)}`);
   return body;
@@ -22,7 +34,7 @@ async function setup() {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone, password: PASSWORD, nickname: '真机验收家长' })
   });
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${registered.token}` };
+  const headers = { 'Content-Type': 'application/json', ...(registered.token ? { Authorization: `Bearer ${registered.token}` } : {}) };
   const created = await request('/child', {
     method: 'POST', headers,
     body: JSON.stringify({ nickname: '真机验收儿童', birth_date: '2020-01-02', diagnosis_type: 'UNCONFIRMED' })

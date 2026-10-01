@@ -388,20 +388,26 @@
       } catch (_) { return ''; }
     }
     const configuredApiBase = resolveConfiguredApiBase();
-    const API_BASE = configuredApiBase || (isLocalPreview ? 'http://localhost:3001/api' : '');
+    const API_BASE = configuredApiBase || (isLocalPreview ? 'http://127.0.0.1:3001/api' : '');
     let useMockMode = !API_BASE;
 
     let token = null;
+    let authenticatedSession = false;
 
     function setToken(newToken) {
       token = newToken;
-      // P0安全：访问令牌只保存在当前页面内存，关闭或刷新页面后需重新登录。
-      // 正式服务应改为后端签发 HttpOnly + Secure + SameSite Cookie，并配套CSRF校验。
+      // Bearer仅供本地兼容测试；生产会话由HttpOnly Cookie承载，脚本无法读取。
       localStorage.removeItem('xingban_token');
     }
 
     function getToken() {
       return token;
+    }
+
+    function getCookie(name) {
+      const prefix = `${name}=`;
+      const item = document.cookie.split(';').map(value => value.trim()).find(value => value.startsWith(prefix));
+      return item ? decodeURIComponent(item.slice(prefix.length)) : '';
     }
 
     function mockLogin(phone, password) {
@@ -651,6 +657,7 @@
 
       const options = {
         method,
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         }
@@ -658,6 +665,10 @@
 
       if (getToken()) {
         options.headers['Authorization'] = `Bearer ${getToken()}`;
+      }
+      if (!['GET', 'HEAD'].includes(method)) {
+        const csrfToken = getCookie('xingban_csrf');
+        if (csrfToken) options.headers['X-CSRF-Token'] = csrfToken;
       }
 
       if (data) {
@@ -672,7 +683,7 @@
       } catch (error) {
         // 只允许“尚未登录的本机预览”进入演示模式。真实会话中任何网络失败都必须显式暴露，
         // 不能把演示儿童或演示周报混入家庭账号数据。
-        if (!getToken() && isLocalPreview) {
+        if (!authenticatedSession && !getToken() && isLocalPreview) {
           console.log('本机后端不可用，进入明确演示模式');
           useMockMode = true;
           return apiRequest(url, method, data);
@@ -1183,6 +1194,7 @@
       // 用户会话不跨页面刷新持久化，避免设备遗失后暴露家庭账号状态。
       localStorage.removeItem('xingban_user');
       currentUser = normalizedUser;
+      authenticatedSession = true;
     }
 
     function getUser() {
@@ -1302,12 +1314,13 @@
         const result = await apiRequest('/auth/login', 'POST', { phone, password });
 
         if (result.success) {
-          setToken(result.token);
+          setToken(result.token || null);
           saveUser(result.user);
           const hydrated = await hydrateAuthenticatedSession();
           if (!hydrated.success) {
             setToken(null);
             currentUser = null;
+            authenticatedSession = false;
             showToast(hydrated.error || '家庭数据加载失败，请重试登录');
             return;
           }
@@ -1355,8 +1368,16 @@
         const result = await apiRequest('/auth/register', 'POST', { phone, password, nickname: name });
 
         if (result.success) {
-          setToken(result.token);
+          setToken(result.token || null);
           saveUser(result.user);
+          const hydrated = await hydrateAuthenticatedSession();
+          if (!hydrated.success) {
+            setToken(null);
+            currentUser = null;
+            authenticatedSession = false;
+            showToast(hydrated.error || '家庭数据加载失败，请重新登录');
+            return;
+          }
           hideRegister();
           document.getElementById('login-page').classList.add('hidden');
           document.getElementById('main-app').classList.remove('hidden');
@@ -3590,11 +3611,16 @@
       `;
     }
 
-    function handleLogout() {
+    async function handleLogout() {
+      if (!useMockMode && authenticatedSession) {
+        const result = await apiRequest('/auth/logout', 'POST');
+        if (!result.success) { showToast(result.error || '退出失败，请稍后重试'); return; }
+      }
       localStorage.removeItem('xingban_user');
       localStorage.removeItem('xingban_token');
       token = null;
       currentUser = null;
+      authenticatedSession = false;
       sessionDataMode = 'demo';
       professionalActions = [];
       reportShareRecords = [];

@@ -9,6 +9,7 @@
     "test": "node tests/api.contract.js",
     "test:api": "node tests/api.contract.js",
     "test:mysql": "node tests/mysql.integration.js",
+    "test:auth": "node tests/auth.session.js",
     "db:migrate": "node tools/apply_migration.js",
     "kb:selftest": "node tests/kb.selftest.js",
     "kb:eval": "node tests/kb.eval.js",

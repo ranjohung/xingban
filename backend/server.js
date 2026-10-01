@@ -4,6 +4,7 @@ const cors = require('cors');
 const db = require('./config/db');
 const cache = require('./services/cache');
 const { securityHeaders, authRateLimit } = require('./middleware/security');
+const { csrfProtection } = require('./middleware/session');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -12,9 +13,10 @@ app.disable('x-powered-by');
 if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY));
 app.use(securityHeaders);
 const allowedOrigins = new Set((process.env.CORS_ORIGINS || 'http://127.0.0.1:8001,http://localhost:8001').split(',').map(v => v.trim()).filter(Boolean));
-app.use(cors({ origin(origin, callback) { if (!origin || allowedOrigins.has(origin)) return callback(null, true); callback(new Error('不允许的跨域来源')); }, methods: ['GET','POST','PUT','PATCH','DELETE'], allowedHeaders: ['Content-Type','Authorization','X-Request-Id'], credentials: false, maxAge: 600 }));
+app.use(cors({ origin(origin, callback) { if (!origin || allowedOrigins.has(origin)) return callback(null, true); callback(new Error('不允许的跨域来源')); }, methods: ['GET','POST','PUT','PATCH','DELETE'], allowedHeaders: ['Content-Type','Authorization','X-Request-Id','X-CSRF-Token'], credentials: true, maxAge: 600 }));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '64kb', parameterLimit: 100 }));
+app.use(csrfProtection);
 
 db.connect((err) => {
   if (err) {
