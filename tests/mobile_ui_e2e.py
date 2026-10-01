@@ -17,7 +17,12 @@ with sync_playwright() as p:
         page.locator("#login-page form button[type=submit]").click()
         page.wait_for_selector("#main-app:not(.hidden)")
 
-    for route in ["home", "children", "records", "strategies", "emergency", "therapist"]:
+    routes = [
+        "home", "records", "emergency", "strategies", "knowledge", "worksheets", "dialogues", "profile",
+        "children", "profile-detail", "reports", "family", "growth", "safety", "stories", "ai", "community",
+        "notifications", "career", "finance", "therapist", "achievements", "peer", "settings"
+    ]
+    for route in routes:
         page.evaluate("route => navigateTo(route)", route)
         page.wait_for_timeout(100)
         title_text = page.locator("#page-title").inner_text() if page.locator("#page-title").count() else ""
@@ -25,6 +30,10 @@ with sync_playwright() as p:
         assert page.locator("#main-content").inner_text().strip(), f"{route} 页面内容为空"
         overflow = page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
         assert overflow <= 1, f"{route} 页面横向溢出 {overflow}px"
+        unnamed = page.locator("#main-content button:visible").evaluate_all(
+            "els => els.filter(el => !(el.innerText || el.getAttribute('aria-label') || el.getAttribute('title') || '').trim()).length"
+        )
+        assert unnamed == 0, f"{route} 页面存在 {unnamed} 个无可访问名称的按钮"
 
     page.evaluate("navigateTo('therapist')")
     page.locator('button[onclick^="showProfessionalPlanEditor"]:visible').first.click()
@@ -45,5 +54,5 @@ with sync_playwright() as p:
     page.screenshot(path=str(OUT / "emergency-mobile.png"), full_page=True)
 
     assert not errors, "浏览器脚本异常：" + " | ".join(errors)
-    print("PASS mobile UI: six core areas, no horizontal overflow, professional plan flow, emergency guidance")
+    print(f"PASS mobile UI: {len(routes)} areas, no horizontal overflow or unnamed buttons, professional plan flow, emergency guidance")
     browser.close()
