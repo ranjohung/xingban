@@ -1,6 +1,7 @@
 'use strict';
 
 const mysql = require('mysql2/promise');
+const bcrypt = require('bcryptjs');
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
@@ -16,6 +17,7 @@ async function request(pathname, options = {}) {
 
 async function setup() {
   const phone = `18${String(Date.now()).slice(-9)}`;
+  const therapistPhone = `17${phone.slice(2, 10)}2`;
   const registered = await request('/auth/register', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone, password: PASSWORD, nickname: '真机验收家长' })
@@ -31,23 +33,37 @@ async function setup() {
   });
   await request(`/report/generate/${created.child.id}`, { method: 'POST', headers, body: '{}' });
   await request('/strategy/feedback', { method: 'POST', headers, body: JSON.stringify({ child_id: created.child.id, strategy_id: 1, effectiveness: 'effective', note: '测试反馈', scene: '活动转换' }) });
-  await request('/therapist/plans', { method: 'POST', headers, body: JSON.stringify({ title: '真机验收计划', goal: '表达暂停', status: 'pending_confirmation' }) });
-  process.stdout.write(JSON.stringify({ phone, password: PASSWORD }));
+  const connection = await mysql.createConnection({ host: process.env.DB_HOST, port: Number(process.env.DB_PORT || 3306), user: process.env.DB_USER, password: process.env.DB_PASSWORD, database: process.env.DB_NAME });
+  let therapistId;
+  try {
+    const hash = await bcrypt.hash(PASSWORD, 10);
+    const [userResult] = await connection.execute("INSERT INTO users (phone, password, nickname, role) VALUES (?, ?, ?, 'therapist')", [therapistPhone, hash, '真机验收专业人员']);
+    const [profileResult] = await connection.execute("INSERT INTO therapists (user_id, name, phone, professional_title, specialty, is_certified) VALUES (?, ?, ?, ?, ?, TRUE)", [userResult.insertId, '真机验收专业人员', therapistPhone, '临床心理专业人员', '儿童家庭支持']);
+    therapistId = profileResult.insertId;
+  } finally { await connection.end(); }
+  await request('/therapist/plans', { method: 'POST', headers, body: JSON.stringify({ therapist_id: therapistId, title: '真机验收计划', goal: '表达暂停', frequency: '每天一次', responsible_person: '家长', stop_conditions: '出现不适或安全风险', review_date: '2026-10-20', status: 'pending_confirmation' }) });
+  process.stdout.write(JSON.stringify({ phone, therapistPhone, password: PASSWORD }));
 }
 
-async function cleanup(phone) {
+async function cleanup(phone, therapistPhone) {
   if (!/^1\d{10}$/.test(phone || '')) throw new Error('cleanup requires a valid fixture phone');
   const connection = await mysql.createConnection({
     host: process.env.DB_HOST, port: Number(process.env.DB_PORT || 3306),
     user: process.env.DB_USER, password: process.env.DB_PASSWORD, database: process.env.DB_NAME
   });
   try { await connection.execute('DELETE FROM users WHERE phone=?', [phone]); }
-  finally { await connection.end(); }
+  finally {
+    if (/^1\d{10}$/.test(therapistPhone || '')) {
+      await connection.execute('DELETE FROM therapists WHERE phone=?', [therapistPhone]);
+      await connection.execute('DELETE FROM users WHERE phone=?', [therapistPhone]);
+    }
+    await connection.end();
+  }
   process.stdout.write('fixture cleaned');
 }
 
-const [action, value] = process.argv.slice(2);
-(action === 'cleanup' ? cleanup(value) : setup()).catch(error => {
+const [action, value, relatedValue] = process.argv.slice(2);
+(action === 'cleanup' ? cleanup(value, relatedValue) : setup()).catch(error => {
   console.error(error.message);
   process.exitCode = 1;
 });

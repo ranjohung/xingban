@@ -3,6 +3,7 @@
 require('dotenv').config();
 const { spawn } = require('child_process');
 const mysql = require('mysql2/promise');
+const bcrypt = require('bcryptjs');
 const path = require('path');
 
 const PORT = 3299;
@@ -11,6 +12,8 @@ const suffix = String(Date.now()).slice(-8);
 const phone = `18${suffix}1`.slice(0, 11);
 const password = 'Xingban-Test-2026!';
 let userId = null;
+let therapistUserId = null;
+let therapistId = null;
 
 const server = spawn(process.execPath, ['server.js'], {
   cwd: path.resolve(__dirname, '..'),
@@ -44,6 +47,19 @@ async function main() {
   userId = registered.body.user.id;
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${registered.body.token}` };
 
+  const therapistPhone = `17${suffix}2`.slice(0, 11);
+  const setupConnection = await mysql.createConnection({ host: process.env.DB_HOST, port: Number(process.env.DB_PORT || 3306), user: process.env.DB_USER, password: process.env.DB_PASSWORD, database: process.env.DB_NAME });
+  try {
+    const passwordHash = await bcrypt.hash(password, 10);
+    const [userResult] = await setupConnection.execute("INSERT INTO users (phone, password, nickname, role) VALUES (?, ?, ?, 'therapist')", [therapistPhone, passwordHash, '集成测试专业人员']);
+    therapistUserId = userResult.insertId;
+    const [therapistResult] = await setupConnection.execute("INSERT INTO therapists (user_id, name, phone, professional_title, specialty, is_certified) VALUES (?, ?, ?, ?, ?, TRUE)", [therapistUserId, '集成测试专业人员', therapistPhone, '临床心理专业人员', '儿童家庭支持']);
+    therapistId = therapistResult.insertId;
+  } finally { await setupConnection.end(); }
+  const therapistLogin = await request('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: therapistPhone, password }) });
+  if (!therapistLogin.response.ok || !therapistLogin.body.token) throw new Error(`专业账号登录失败：${JSON.stringify(therapistLogin.body)}`);
+  const therapistHeaders = { 'Content-Type': 'application/json', Authorization: `Bearer ${therapistLogin.body.token}` };
+
   const child = await request('/child', { method: 'POST', headers, body: JSON.stringify({ nickname: '测试儿童', birth_date: '2020-01-02', diagnosis_type: 'UNCONFIRMED' }) });
   if (child.response.status !== 201) throw new Error(`建档失败：${JSON.stringify(child.body)}`);
   const childId = child.body.child.id;
@@ -54,17 +70,29 @@ async function main() {
   if (report.response.status !== 201) throw new Error(`周报失败：${JSON.stringify(report.body)}`);
   const feedback = await request('/strategy/feedback', { method: 'POST', headers, body: JSON.stringify({ child_id: childId, strategy_id: 1, behavior_record_id: behavior.body.record.id, effectiveness: 'effective', note: '转换支持有效', scene: '活动转换' }) });
   if (feedback.response.status !== 201) throw new Error(`策略反馈失败：${JSON.stringify(feedback.body)}`);
-  const plan = await request('/therapist/plans', { method: 'POST', headers, body: JSON.stringify({ title: '待确认的转换支持计划', goal: '孩子可表达暂停', status: 'pending_confirmation' }) });
+  const plan = await request('/therapist/plans', { method: 'POST', headers, body: JSON.stringify({ therapist_id: therapistId, title: '待确认的转换支持计划', goal: '孩子可表达暂停', frequency: '每天一次', responsible_person: '家长', stop_conditions: '孩子不适或风险升级', review_date: '2026-10-20', status: 'pending_confirmation' }) });
   if (plan.response.status !== 201) throw new Error(`计划失败：${JSON.stringify(plan.body)}`);
+  if (plan.body.plan.confirmation_status !== 'pending') throw new Error('关联专业人员的计划未进入待专业确认状态');
+  const premature = await request(`/therapist/plans/${plan.body.plan.id}`, { method: 'PATCH', headers, body: JSON.stringify({ title: '待确认的转换支持计划', goal: '孩子可表达暂停', frequency: '每天一次', responsible_person: '家长', stop_conditions: '孩子不适或风险升级', review_date: '2026-10-20', status: 'active' }) });
+  if (premature.response.status !== 409) throw new Error('家长在专业确认前不应启动已指派计划');
+  const parentAssigned = await request('/therapist/plans/assigned', { headers });
+  if (parentAssigned.response.status !== 403) throw new Error('家长不应读取专业人员待审计划队列');
+  const assigned = await request('/therapist/plans/assigned', { headers: therapistHeaders });
+  if (!assigned.response.ok || assigned.body.plans?.length !== 1) throw new Error('专业人员未读到指派计划');
+  const reviewed = await request(`/therapist/plans/${plan.body.plan.id}/review`, { method: 'POST', headers: therapistHeaders, body: JSON.stringify({ decision: 'confirmed', note: '目标、频率和停止条件清晰，可由家长决定开始。' }) });
+  if (!reviewed.response.ok || reviewed.body.confirmation_status !== 'confirmed') throw new Error(`专业确认失败：${JSON.stringify(reviewed.body)}`);
+  const activated = await request(`/therapist/plans/${plan.body.plan.id}`, { method: 'PATCH', headers, body: JSON.stringify({ title: '待确认的转换支持计划', goal: '孩子可表达暂停', frequency: '每天一次', responsible_person: '家长', stop_conditions: '孩子不适或风险升级', review_date: '2026-10-20', status: 'active' }) });
+  if (!activated.response.ok) throw new Error(`专业确认后仍无法启动计划：${JSON.stringify(activated.body)}`);
   const held = await request('/community/posts', { method: 'POST', headers, body: JSON.stringify({ title: '需要马上帮助', content: '孩子说不想活并准备吞药', category: 'emotion' }) });
   if (held.response.status !== 202 || !held.body.case_ref) throw new Error(`危机审核失败：${JSON.stringify(held.body)}`);
 
-  const [children, records, reports, feedbackList, plans, cases] = await Promise.all([
+  const [children, records, reports, feedbackList, plans, cases, events, notifications] = await Promise.all([
     request('/child', { headers }), request(`/behavior/${childId}`, { headers }), request(`/report/${childId}/list`, { headers }),
     request('/strategy/feedback/mine', { headers }),
-    request('/therapist/plans/mine', { headers }), request('/community/reports/mine', { headers })
+    request('/therapist/plans/mine', { headers }), request('/community/reports/mine', { headers }),
+    request(`/therapist/plans/${plan.body.plan.id}/events`, { headers }), request('/notification', { headers })
   ]);
-  if (children.body.children?.length !== 1 || records.body.records?.length !== 1 || reports.body.reports?.length !== 1 || feedbackList.body.feedback?.length !== 1 || plans.body.plans?.length !== 1 || cases.body.reports?.length !== 1) {
+  if (children.body.children?.length !== 1 || records.body.records?.length !== 1 || reports.body.reports?.length !== 1 || feedbackList.body.feedback?.length !== 1 || plans.body.plans?.length !== 1 || cases.body.reports?.length !== 1 || events.body.events?.length < 3 || notifications.body.notifications?.length < 1) {
     throw new Error('真实数据库回读数量不一致');
   }
   console.log(JSON.stringify({ database: 'mysql', child_id: childId, behavior_id: behavior.body.record.id, report_id: report.body.report.id, feedback_id: feedback.body.feedback.id, plan_id: plan.body.plan.id, moderation_case: held.body.case_ref }));
@@ -72,9 +100,13 @@ async function main() {
 }
 
 async function cleanup() {
-  if (!userId) return;
+  if (!userId && !therapistUserId) return;
   const connection = await mysql.createConnection({ host: process.env.DB_HOST, port: Number(process.env.DB_PORT || 3306), user: process.env.DB_USER, password: process.env.DB_PASSWORD, database: process.env.DB_NAME });
-  try { await connection.execute('DELETE FROM users WHERE id=?', [userId]); }
+  try {
+    if (userId) await connection.execute('DELETE FROM users WHERE id=?', [userId]);
+    if (therapistId) await connection.execute('DELETE FROM therapists WHERE id=?', [therapistId]);
+    if (therapistUserId) await connection.execute('DELETE FROM users WHERE id=?', [therapistUserId]);
+  }
   finally { await connection.end(); }
 }
 

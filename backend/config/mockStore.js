@@ -764,19 +764,25 @@ function query(sql, params, callback) {
     } else if (sql.includes('FROM professional_plans p LEFT JOIN therapists')) {
       const userId = Number(params[0]);
       callback(null, professionalPlans.filter(item => item.owner_user_id === userId).slice().reverse());
+    } else if (sql.includes('SELECT status, therapist_id, confirmation_status FROM professional_plans')) {
+      const planId = Number(params[0]);
+      const userId = Number(params[1]);
+      callback(null, professionalPlans.filter(item => item.id === planId && item.owner_user_id === userId));
     } else if (sql.includes('INSERT INTO professional_plans')) {
       const plan = {
         id: professionalPlanIdCounter++, owner_user_id: Number(params[0]), therapist_id: params[1], source_feedback_id: params[2],
         title: params[3], goal: params[4], frequency: params[5], responsible_person: params[6], stop_conditions: params[7],
-        review_date: params[8], status: params[9], notes: params[10], created_at: new Date(), updated_at: new Date()
+        review_date: params[8], status: params[9], confirmation_status: params[10], notes: params[11], version: 1, created_at: new Date(), updated_at: new Date()
       };
       professionalPlans.push(plan);
       callback(null, { insertId: plan.id });
+    } else if (sql.includes('INSERT INTO professional_plan_events')) {
+      callback(null, { insertId: Date.now() });
     } else if (sql.includes('UPDATE professional_plans SET')) {
-      const planId = Number(params[8]);
-      const userId = Number(params[9]);
+      const planId = Number(params[12]);
+      const userId = Number(params[13]);
       const plan = professionalPlans.find(item => item.id === planId && item.owner_user_id === userId);
-      if (plan) Object.assign(plan, { title: params[0], goal: params[1], frequency: params[2], responsible_person: params[3], stop_conditions: params[4], review_date: params[5], status: params[6], notes: params[7], updated_at: new Date() });
+      if (plan) Object.assign(plan, { title: params[0], goal: params[1], frequency: params[2], responsible_person: params[3], stop_conditions: params[4], review_date: params[5], status: params[6], notes: params[7], confirmation_status: params[8] ? 'pending' : plan.confirmation_status, version: Number(plan.version || 1) + 1, updated_at: new Date() });
       callback(null, { affectedRows: plan ? 1 : 0 });
     } else if (sql.includes('INSERT INTO product_feedback')) {
       const feedback = {

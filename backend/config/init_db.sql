@@ -195,12 +195,34 @@ CREATE TABLE IF NOT EXISTS professional_plans (
   stop_conditions VARCHAR(500) NULL,
   review_date DATE NULL,
   status ENUM('pending_confirmation','active','paused','completed','escalated') NOT NULL DEFAULT 'pending_confirmation',
+  confirmation_status ENUM('not_requested','pending','confirmed','returned') NOT NULL DEFAULT 'not_requested',
+  professional_note VARCHAR(1000) NULL,
+  reviewed_at TIMESTAMP NULL,
+  reviewed_by_user_id INT NULL,
+  version INT NOT NULL DEFAULT 1,
   notes VARCHAR(1000) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_professional_plan_owner_status (owner_user_id, status, updated_at),
+  INDEX idx_professional_plan_therapist_review (therapist_id, confirmation_status, updated_at),
   FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (therapist_id) REFERENCES therapists(id) ON DELETE SET NULL
+  FOREIGN KEY (therapist_id) REFERENCES therapists(id) ON DELETE SET NULL,
+  FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS professional_plan_events (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  plan_id BIGINT NOT NULL,
+  actor_user_id INT NOT NULL,
+  actor_role ENUM('parent','therapist','admin') NOT NULL,
+  action ENUM('created','updated','submitted','confirmed','returned','status_changed') NOT NULL,
+  from_status VARCHAR(40) NULL,
+  to_status VARCHAR(40) NULL,
+  note VARCHAR(1000) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_professional_plan_event_plan_time (plan_id, created_at),
+  FOREIGN KEY (plan_id) REFERENCES professional_plans(id) ON DELETE CASCADE,
+  FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS energy_station (

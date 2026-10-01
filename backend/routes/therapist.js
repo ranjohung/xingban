@@ -14,6 +14,19 @@ const positiveId = value => {
 };
 const PUBLIC_FIELDS = 'id, name, professional_title, specialty, years_of_experience, profile_photo, rating, review_count, is_certified';
 const PLAN_STATUSES = new Set(['pending_confirmation', 'active', 'paused', 'completed', 'escalated']);
+const REVIEW_DECISIONS = new Set(['confirmed', 'returned']);
+
+function recordPlanEvent(planId, user, action, fromStatus, toStatus, note, callback = () => {}) {
+  db.query(
+    'INSERT INTO professional_plan_events (plan_id, actor_user_id, actor_role, action, from_status, to_status, note) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [planId, user.id, user.role, action, fromStatus || null, toStatus || null, clean(note, 1000) || null],
+    callback
+  );
+}
+
+function sendTrustedNotification(userId, title, content, callback = () => {}) {
+  db.query('INSERT INTO notifications (user_id, title, content, type) VALUES (?, ?, ?, ?)', [userId, title, content, 'system'], callback);
+}
 
 function planPayload(body, partial = false) {
   const payload = {
@@ -143,7 +156,8 @@ router.delete('/shares/:shareId', auth, requireRole('parent', 'admin'), (req, re
 router.get('/plans/mine', auth, requireRole('parent', 'admin'), (req, res) => {
   db.query(
     `SELECT p.id, p.therapist_id, p.source_feedback_id, p.title, p.goal, p.frequency,
-            p.responsible_person, p.stop_conditions, p.review_date, p.status, p.notes,
+            p.responsible_person, p.stop_conditions, p.review_date, p.status, p.confirmation_status,
+            p.professional_note, p.reviewed_at, p.reviewed_by_user_id, p.version, p.notes,
             p.created_at, p.updated_at, t.name therapist_name
      FROM professional_plans p LEFT JOIN therapists t ON t.id=p.therapist_id
      WHERE p.owner_user_id=? ORDER BY p.updated_at DESC LIMIT 100`,
@@ -157,18 +171,30 @@ router.post('/plans', auth, requireRole('parent', 'admin'), (req, res) => {
   const therapistId = positiveId(req.body.therapist_id) || null;
   const feedbackId = positiveId(req.body.source_feedback_id) || null;
   if (!payload) return res.status(400).json({ error: '计划标题和状态必须有效' });
-  const insert = () => db.query(
+  if (therapistId && payload.status === 'active') return res.status(400).json({ error: '关联专业人员的计划必须先由对方确认，不能由家长直接标记执行中' });
+  const confirmationStatus = therapistId ? 'pending' : 'not_requested';
+  const insert = (therapistUserId = null) => db.query(
     `INSERT INTO professional_plans
-      (owner_user_id, therapist_id, source_feedback_id, title, goal, frequency, responsible_person, stop_conditions, review_date, status, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [req.user.id, therapistId, feedbackId, payload.title, payload.goal, payload.frequency, payload.responsible_person, payload.stop_conditions, payload.review_date, payload.status, payload.notes],
-    (err, result) => err ? res.status(500).json({ error: '协作计划暂时无法保存' }) : res.status(201).json({ success: true, plan: { id: result.insertId, ...payload, therapist_id: therapistId, source_feedback_id: feedbackId } })
+      (owner_user_id, therapist_id, source_feedback_id, title, goal, frequency, responsible_person, stop_conditions, review_date, status, confirmation_status, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [req.user.id, therapistId, feedbackId, payload.title, payload.goal, payload.frequency, payload.responsible_person, payload.stop_conditions, payload.review_date, payload.status, confirmationStatus, payload.notes],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: '协作计划暂时无法保存' });
+      recordPlanEvent(result.insertId, req.user, therapistId ? 'submitted' : 'created', null, confirmationStatus, payload.notes, eventErr => {
+        if (eventErr) return res.status(500).json({ error: '计划已保存，但审计记录失败，请联系管理员核查' });
+        const finish = notificationErr => notificationErr
+          ? res.status(500).json({ error: '计划已保存，但专业人员通知失败，请勿假设对方已收到' })
+          : res.status(201).json({ success: true, plan: { id: result.insertId, ...payload, therapist_id: therapistId, source_feedback_id: feedbackId, confirmation_status: confirmationStatus, version: 1 } });
+        if (therapistUserId) return sendTrustedNotification(therapistUserId, '新的协作计划待确认', `家长提交了“${payload.title}”，请核对目标、频率和停止条件。`, finish);
+        finish(null);
+      });
+    }
   );
   if (!therapistId) return insert();
-  db.query('SELECT id FROM therapists WHERE id=? AND is_certified=TRUE', [therapistId], (err, rows) => {
+  db.query('SELECT id, user_id FROM therapists WHERE id=? AND is_certified=TRUE AND user_id IS NOT NULL', [therapistId], (err, rows) => {
     if (err) return res.status(500).json({ error: '暂时无法核验专业人员' });
     if (!rows.length) return res.status(400).json({ error: '只能关联已认证专业人员' });
-    insert();
+    insert(rows[0].user_id);
   });
 });
 
@@ -176,16 +202,98 @@ router.patch('/plans/:planId', auth, requireRole('parent', 'admin'), (req, res) 
   const planId = positiveId(req.params.planId);
   const payload = planPayload(req.body, true);
   if (!planId || !payload) return res.status(400).json({ error: '计划编号或状态无效' });
+  db.query('SELECT status, therapist_id, confirmation_status FROM professional_plans WHERE id=? AND owner_user_id=?', [planId, req.user.id], (readErr, rows) => {
+    if (readErr) return res.status(500).json({ error: '协作计划暂时无法读取' });
+    if (!rows.length) return res.status(404).json({ error: '协作计划不存在' });
+    const current = rows[0];
+    if (payload.status === 'active' && current.therapist_id && current.confirmation_status !== 'confirmed') {
+      return res.status(409).json({ error: '专业人员尚未确认或已退回，不能开始执行' });
+    }
+    const resetReview = current.therapist_id && ['confirmed', 'returned'].includes(current.confirmation_status);
+    db.query(
+      `UPDATE professional_plans SET title=?, goal=?, frequency=?, responsible_person=?, stop_conditions=?, review_date=?, status=?, notes=?,
+       confirmation_status=IF(?, 'pending', confirmation_status), professional_note=IF(?, NULL, professional_note), reviewed_at=IF(?, NULL, reviewed_at), reviewed_by_user_id=IF(?, NULL, reviewed_by_user_id), version=version+1
+       WHERE id=? AND owner_user_id=?`,
+      [payload.title, payload.goal, payload.frequency, payload.responsible_person, payload.stop_conditions, payload.review_date, payload.status, payload.notes,
+       resetReview, resetReview, resetReview, resetReview, planId, req.user.id],
+      (err, result) => {
+        if (err) return res.status(500).json({ error: '协作计划暂时无法更新' });
+        recordPlanEvent(planId, req.user, payload.status !== current.status ? 'status_changed' : 'updated', current.status, payload.status, payload.notes, eventErr => {
+          if (eventErr) return res.status(500).json({ error: '计划已更新，但审计记录失败，请联系管理员核查' });
+          res.json({ success: true, message: resetReview ? '计划已更新，需专业人员重新确认' : '协作计划已更新', confirmation_status: resetReview ? 'pending' : current.confirmation_status });
+        });
+      }
+    );
+  });
+});
+
+router.get('/plans/assigned', auth, requireRole('therapist', 'admin'), (req, res) => {
+  const where = req.user.role === 'admin' ? '' : 'WHERE t.user_id=?';
+  const params = req.user.role === 'admin' ? [] : [req.user.id];
   db.query(
-    `UPDATE professional_plans SET title=?, goal=?, frequency=?, responsible_person=?, stop_conditions=?, review_date=?, status=?, notes=?
-     WHERE id=? AND owner_user_id=?`,
-    [payload.title, payload.goal, payload.frequency, payload.responsible_person, payload.stop_conditions, payload.review_date, payload.status, payload.notes, planId, req.user.id],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: '协作计划暂时无法更新' });
-      if (!result.affectedRows) return res.status(404).json({ error: '协作计划不存在' });
-      res.json({ success: true, message: '协作计划已更新' });
+    `SELECT p.id, p.owner_user_id, p.therapist_id, p.title, p.goal, p.frequency, p.responsible_person,
+            p.stop_conditions, p.review_date, p.status, p.confirmation_status, p.professional_note,
+            p.reviewed_at, p.version, p.created_at, p.updated_at
+     FROM professional_plans p JOIN therapists t ON t.id=p.therapist_id ${where}
+     ORDER BY p.updated_at DESC LIMIT 100`,
+    params,
+    (err, rows) => err ? res.status(500).json({ error: '待确认计划暂时无法读取' }) : res.json({ success: true, plans: rows })
+  );
+});
+
+router.post('/plans/:planId/review', auth, requireRole('therapist', 'admin'), (req, res) => {
+  const planId = positiveId(req.params.planId);
+  const decision = clean(req.body.decision, 20);
+  const note = clean(req.body.note, 1000);
+  if (!planId || !REVIEW_DECISIONS.has(decision)) return res.status(400).json({ error: '计划编号或审核决定无效' });
+  if (decision === 'returned' && note.length < 5) return res.status(400).json({ error: '退回时请说明需要修改的具体内容' });
+  const ownership = req.user.role === 'admin' ? '' : 'AND t.user_id=?';
+  const params = req.user.role === 'admin' ? [planId] : [planId, req.user.id];
+  db.query(
+    `SELECT p.id, p.owner_user_id, p.confirmation_status, p.title FROM professional_plans p
+     JOIN therapists t ON t.id=p.therapist_id WHERE p.id=? ${ownership}`,
+    params,
+    (readErr, rows) => {
+      if (readErr) return res.status(500).json({ error: '计划审核暂时不可用' });
+      if (!rows.length) return res.status(404).json({ error: '计划不存在或未分配给当前专业账号' });
+      const plan = rows[0];
+      if (plan.confirmation_status !== 'pending') return res.status(409).json({ error: '该版本计划已经处理，请让家长修改后重新提交' });
+      db.query(
+        `UPDATE professional_plans SET confirmation_status=?, professional_note=?, reviewed_at=NOW(), reviewed_by_user_id=?, version=version+1
+         WHERE id=? AND confirmation_status='pending'`,
+        [decision, note || null, req.user.id, planId],
+        (updateErr, result) => {
+          if (updateErr) return res.status(500).json({ error: '计划审核暂时无法保存' });
+          if (!result.affectedRows) return res.status(409).json({ error: '计划版本已变化，请刷新后重试' });
+          recordPlanEvent(planId, req.user, decision, 'pending', decision, note, eventErr => {
+            if (eventErr) return res.status(500).json({ error: '审核已保存，但审计记录失败，请联系管理员核查' });
+            sendTrustedNotification(plan.owner_user_id, decision === 'confirmed' ? '协作计划已确认' : '协作计划需要修改', `“${plan.title}”${decision === 'confirmed' ? '已由专业人员确认，可由家长决定是否开始。' : `已退回：${note}`}`, notificationErr => {
+              if (notificationErr) return res.status(500).json({ error: '审核已保存，但家长通知失败，请勿假设对方已收到' });
+              res.json({ success: true, confirmation_status: decision, message: decision === 'confirmed' ? '计划已确认' : '计划已退回家长修改' });
+            });
+          });
+        }
+      );
     }
   );
+});
+
+router.get('/plans/:planId/events', auth, (req, res) => {
+  const planId = positiveId(req.params.planId);
+  if (!planId) return res.status(400).json({ error: '计划编号无效' });
+  const accessSql = req.user.role === 'parent'
+    ? 'SELECT id FROM professional_plans WHERE id=? AND owner_user_id=?'
+    : req.user.role === 'therapist'
+      ? 'SELECT p.id FROM professional_plans p JOIN therapists t ON t.id=p.therapist_id WHERE p.id=? AND t.user_id=?'
+      : 'SELECT id FROM professional_plans WHERE id=?';
+  db.query(accessSql, [planId, ...(req.user.role === 'admin' ? [] : [req.user.id])], (accessErr, rows) => {
+    if (accessErr) return res.status(500).json({ error: '计划审计暂时无法读取' });
+    if (!rows.length) return res.status(404).json({ error: '计划不存在或无权查看' });
+    db.query('SELECT id, actor_user_id, actor_role, action, from_status, to_status, note, created_at FROM professional_plan_events WHERE plan_id=? ORDER BY created_at ASC, id ASC', [planId], (err, events) => {
+      if (err) return res.status(500).json({ error: '计划审计暂时无法读取' });
+      res.json({ success: true, events });
+    });
+  });
 });
 
 router.get('/:id', (req, res) => {

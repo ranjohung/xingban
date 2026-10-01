@@ -75,6 +75,21 @@ with sync_playwright() as p:
     assert page.get_by_text("120", exact=False).count() >= 1, "紧急支持缺少120指引"
     page.screenshot(path=str(OUT / "emergency-mobile.png"), full_page=True)
 
+    if EXPECT_SERVER:
+        page.evaluate("navigateTo('therapist')")
+        assert page.get_by_text("等待对方确认", exact=False).count() >= 1, "家长端未显示专业确认状态"
+        page.evaluate("handleLogout()")
+        page.locator("#login-phone").fill(os.environ["XINGBAN_TEST_THERAPIST_PHONE"])
+        page.locator("#login-password").fill(os.environ["XINGBAN_TEST_PASSWORD"])
+        page.locator("#login-page form button[type=submit]").click()
+        page.wait_for_selector("#main-app:not(.hidden)")
+        page.evaluate("navigateTo('therapist')")
+        page.get_by_text("确认本版本", exact=True).click()
+        page.locator("#plan-review-note").fill("目标、频率和停止条件清楚，可以由家长决定是否开始。")
+        page.locator('button[onclick^="submitPlanReview"]:visible').click()
+        page.wait_for_timeout(150)
+        assert page.get_by_text("已确认", exact=True).count() >= 1, "专业端确认结果未回写"
+
     if not EXPECT_SERVER:
         page.evaluate("navigateTo('community')")
         page.evaluate("showNewPost()")
