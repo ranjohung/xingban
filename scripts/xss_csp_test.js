@@ -14,7 +14,7 @@ assert(html.includes("object-src 'none'"), '前端 CSP 未禁止插件对象');
 assert(html.includes("script-src 'self'; script-src-attr 'unsafe-inline'"), '脚本元素未限制为同源外部文件');
 assert(!html.includes('<script>'), '页面仍包含内联脚本块');
 const inlineHandlers = (html.match(/on(?:click|change|input|submit|keydown|error)="/g) || []).length;
-assert(inlineHandlers <= 157, `内联事件属性回升：${inlineHandlers}`);
+assert(inlineHandlers <= 120, `内联事件属性回升：${inlineHandlers}`);
 assert(!html.includes('onclick="closeTopModal()"') && !html.includes("onclick=\"this.closest('.fixed').remove()\"") && !html.includes('onclick="window.print()"'), '已迁移的通用事件处理器发生回退');
 assert(html.includes("base-uri 'self'"), '前端 CSP 未限制 base URI');
 assert(html.includes("frame-src 'none'"), '前端 CSP 未禁止 frame');

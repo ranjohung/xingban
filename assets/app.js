@@ -1267,7 +1267,7 @@
             <section><h4 class="font-bold text-text-primary mb-3">开始前准备</h4><div class="grid sm:grid-cols-3 gap-2">${guide.prepare.map((item, index) => `<div class="rounded-xl bg-background p-3 text-sm text-text-secondary"><span class="text-primary font-bold mr-1">${index + 1}.</span>${item}</div>`).join('')}</div></section>
             <section>
               <div class="flex items-center justify-between mb-3"><h4 class="font-bold text-text-primary">跟着做</h4><div class="flex items-center gap-2 text-xs text-text-muted"><span id="strategy-progress-${id}">${progress.size}/${guide.steps.length}</span><div class="w-20 h-1.5 rounded-full bg-gray-200 overflow-hidden"><div id="strategy-progress-bar-${id}" class="h-full bg-primary rounded-full transition-all" style="width:${Math.round(progress.size / guide.steps.length * 100)}%"></div></div></div></div>
-              <div class="space-y-3">${guide.steps.map((step, index) => `<label class="flex gap-3 p-4 rounded-xl border border-border bg-white cursor-pointer hover:border-primary/40"><input type="checkbox" class="mt-1 w-4 h-4 accent-primary" ${progress.has(index) ? 'checked' : ''} onchange="toggleStrategyStep(${id},${index},this.checked)"><span class="w-7 h-7 shrink-0 rounded-full bg-primary text-white text-sm font-bold flex items-center justify-center">${index + 1}</span><span><strong class="block text-sm text-text-primary mb-1">${step[0]}</strong><span class="block text-sm leading-6 text-text-secondary">${step[1]}</span></span></label>`).join('')}</div>
+              <div class="space-y-3">${guide.steps.map((step, index) => `<label class="flex gap-3 p-4 rounded-xl border border-border bg-white cursor-pointer hover:border-primary/40"><input type="checkbox" class="mt-1 w-4 h-4 accent-primary" ${progress.has(index) ? 'checked' : ''} data-ui-change="strategyStep" data-strategy="${Number(id)}" data-step="${Number(index)}"><span class="w-7 h-7 shrink-0 rounded-full bg-primary text-white text-sm font-bold flex items-center justify-center">${index + 1}</span><span><strong class="block text-sm text-text-primary mb-1">${step[0]}</strong><span class="block text-sm leading-6 text-text-secondary">${step[1]}</span></span></label>`).join('')}</div>
             </section>
             <section class="rounded-xl border border-primary/20 overflow-hidden"><div class="px-4 py-3 bg-primary-light/20 text-sm font-bold text-text-primary">可以直接照着说</div><blockquote class="p-4 text-sm leading-6 text-text-primary border-l-4 border-primary m-4 bg-background rounded-r-lg">${guide.script}</blockquote></section>
             <section class="rounded-xl bg-amber-50 border border-amber-200 p-4"><div class="text-sm font-bold text-amber-800 mb-1">注意避免</div><p class="text-sm leading-6 text-amber-900/80">${guide.avoid}</p></section>
@@ -1440,7 +1440,7 @@
                 <line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
               <input type="text" id="records-search" placeholder="搜索记录..." value="${escapeText(recordsFilter.search)}"
-                oninput="onRecordsSearch(this.value)"
+                data-ui-input="records"
                 class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary">
             </div>
             <button data-ui-call="showNewRecord" class="px-4 py-2.5 bg-primary text-white rounded-xl font-medium flex items-center gap-2">
@@ -1454,7 +1454,7 @@
 
           <!-- 儿童筛选 -->
           <div class="flex gap-2 overflow-x-auto scrollbar-hide">
-            <button onclick="filterRecordsByChild(null)" class="px-4 py-2 rounded-lg ${recordsFilter.childId === null ? 'bg-primary text-white' : 'bg-white border border-border text-text-secondary'} text-sm whitespace-nowrap">全部</button>
+            <button data-ui-call="filterRecordsByChild" data-ui-args='[null]' class="px-4 py-2 rounded-lg ${recordsFilter.childId === null ? 'bg-primary text-white' : 'bg-white border border-border text-text-secondary'} text-sm whitespace-nowrap">全部</button>
             ${MOCK_DATA.children.map(c => `
               <button onclick="filterRecordsByChild(${c.id})" class="px-4 py-2 rounded-lg ${recordsFilter.childId === c.id ? 'bg-primary text-white' : 'bg-white border border-border text-text-secondary'} text-sm whitespace-nowrap">${c.name}</button>
             `).join('')}
@@ -1583,7 +1583,7 @@
                     <polyline points="21 15 16 10 5 21"/>
                   </svg>
                   <span class="text-sm text-text-secondary">点击拍照或选择图片</span>
-                  <input type="file" accept="image/*" capture="environment" onchange="handlePhotoSelect(event)" class="hidden">
+                  <input type="file" accept="image/*" capture="environment" data-ui-change="photo" class="hidden">
                 </label>
                 <div id="photo-preview" class="mt-3 hidden">
                   <img id="photo-preview-img" class="w-full rounded-xl max-h-40 object-cover" src="" alt="预览">
@@ -1594,7 +1594,7 @@
             <div class="flex gap-4">
               <div class="flex-1">
                 <label class="block text-sm text-text-secondary mb-1">行为分类</label>
-                <select id="record-category" onchange="handleRiskCategory(this.value)" class="w-full px-4 py-2.5 rounded-xl border border-border bg-white">
+                <select id="record-category" data-ui-change="risk" class="w-full px-4 py-2.5 rounded-xl border border-border bg-white">
                   <option value="情绪爆发">情绪爆发</option>
                   <option value="刻板行为">刻板行为</option>
                   <option value="攻击行为">攻击行为</option>
@@ -1638,7 +1638,7 @@
             </details>
             <div>
               <label class="block text-sm text-text-secondary mb-1">强度等级: <span id="intensity-value">中等</span></label>
-              <input type="range" min="1" max="3" value="2" oninput="updateIntensity(this.value)" class="w-full accent-primary">
+              <input type="range" min="1" max="3" value="2" data-ui-input="intensity" class="w-full accent-primary">
               <input type="hidden" id="record-intensity" value="medium">
               <div class="grid grid-cols-3 gap-2 mt-2 text-xs text-text-muted"><span><strong>低：</strong>可继续日常活动</span><span><strong>中：</strong>明显中断，需成人支持</span><span><strong>高：</strong>无法保持安全或基本活动</span></div>
             </div>
@@ -2025,7 +2025,7 @@
             </div>
             <div>
               <label class="block text-sm text-text-secondary mb-1">强度等级: <span id="edit-intensity-value">${record.intensity <= 3 ? '低' : record.intensity <= 6 ? '中等' : '高'}</span></label>
-              <input type="range" min="1" max="10" value="${record.intensity}" oninput="document.getElementById('edit-intensity-value').textContent = this.value <= 3 ? '低' : this.value <= 6 ? '中等' : '高'" class="w-full accent-primary">
+              <input type="range" min="1" max="10" value="${record.intensity}" data-ui-input="editIntensity" class="w-full accent-primary">
             </div>
             <button onclick="saveEditRecord(${id})" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存修改</button>
           </div>
@@ -2123,7 +2123,7 @@
         <div class="text-danger text-xs font-bold">即时安全优先</div><h2 class="text-2xl font-bold mt-1">现在请立即联系专业急救</h2>
         <ol class="mt-4 space-y-3 text-sm leading-6 list-decimal pl-5"><li>不要让孩子独处，保持安全距离和冷静语气。</li><li>在不引发冲突的前提下，移开可安全移除的药物、刀具、绳索等危险物。</li><li>拨打 120；存在暴力、失联或公共危险时同时拨打 110。</li><li>联系既往就诊医院或主治精神科医生，并准确说明自伤/伤人、用药、睡眠和异常行为。</li></ol>
         <p class="mt-4 p-3 rounded-xl bg-amber-50 text-amber-900 text-sm">不要仅依赖本应用、社区回复或呼吸练习处理即时危险。</p>
-        <div class="grid grid-cols-2 gap-2 mt-5"><button onclick="callEmergencyContact('120','急救')" class="py-3 rounded-xl bg-danger text-white font-bold">拨打 120</button><button onclick="callEmergencyContact('110','报警')" class="py-3 rounded-xl bg-red-800 text-white font-bold">拨打 110</button></div>
+        <div class="grid grid-cols-2 gap-2 mt-5"><button data-ui-call="callEmergencyContact" data-ui-args='["120","急救"]' class="py-3 rounded-xl bg-danger text-white font-bold">拨打 120</button><button data-ui-call="callEmergencyContact" data-ui-args='["110","报警"]' class="py-3 rounded-xl bg-red-800 text-white font-bold">拨打 110</button></div>
         <button data-ui-action="close-top-modal" class="w-full mt-2 py-3 rounded-xl border border-border">关闭</button>
       </div>`;
       document.body.appendChild(modal);
@@ -2161,7 +2161,7 @@
             <button data-ui-call="showSafetyPlan" class="mb-4 w-full py-3.5 rounded-xl bg-white border-2 border-primary/30 text-primary-dark text-sm font-bold shadow-sm hover:bg-primary-light/20">查看 / 编辑家庭安全计划</button>
 
             <div class="space-y-4">
-              <button onclick="startEmergency('green')" class="w-full bg-white border-2 border-green-500 rounded-2xl p-5 text-left text-[#17212b] shadow-sm hover:bg-green-50 transition-colors active:scale-[0.98]">
+              <button data-ui-call="startEmergency" data-ui-args='["green"]' class="w-full bg-white border-2 border-green-500 rounded-2xl p-5 text-left text-[#17212b] shadow-sm hover:bg-green-50 transition-colors active:scale-[0.98]">
                 <div class="flex items-center gap-4">
                   <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
                     <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2176,7 +2176,7 @@
                 </div>
               </button>
 
-              <button onclick="startEmergency('yellow')" class="w-full bg-white border-2 border-amber-500 rounded-2xl p-5 text-left text-[#17212b] shadow-sm hover:bg-amber-50 transition-colors active:scale-[0.98]">
+              <button data-ui-call="startEmergency" data-ui-args='["yellow"]' class="w-full bg-white border-2 border-amber-500 rounded-2xl p-5 text-left text-[#17212b] shadow-sm hover:bg-amber-50 transition-colors active:scale-[0.98]">
                 <div class="flex items-center gap-4">
                   <div class="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center">
                     <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2220,12 +2220,12 @@
                     <div class="text-[#66727d] text-xs mt-0.5">${c.phone}</div>
                   </button>
                 `).join('')}
-                <button onclick="callEmergencyContact('110', '报警')" class="flex-1 bg-red-50 border-2 border-red-300 rounded-xl p-3 text-center hover:bg-red-100 transition-colors active:scale-[0.96]">
+                <button data-ui-call="callEmergencyContact" data-ui-args='["110","报警"]' class="flex-1 bg-red-50 border-2 border-red-300 rounded-xl p-3 text-center hover:bg-red-100 transition-colors active:scale-[0.96]">
                   <div class="text-lg mb-1">🚨</div>
                   <div class="text-red-800 text-sm font-bold">110</div>
                   <div class="text-red-700 text-xs">报警</div>
                 </button>
-                <button onclick="callEmergencyContact('120', '急救')" class="flex-1 bg-red-50 border-2 border-red-300 rounded-xl p-3 text-center hover:bg-red-100 transition-colors active:scale-[0.96]">
+                <button data-ui-call="callEmergencyContact" data-ui-args='["120","急救"]' class="flex-1 bg-red-50 border-2 border-red-300 rounded-xl p-3 text-center hover:bg-red-100 transition-colors active:scale-[0.96]">
                   <div class="text-lg mb-1">🚑</div>
                   <div class="text-red-800 text-sm font-bold">120</div>
                   <div class="text-red-700 text-xs">急救</div>
@@ -2347,8 +2347,8 @@
             </button>
 
             <div class="mt-6 flex gap-3">
-              <button onclick="callEmergencyContact('110', '报警')" class="flex-1 py-2.5 rounded-xl bg-red-50 border-2 border-red-300 text-red-800 text-sm font-bold hover:bg-red-100 transition-colors active:scale-[0.98]">🚨 报警 110</button>
-              <button onclick="callEmergencyContact('120', '急救')" class="flex-1 py-2.5 rounded-xl bg-red-50 border-2 border-red-300 text-red-800 text-sm font-bold hover:bg-red-100 transition-colors active:scale-[0.98]">🚑 急救 120</button>
+              <button data-ui-call="callEmergencyContact" data-ui-args='["110","报警"]' class="flex-1 py-2.5 rounded-xl bg-red-50 border-2 border-red-300 text-red-800 text-sm font-bold hover:bg-red-100 transition-colors active:scale-[0.98]">🚨 报警 110</button>
+              <button data-ui-call="callEmergencyContact" data-ui-args='["120","急救"]' class="flex-1 py-2.5 rounded-xl bg-red-50 border-2 border-red-300 text-red-800 text-sm font-bold hover:bg-red-100 transition-colors active:scale-[0.98]">🚑 急救 120</button>
             </div>
 
             <button data-nav="emergency" class="mt-4 text-primary-dark text-sm font-bold hover:underline">← 返回选择</button>
@@ -2501,7 +2501,7 @@
 
           <div class="relative">
             <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="search" id="strategies-search" aria-label="搜索孩子的行为或场景" placeholder="例如：撞头、捂耳、不开口、突然不睡觉" value="${strategiesFilter.search}" oninput="onStrategiesSearch(this.value)" class="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+            <input type="search" id="strategies-search" aria-label="搜索孩子的行为或场景" placeholder="例如：撞头、捂耳、不开口、突然不睡觉" value="${strategiesFilter.search}" data-ui-input="strategies" class="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary">
           </div>
 
           ${urgent ? `<section class="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-900"><strong class="block mb-1">当前分类可能需要紧急或医疗支持</strong>如不能保证安全、孩子意识异常、服药过量、有自杀计划或处于道路/水边/高处，请不要继续浏览教程，立即拨打 120/110 并联系既往就诊机构。</section>` : ''}
@@ -2889,7 +2889,7 @@
           ${d && d.groups ? `<section class="rounded-2xl bg-white border border-border p-4">
             <h4 class="font-bold text-text-primary text-sm">按主题看</h4>
             <div class="flex flex-wrap gap-2 mt-3">
-              <button onclick="filterDialogues('all')" class="px-3 py-1.5 rounded-lg text-xs ${st.group === 'all' ? 'bg-primary text-white' : 'bg-background border border-border text-text-secondary'}">全部 ${all.length}</button>
+              <button data-ui-call="filterDialogues" data-ui-args='["all"]' class="px-3 py-1.5 rounded-lg text-xs ${st.group === 'all' ? 'bg-primary text-white' : 'bg-background border border-border text-text-secondary'}">全部 ${all.length}</button>
               ${d.groups.map(g => `<button onclick="filterDialogues('${escapeText(g.key).replace(/'/g, '')}')" class="px-3 py-1.5 rounded-lg text-xs ${st.group === g.key ? 'bg-primary text-white' : 'bg-background border border-border text-text-secondary'}">${g.kind === 'tech' ? '技术 · ' : (g.kind === 'scene' ? '场景 · ' : '')}${escapeText(g.key)} ${g.count}</button>`).join('')}
             </div>
           </section>` : ''}
@@ -2940,8 +2940,8 @@
           <div class="flex justify-between gap-3"><div><h3 class="font-bold text-text-primary">${escapeText(doc.title || '')}</h3><p class="text-xs text-text-muted mt-1">《${escapeText(doc.source)}》 · ${doc.turns} 轮${doc.scenes && doc.scenes.length ? ' · ' + escapeText(doc.scenes[0]) : ''}</p></div><button data-ui-action="remove-overlay" class="w-9 h-9 rounded-full bg-background shrink-0" aria-label="关闭">✕</button></div>
           <div class="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-[11px] leading-6 text-amber-900">这是教材里的专业示范对话，<strong>不是家庭话术模板</strong>；${doc.needsRewrite ? '下面正文的称谓已按家长语境改写（只换称谓词、未新增内容），' : ''}可切到原文逐字核对。</div>
           <div class="flex gap-2 mt-3">
-            <button id="dlg-tab-soft" onclick="switchDialogueTab('soft')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-white">家长语境版</button>
-            <button id="dlg-tab-raw" onclick="switchDialogueTab('raw')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-background border border-border text-text-secondary">原书原文</button>
+            <button id="dlg-tab-soft" data-ui-call="switchDialogueTab" data-ui-args='["soft"]' class="px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-white">家长语境版</button>
+            <button id="dlg-tab-raw" data-ui-call="switchDialogueTab" data-ui-args='["raw"]' class="px-3 py-1.5 rounded-lg text-xs font-bold bg-background border border-border text-text-secondary">原书原文</button>
           </div>
           <pre id="dlg-body" class="mt-3 text-sm leading-7 text-text-primary whitespace-pre-wrap font-sans">${escapeText(doc.needsRewrite ? doc.softened : doc.original)}</pre>
           <p class="mt-4 pt-3 border-t border-border text-[11px] text-text-muted">出处：《${escapeText(doc.source)}》 · ${escapeText(doc.title || '')}${doc.scanQuality === 'weak' ? '（该来源扫描质量欠佳，请对照原书）' : ''}</p>
@@ -3320,7 +3320,7 @@
             </div>
             <div>
               <label class="block text-sm text-text-secondary mb-1">诊断类型</label>
-              <select id="child-diagnosis" onchange="document.getElementById('child-other-diagnosis').classList.toggle('hidden',this.value!=='OTHER')" class="w-full px-4 py-2.5 rounded-xl border border-border">
+              <select id="child-diagnosis" data-ui-change="diagnosis" class="w-full px-4 py-2.5 rounded-xl border border-border">
                 <option value="UNCONFIRMED">未确诊 / 评估中</option>
                 <option value="ADHD">注意力缺陷多动障碍 (ADHD)</option>
                 <option value="DD">发育迟缓 (DD)</option>
@@ -4040,7 +4040,7 @@
           </div>
           <!-- 发送消息 -->
           <div class="bg-white rounded-xl card-shadow p-3 flex gap-2">
-            <input type="text" id="peer-message-input" maxlength="500" placeholder="体验消息：不要填写姓名、电话、住址、病历或学校信息" class="flex-1 px-3 py-2 rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" onkeydown="if(event.key==='Enter')sendPeerMessage()">
+            <input type="text" id="peer-message-input" maxlength="500" placeholder="体验消息：不要填写姓名、电话、住址、病历或学校信息" class="flex-1 px-3 py-2 rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" data-ui-enter="send-peer">
             <button data-ui-call="sendPeerMessage" class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium">发送</button>
           </div>
         </div>`;
@@ -4227,7 +4227,7 @@
             <p class="text-xs text-text-muted mt-1">1=不孤独，10=极度孤独</p>
           </div>
           <div class="mb-6">
-            <input type="range" id="loneliness-slider" min="1" max="10" value="${MOCK_DATA.lonelinessAssessment.current_score}" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary" oninput="document.getElementById('loneliness-score-display').textContent=this.value">
+            <input type="range" id="loneliness-slider" min="1" max="10" value="${MOCK_DATA.lonelinessAssessment.current_score}" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary" data-ui-input="loneliness">
             <div class="flex justify-between text-xs text-text-muted mt-1">
               <span>1</span><span>5</span><span>10</span>
             </div>
@@ -4298,10 +4298,10 @@
           </div>
           <div class="bg-white rounded-xl card-shadow p-4"><h3 class="font-bold text-text-primary mb-3">更多家庭支持</h3><div class="grid grid-cols-2 gap-3">
             <button data-ui-call="showCaregiverAccessCenter" class="col-span-2 p-3 rounded-xl bg-teal-50 text-left"><strong class="block text-teal-900">共同照护授权</strong><span class="text-xs text-teal-700">各自账号 · 儿童级范围 · 可随时撤销</span></button>
-            <button onclick="showFamilyTool('caregiver')" class="p-3 rounded-xl bg-blue-50 text-left"><strong class="block text-blue-900">照护者支持</strong><span class="text-xs text-blue-700">替班与恢复计划</span></button>
-            <button onclick="showFamilyTool('grandparent')" class="p-3 rounded-xl bg-amber-50 text-left"><strong class="block text-amber-900">隔代沟通</strong><span class="text-xs text-amber-700">三种表达模板</span></button>
-            <button onclick="showFamilyTool('sibling')" class="p-3 rounded-xl bg-purple-50 text-left"><strong class="block text-purple-900">手足专属时光</strong><span class="text-xs text-purple-700">活动计划与记录</span></button>
-            <button onclick="showFamilyTool('cbt')" class="p-3 rounded-xl bg-green-50 text-left"><strong class="block text-green-900">思维记录</strong><span class="text-xs text-green-700">五步整理压力</span></button>
+            <button data-ui-call="showFamilyTool" data-ui-args='["caregiver"]' class="p-3 rounded-xl bg-blue-50 text-left"><strong class="block text-blue-900">照护者支持</strong><span class="text-xs text-blue-700">替班与恢复计划</span></button>
+            <button data-ui-call="showFamilyTool" data-ui-args='["grandparent"]' class="p-3 rounded-xl bg-amber-50 text-left"><strong class="block text-amber-900">隔代沟通</strong><span class="text-xs text-amber-700">三种表达模板</span></button>
+            <button data-ui-call="showFamilyTool" data-ui-args='["sibling"]' class="p-3 rounded-xl bg-purple-50 text-left"><strong class="block text-purple-900">手足专属时光</strong><span class="text-xs text-purple-700">活动计划与记录</span></button>
+            <button data-ui-call="showFamilyTool" data-ui-args='["cbt"]' class="p-3 rounded-xl bg-green-50 text-left"><strong class="block text-green-900">思维记录</strong><span class="text-xs text-green-700">五步整理压力</span></button>
           </div></div>
         </div>
       `;
@@ -5032,7 +5032,7 @@
 
     function startMissingChildMode() {
       const p=JSON.parse(localStorage.getItem('xingban_wandering_plan')||'{}'); const modal=document.createElement('div');modal.className='fixed inset-0 bg-red-950/90 flex items-center justify-center z-[80] p-3';modal.dataset.modal='true';
-      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[94vh] overflow-y-auto"><div class="text-xs font-bold text-red-700">走失立即行动</div><h2 class="text-2xl font-bold mt-1">不要独自盲目寻找</h2><ol class="mt-4 space-y-3 list-decimal pl-5 text-sm leading-6"><li>立即确认最后出现的时间、地点和衣着，安排一名成人留在原地。</li><li>拨打 110，说明孩子年龄、沟通特点、诊断/特殊需要及可能去向。</li><li>分工检查水边、道路、交通站点、高处和孩子常去地点，不进入危险区域。</li><li>向场所工作人员出示近期照片；不要在公开群发送身份证号或完整住址。</li></ol><div class="mt-4 p-3 bg-background rounded-xl text-sm"><strong>预案摘要：</strong><p class="mt-1">常去地点：${escapeText(p.places||'尚未填写')}</p><p>沟通注意：${escapeText(p.communication||'尚未填写')}</p><p>家庭分工：${escapeText(p.contacts||'尚未填写')}</p></div><div class="grid grid-cols-2 gap-2 mt-4"><button onclick="callEmergencyContact('110','报警')" class="py-3 bg-red-700 text-white rounded-xl font-bold">拨打 110</button><button data-ui-call="showEmergencyContactManager" class="py-3 border border-border rounded-xl font-bold">联系家人</button></div><button data-ui-action="close-top-modal" class="w-full mt-2 py-3 text-text-secondary">取消 / 已找回</button></div>`;document.body.appendChild(modal);
+      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[94vh] overflow-y-auto"><div class="text-xs font-bold text-red-700">走失立即行动</div><h2 class="text-2xl font-bold mt-1">不要独自盲目寻找</h2><ol class="mt-4 space-y-3 list-decimal pl-5 text-sm leading-6"><li>立即确认最后出现的时间、地点和衣着，安排一名成人留在原地。</li><li>拨打 110，说明孩子年龄、沟通特点、诊断/特殊需要及可能去向。</li><li>分工检查水边、道路、交通站点、高处和孩子常去地点，不进入危险区域。</li><li>向场所工作人员出示近期照片；不要在公开群发送身份证号或完整住址。</li></ol><div class="mt-4 p-3 bg-background rounded-xl text-sm"><strong>预案摘要：</strong><p class="mt-1">常去地点：${escapeText(p.places||'尚未填写')}</p><p>沟通注意：${escapeText(p.communication||'尚未填写')}</p><p>家庭分工：${escapeText(p.contacts||'尚未填写')}</p></div><div class="grid grid-cols-2 gap-2 mt-4"><button data-ui-call="callEmergencyContact" data-ui-args='["110","报警"]' class="py-3 bg-red-700 text-white rounded-xl font-bold">拨打 110</button><button data-ui-call="showEmergencyContactManager" class="py-3 border border-border rounded-xl font-bold">联系家人</button></div><button data-ui-action="close-top-modal" class="w-full mt-2 py-3 text-text-secondary">取消 / 已找回</button></div>`;document.body.appendChild(modal);
     }
 
     async function renderStories(container) {
@@ -5523,7 +5523,7 @@
               <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
             <input type="text" id="community-search" placeholder="搜索帖子..." value="${escapeText(communityFilter.search)}"
-              oninput="onCommunitySearch(this.value)"
+              data-ui-input="community"
               class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary">
           </div>
 
@@ -7133,11 +7133,15 @@
         else if (action === 'print') window.print();
         else if (action === 'close-and-navigate') { closeTopModal(); navigateTo(trigger.dataset.nav); }
         else if (trigger.dataset.uiCall) {
-          const calls={acceptCaregiverInvitation,addEmergencyContact,askKnowledge,changePassword,checkIn,clearCache,clearKnowledge,clearProfessionalBrief,closeStoryReader,confirmClearCache,confirmExportFromModal,copyProfessionalBrief,createCaregiverInvitation,createPost,createStory,exportData,finishStrategyNavigator,generateProfessionalBrief,generateReport,handleLogout,handleRegister,hideRegister,markAllRead,runAIAnalysis,runCareerSimulation,runSecurityAlertScan,runWeeklyReportJobs,saveCareerGoal,saveChild,saveExpense,saveGoal,saveGratitude,saveManualProfessionalPlan,saveMentalHealthProfile,saveMilestone,saveProfile,saveRecord,saveSafetyPlan,saveWanderingPlan,sendPeerMessage,showAbout,showAuthorizationCenter,showCaregiverAccessCenter,showChangePassword,showDataDeletionCenter,showDataDeletionRequestForm,showEditProfile,showEmergencyContactManager,showFeedback,showImmediateDangerHelp,showLonelinessAssessModal,showManualProfessionalPlanEditor,showMentalHealthProfileEditor,showMentalHealthTriage,showMoreStrategies,showMyCommunityReports,showNewCareerGoal,showNewChild,showNewExpense,showNewGoal,showNewGratitude,showNewMilestone,showNewPost,showNewRecord,showNewReport,showNewStory,showPrivacyPolicy,showProfessionalIntake,showRegister,showSafetyPlan,showSafetyProfile,showSafetySkills,showSecurityOperations,showStrategyNavigator,showWanderingPlan,startMissingChildMode,storyNextParagraph,storyPrevParagraph,submitDataDeletionRequest,submitFeedback,submitFraudReport,toggleVoiceRecording};
-          calls[trigger.dataset.uiCall]?.();
+          const calls={acceptCaregiverInvitation,addEmergencyContact,askKnowledge,callEmergencyContact,changePassword,checkIn,clearCache,clearKnowledge,clearProfessionalBrief,closeStoryReader,confirmClearCache,confirmExportFromModal,copyProfessionalBrief,createCaregiverInvitation,createPost,createStory,exportData,filterDialogues,filterRecordsByChild,finishEmergencySession,finishStrategyNavigator,generateProfessionalBrief,generateReport,handleLogout,handleRegister,hideRegister,markAllRead,runAIAnalysis,runCareerSimulation,runSecurityAlertScan,runWeeklyReportJobs,saveCareerGoal,saveChild,saveExpense,saveGoal,saveGratitude,saveManualProfessionalPlan,saveMentalHealthProfile,saveMilestone,saveProfile,saveRecord,saveSafetyPlan,saveWanderingPlan,sendPeerMessage,showAbout,showAuthorizationCenter,showCaregiverAccessCenter,showChangePassword,showDataDeletionCenter,showDataDeletionRequestForm,showEditProfile,showEmergencyContactManager,showEmergencyStrategies,showFamilyTool,showFeedback,showImmediateDangerHelp,showLonelinessAssessModal,showManualProfessionalPlanEditor,showMentalHealthProfileEditor,showMentalHealthTriage,showMoreStrategies,showMyCommunityReports,showNewCareerGoal,showNewChild,showNewExpense,showNewGoal,showNewGratitude,showNewMilestone,showNewPost,showNewRecord,showNewReport,showNewStory,showPrivacyPolicy,showProfessionalIntake,showRegister,showSafetyPlan,showSafetyProfile,showSafetySkills,showSecurityOperations,showStrategyNavigator,showWanderingPlan,startEmergency,startMissingChildMode,storyNextParagraph,storyPrevParagraph,submitDataDeletionRequest,submitFeedback,submitFraudReport,switchDialogueTab,toggleVoiceRecording};
+          let args=[];try{args=JSON.parse(trigger.dataset.uiArgs||'[]')}catch(_){return}calls[trigger.dataset.uiCall]?.(...args);
         }
         else if (trigger.dataset.nav) navigateTo(trigger.dataset.nav);
       });
+      document.addEventListener('input',event=>{const el=event.target.closest('[data-ui-input]');if(!el)return;const actions={records:()=>onRecordsSearch(el.value),strategies:()=>onStrategiesSearch(el.value),community:()=>onCommunitySearch(el.value),intensity:()=>updateIntensity(el.value),editIntensity:()=>{document.getElementById('edit-intensity-value').textContent=el.value<=3?'低':el.value<=6?'中等':'高'},loneliness:()=>{document.getElementById('loneliness-score-display').textContent=el.value}};actions[el.dataset.uiInput]?.()});
+      document.addEventListener('change',event=>{const el=event.target.closest('[data-ui-change]');if(!el)return;const actions={photo:()=>handlePhotoSelect(event),risk:()=>handleRiskCategory(el.value),diagnosis:()=>document.getElementById('child-other-diagnosis').classList.toggle('hidden',el.value!=='OTHER'),deletion:()=>toggleDeletionChildField(el.value),setting:()=>toggleSetting(el.dataset.setting,el.checked),strategyStep:()=>toggleStrategyStep(Number(el.dataset.strategy),Number(el.dataset.step),el.checked)};actions[el.dataset.uiChange]?.()});
+      document.addEventListener('keydown',event=>{if(event.target.closest('[data-ui-enter="send-peer"]')&&event.key==='Enter')sendPeerMessage()});
+      document.addEventListener('submit',event=>{if(event.target.matches('[data-ui-submit="login"]')){event.preventDefault();handleLogin()}});
       // 恢复全局应用状态
       loadAppState();
 
@@ -7197,9 +7201,9 @@
       container.innerHTML = `
         <div class="p-4 space-y-4 animate-fade-in">
           <div><h3 class="font-bold text-text-primary mb-3">照护减负</h3><div class="bg-white rounded-xl card-shadow overflow-hidden">
-            <label class="p-4 flex items-center justify-between border-b border-border"><span><span class="block font-medium">低负担模式</span><span class="text-xs text-text-muted">隐藏连续天数与非必要任务，只保留安全、记录和联系人</span></span><input type="checkbox" ${settingsState.lowBurdenMode?'checked':''} onchange="toggleSetting('lowBurdenMode',this.checked)" class="w-5 h-5 accent-primary"></label>
-            <label class="p-4 flex items-center justify-between border-b border-border"><span><span class="block font-medium">积分与成就</span><span class="text-xs text-text-muted">可关闭游戏化，不影响任何核心功能</span></span><input type="checkbox" ${settingsState.gamification?'checked':''} onchange="toggleSetting('gamification',this.checked)" class="w-5 h-5 accent-primary"></label>
-            <label class="p-4 flex items-center justify-between"><span><span class="block font-medium">夜间免打扰</span><span class="text-xs text-text-muted">22:00—08:00 仅保留安全类通知</span></span><input type="checkbox" ${settingsState.quietNight?'checked':''} onchange="toggleSetting('quietNight',this.checked)" class="w-5 h-5 accent-primary"></label>
+            <label class="p-4 flex items-center justify-between border-b border-border"><span><span class="block font-medium">低负担模式</span><span class="text-xs text-text-muted">隐藏连续天数与非必要任务，只保留安全、记录和联系人</span></span><input type="checkbox" ${settingsState.lowBurdenMode?'checked':''} data-ui-change="setting" data-setting="lowBurdenMode" class="w-5 h-5 accent-primary"></label>
+            <label class="p-4 flex items-center justify-between border-b border-border"><span><span class="block font-medium">积分与成就</span><span class="text-xs text-text-muted">可关闭游戏化，不影响任何核心功能</span></span><input type="checkbox" ${settingsState.gamification?'checked':''} data-ui-change="setting" data-setting="gamification" class="w-5 h-5 accent-primary"></label>
+            <label class="p-4 flex items-center justify-between"><span><span class="block font-medium">夜间免打扰</span><span class="text-xs text-text-muted">22:00—08:00 仅保留安全类通知</span></span><input type="checkbox" ${settingsState.quietNight?'checked':''} data-ui-change="setting" data-setting="quietNight" class="w-5 h-5 accent-primary"></label>
           </div></div>
           <!-- 通知偏好 -->
           <div>
@@ -7211,7 +7215,7 @@
                   <div class="text-xs text-text-muted">偏好开启；体验版不会自动发送每日提醒</div>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" ${settingsState.notifyBehavior ? 'checked' : ''} onchange="toggleSetting('notifyBehavior', this.checked)" class="sr-only peer">
+                  <input type="checkbox" ${settingsState.notifyBehavior ? 'checked' : ''} data-ui-change="setting" data-setting="notifyBehavior" class="sr-only peer">
                   <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 </label>
               </div>
@@ -7221,7 +7225,7 @@
                   <div class="text-xs text-text-muted">偏好开启；体验版不会在后台自动生成或推送</div>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" ${settingsState.notifyReport ? 'checked' : ''} onchange="toggleSetting('notifyReport', this.checked)" class="sr-only peer">
+                  <input type="checkbox" ${settingsState.notifyReport ? 'checked' : ''} data-ui-change="setting" data-setting="notifyReport" class="sr-only peer">
                   <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 </label>
               </div>
@@ -7231,7 +7235,7 @@
                   <div class="text-xs text-text-muted">真实社区接入后才会产生；当前为界面偏好</div>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" ${settingsState.notifyCommunity ? 'checked' : ''} onchange="toggleSetting('notifyCommunity', this.checked)" class="sr-only peer">
+                  <input type="checkbox" ${settingsState.notifyCommunity ? 'checked' : ''} data-ui-change="setting" data-setting="notifyCommunity" class="sr-only peer">
                   <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 </label>
               </div>
@@ -7241,7 +7245,7 @@
                   <div class="text-xs text-text-muted">偏好开启；不会把学习任务作为必须完成的照护考核</div>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" ${settingsState.notifyTraining ? 'checked' : ''} onchange="toggleSetting('notifyTraining', this.checked)" class="sr-only peer">
+                  <input type="checkbox" ${settingsState.notifyTraining ? 'checked' : ''} data-ui-change="setting" data-setting="notifyTraining" class="sr-only peer">
                   <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 </label>
               </div>
@@ -7402,7 +7406,7 @@
     }
     function showDataDeletionRequestForm(){
       const options=MOCK_DATA.children.map(child=>`<option value="${Number(child.id)}">${escapeText(child.name||child.nickname||'未命名儿童')}</option>`).join('');
-      const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[80] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML=`<div class="modal-content max-w-lg p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">新建删除申请</h2><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="mt-4 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-900"><strong>删除完成后不能恢复。</strong>账号级删除会移除账号及其儿童、记录和业务数据；为防止继续扩散，提交申请后现有分享会立即撤销。</div><label class="block mt-4 text-sm font-medium">删除范围<select id="deletion-scope" onchange="toggleDeletionChildField(this.value)" class="mt-1 w-full p-3 rounded-xl border border-border bg-white"><option value="child">某个儿童及关联数据</option><option value="account">整个账号及全部数据</option></select></label><label id="deletion-child-field" class="block mt-3 text-sm font-medium">选择儿童<select id="deletion-child" class="mt-1 w-full p-3 rounded-xl border border-border bg-white">${options}</select></label><label class="block mt-3 text-sm font-medium">原因（可选）<textarea id="deletion-reason" maxlength="500" rows="2" class="mt-1 w-full p-3 rounded-xl border border-border" placeholder="帮助处理人员确认范围，不要重复填写隐私详情"></textarea></label><label class="block mt-3 text-sm font-medium">输入 DELETE 确认<input id="deletion-confirmation" autocomplete="off" class="mt-1 w-full p-3 rounded-xl border border-red-300"></label><button data-ui-call="submitDataDeletionRequest" class="w-full mt-4 py-3 rounded-xl bg-red-700 text-white font-bold">提交删除申请</button></div>`;document.body.appendChild(modal);
+      const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[80] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML=`<div class="modal-content max-w-lg p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">新建删除申请</h2><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="mt-4 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-900"><strong>删除完成后不能恢复。</strong>账号级删除会移除账号及其儿童、记录和业务数据；为防止继续扩散，提交申请后现有分享会立即撤销。</div><label class="block mt-4 text-sm font-medium">删除范围<select id="deletion-scope" data-ui-change="deletion" class="mt-1 w-full p-3 rounded-xl border border-border bg-white"><option value="child">某个儿童及关联数据</option><option value="account">整个账号及全部数据</option></select></label><label id="deletion-child-field" class="block mt-3 text-sm font-medium">选择儿童<select id="deletion-child" class="mt-1 w-full p-3 rounded-xl border border-border bg-white">${options}</select></label><label class="block mt-3 text-sm font-medium">原因（可选）<textarea id="deletion-reason" maxlength="500" rows="2" class="mt-1 w-full p-3 rounded-xl border border-border" placeholder="帮助处理人员确认范围，不要重复填写隐私详情"></textarea></label><label class="block mt-3 text-sm font-medium">输入 DELETE 确认<input id="deletion-confirmation" autocomplete="off" class="mt-1 w-full p-3 rounded-xl border border-red-300"></label><button data-ui-call="submitDataDeletionRequest" class="w-full mt-4 py-3 rounded-xl bg-red-700 text-white font-bold">提交删除申请</button></div>`;document.body.appendChild(modal);
     }
     function toggleDeletionChildField(scope){document.getElementById('deletion-child-field')?.classList.toggle('hidden',scope==='account')}
     async function submitDataDeletionRequest(){
