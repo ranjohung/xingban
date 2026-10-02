@@ -105,10 +105,10 @@ with sync_playwright() as p:
         page.locator("#new-post-title").fill("现在很危险")
         page.locator("#new-post-content").fill("孩子说不想活并准备吞药")
         page.locator('button[onclick="createPost()"]:visible').click()
-        page.wait_for_selector('button[onclick*="navigateTo(\'emergency\')"]:visible')
+        page.wait_for_selector('button[data-nav="emergency"]:visible')
         assert page.locator("text=120/110").count() >= 1, "危机内容暂缓公开后缺少即时求助指引"
         page.screenshot(path=str(OUT / "community-crisis-hold-mobile.png"), full_page=True)
-        page.locator('button[onclick*="navigateTo(\'community\')"]:visible').click()
+        page.locator('button[data-nav="community"]:visible').click()
 
         page.evaluate("reportCommunityContent(1)")
         page.locator("#community-report-reason").select_option("privacy")

@@ -965,7 +965,7 @@
 
     function showCommunitySafetyHold(result) {
       const modal=document.createElement('div');modal.className='fixed inset-0 bg-red-950/80 flex items-end sm:items-center justify-center z-[80] p-0 sm:p-4';modal.dataset.modal='true';
-      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl p-5"><div class="text-xs font-bold text-red-700">安全优先 · 内容未公开</div><h2 class="text-xl font-bold mt-1">${escapeText(result.safety?.title||'这条内容需要先进行安全核查')}</h2><p class="text-sm text-text-secondary mt-2">自动识别只用于安全分流，不代表对孩子或照护者作出诊断。审核编号：${escapeText(result.case_ref||'待生成')}</p><ol class="mt-4 space-y-2">${(result.safety?.actions||[]).map((item,index)=>`<li class="flex gap-3 p-3 rounded-xl bg-red-50 text-sm"><strong class="text-red-700">${index+1}</strong><span>${escapeText(item)}</span></li>`).join('')}</ol><div class="grid grid-cols-2 gap-2 mt-4"><button onclick="closeTopModal();navigateTo('emergency')" class="py-3 rounded-xl bg-red-700 text-white font-bold">进入紧急支持</button><button onclick="closeTopModal();navigateTo('community')" class="py-3 rounded-xl border border-border font-medium">返回社区</button></div></div>`;
+      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl p-5"><div class="text-xs font-bold text-red-700">安全优先 · 内容未公开</div><h2 class="text-xl font-bold mt-1">${escapeText(result.safety?.title||'这条内容需要先进行安全核查')}</h2><p class="text-sm text-text-secondary mt-2">自动识别只用于安全分流，不代表对孩子或照护者作出诊断。审核编号：${escapeText(result.case_ref||'待生成')}</p><ol class="mt-4 space-y-2">${(result.safety?.actions||[]).map((item,index)=>`<li class="flex gap-3 p-3 rounded-xl bg-red-50 text-sm"><strong class="text-red-700">${index+1}</strong><span>${escapeText(item)}</span></li>`).join('')}</ol><div class="grid grid-cols-2 gap-2 mt-4"><button data-ui-action="close-and-navigate" data-nav="emergency" class="py-3 rounded-xl bg-red-700 text-white font-bold">进入紧急支持</button><button data-ui-action="close-and-navigate" data-nav="community" class="py-3 rounded-xl border border-border font-medium">返回社区</button></div></div>`;
       document.body.appendChild(modal);
     }
 
@@ -1132,16 +1132,16 @@
           <section>
             <div class="flex items-end justify-between mb-3"><div><h3 class="font-bold text-text-primary">现在要做什么</h3><p class="text-xs text-text-muted mt-1">高频任务放在这里，其他工具在“我的”中</p></div></div>
             <div class="grid grid-cols-2 gap-3">
-              <button onclick="navigateTo('records')" class="flex items-center gap-3 p-4 bg-white rounded-2xl border border-border card-shadow text-left hover:border-primary transition-colors"><span class="w-10 h-10 shrink-0 bg-primary-light/50 rounded-xl flex items-center justify-center text-xl">✍️</span><span><strong class="block text-sm text-text-primary">快速记录</strong><small class="text-xs text-text-muted">记下刚才发生的事</small></span></button>
-              <button onclick="navigateTo('children')" class="flex items-center gap-3 p-4 bg-white rounded-2xl border border-border card-shadow text-left hover:border-primary transition-colors"><span class="w-10 h-10 shrink-0 bg-primary-light/50 rounded-xl flex items-center justify-center text-xl">🧒</span><span><strong class="block text-sm text-text-primary">孩子与记录</strong><small class="text-xs text-text-muted">按孩子查看变化</small></span></button>
-              <button onclick="navigateTo('strategies')" class="flex items-center gap-3 p-4 bg-white rounded-2xl border border-border card-shadow text-left hover:border-primary transition-colors"><span class="w-10 h-10 shrink-0 bg-primary-light/50 rounded-xl flex items-center justify-center text-xl">🧭</span><span><strong class="block text-sm text-text-primary">按情况找策略</strong><small class="text-xs text-text-muted">现场步骤与停止条件</small></span></button>
-              <button onclick="navigateTo('therapist')" class="flex items-center gap-3 p-4 bg-white rounded-2xl border border-border card-shadow text-left hover:border-primary transition-colors"><span class="w-10 h-10 shrink-0 bg-primary-light/50 rounded-xl flex items-center justify-center text-xl">🤝</span><span><strong class="block text-sm text-text-primary">专业协作</strong><small class="text-xs text-text-muted">整理问题与就诊准备</small></span></button>
+              <button data-nav="records" class="flex items-center gap-3 p-4 bg-white rounded-2xl border border-border card-shadow text-left hover:border-primary transition-colors"><span class="w-10 h-10 shrink-0 bg-primary-light/50 rounded-xl flex items-center justify-center text-xl">✍️</span><span><strong class="block text-sm text-text-primary">快速记录</strong><small class="text-xs text-text-muted">记下刚才发生的事</small></span></button>
+              <button data-nav="children" class="flex items-center gap-3 p-4 bg-white rounded-2xl border border-border card-shadow text-left hover:border-primary transition-colors"><span class="w-10 h-10 shrink-0 bg-primary-light/50 rounded-xl flex items-center justify-center text-xl">🧒</span><span><strong class="block text-sm text-text-primary">孩子与记录</strong><small class="text-xs text-text-muted">按孩子查看变化</small></span></button>
+              <button data-nav="strategies" class="flex items-center gap-3 p-4 bg-white rounded-2xl border border-border card-shadow text-left hover:border-primary transition-colors"><span class="w-10 h-10 shrink-0 bg-primary-light/50 rounded-xl flex items-center justify-center text-xl">🧭</span><span><strong class="block text-sm text-text-primary">按情况找策略</strong><small class="text-xs text-text-muted">现场步骤与停止条件</small></span></button>
+              <button data-nav="therapist" class="flex items-center gap-3 p-4 bg-white rounded-2xl border border-border card-shadow text-left hover:border-primary transition-colors"><span class="w-10 h-10 shrink-0 bg-primary-light/50 rounded-xl flex items-center justify-center text-xl">🤝</span><span><strong class="block text-sm text-text-primary">专业协作</strong><small class="text-xs text-text-muted">整理问题与就诊准备</small></span></button>
             </div>
           </section>
 
           <!-- 消息提醒 -->
           ${MOCK_DATA.notifications.filter(n => !n.is_read).length > 0 ? `
-          <div onclick="navigateTo('notifications')" class="bg-white p-4 rounded-xl card-shadow flex items-center gap-3 cursor-pointer hover:shadow-md transition-shadow">
+          <div data-nav="notifications" class="bg-white p-4 rounded-xl card-shadow flex items-center gap-3 cursor-pointer hover:shadow-md transition-shadow">
             <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
               <span class="text-lg">🔔</span>
             </div>
@@ -1159,7 +1159,7 @@
           <div>
             <div class="flex items-center justify-between mb-3">
               <h3 class="font-bold text-text-primary">最近记录</h3>
-              <button onclick="navigateTo('records')" class="text-xs text-primary">查看全部</button>
+              <button data-nav="records" class="text-xs text-primary">查看全部</button>
             </div>
             <div class="space-y-3">
               ${MOCK_DATA.behaviors.slice(0, 3).map(b => `
@@ -1186,7 +1186,7 @@
           <div>
             <div class="flex items-center justify-between mb-3">
               <h3 class="font-bold text-text-primary">推荐策略</h3>
-              <button onclick="navigateTo('strategies')" class="text-xs text-primary">更多</button>
+              <button data-nav="strategies" class="text-xs text-primary">更多</button>
             </div>
             <div class="grid grid-cols-2 gap-3">
               ${MOCK_DATA.strategies.slice(0, 2).map(s => `
@@ -1251,12 +1251,12 @@
         <div class="bg-white w-full max-w-2xl rounded-2xl animate-fade-in max-h-[92vh] overflow-hidden flex flex-col">
           <div class="flex justify-between items-start gap-4 p-5 sm:p-6 border-b border-border bg-white sticky top-0 z-10">
             <div><div class="flex items-center gap-2 mb-1"><span class="text-xs px-2 py-1 rounded-full bg-primary-light/40 text-primary font-medium">分步实操教程</span><span class="text-xs text-text-muted">约 ${Math.max(3, guide.steps.length * 2)} 分钟</span></div><h3 class="text-xl font-bold">${escapeText(strategy.name)}</h3><p class="text-sm text-text-secondary mt-1">${escapeText(strategy.description)}</p></div>
-            <button onclick="closeTopModal()" aria-label="关闭教程" class="w-9 h-9 shrink-0 rounded-full bg-background text-text-muted hover:text-text-primary">✕</button>
+            <button data-ui-action="close-top-modal" aria-label="关闭教程" class="w-9 h-9 shrink-0 rounded-full bg-background text-text-muted hover:text-text-primary">✕</button>
           </div>
           <div class="overflow-y-auto p-5 sm:p-6 space-y-6">
             <button onclick="speakStrategy(${id})" class="w-full py-2.5 rounded-xl border border-primary/30 text-primary-dark font-medium">🔊 朗读步骤与示范话术</button>
             <section class="rounded-xl ${highRisk ? 'bg-red-50 border-red-200' : 'bg-primary-light/20 border-primary/10'} border p-4"><div class="text-xs font-semibold ${highRisk ? 'text-red-700' : 'text-primary'} mb-1">什么时候使用</div><p class="text-sm leading-6 text-text-primary">${guide.when}</p></section>
-            ${highRisk ? `<button onclick="closeTopModal();navigateTo('emergency')" class="w-full py-3 rounded-xl bg-red-700 text-white font-bold">存在危险或拿不准：立即进入紧急支持</button>` : ''}
+            ${highRisk ? `<button data-ui-action="close-and-navigate" data-nav="emergency" class="w-full py-3 rounded-xl bg-red-700 text-white font-bold">存在危险或拿不准：立即进入紧急支持</button>` : ''}
             <section class="grid sm:grid-cols-2 gap-3" aria-label="方案判断要点">
               <div class="rounded-xl bg-background p-4"><div class="text-xs font-bold text-text-muted">本方案要解决什么</div><p class="text-sm leading-6 mt-1">${context.goal || strategy.description}</p></div>
               <div class="rounded-xl bg-background p-4"><div class="text-xs font-bold text-text-muted">过程中观察什么</div><p class="text-sm leading-6 mt-1">${context.observe || '观察孩子是否更安全、更平静且愿意参与'}</p></div>
@@ -1277,7 +1277,7 @@
               <p class="text-sm text-text-muted">正在查知识库…</p>
             </section>
             <section class="flex flex-wrap items-center gap-4 py-2 text-sm"><div><span class="text-text-muted">证据状态</span> <strong>待专业复核，需个体化调整</strong></div><div><span class="text-text-muted">操作难度</span> <strong>${strategy.difficulty}</strong></div>${strategy.usageCount ? `<div><span class="text-text-muted">体验版使用</span> <strong>${strategy.usageCount} 次（演示）</strong></div>` : ''}</section>
-            ${highRisk ? `<section class="border-t border-border pt-5"><div class="rounded-xl bg-red-50 border border-red-200 p-4"><strong class="text-red-800">这是一条安全分流路径，不评价“是否有效”</strong><p class="text-sm text-red-900 mt-1 leading-6">请记录发生时间、睡眠、用药、伤情和意识变化并交给专业人员判断；不要用完成教程代替求助。</p><button onclick="closeTopModal();navigateTo('emergency')" class="w-full mt-3 py-3 rounded-xl bg-red-700 text-white font-bold">进入紧急支持</button></div></section>` : `<section class="border-t border-border pt-5"><p class="text-sm text-text-secondary mb-3">实际尝试后，这个方法对孩子有效吗？</p><textarea id="strategy-feedback-note-${id}" rows="2" maxlength="200" placeholder="选填：使用场景、做到哪一步、孩子的反应" class="w-full mb-3 p-3 rounded-xl border border-border text-sm"></textarea><div class="grid grid-cols-3 gap-2"><button onclick="submitStrategyFeedback(${strategy.id},'positive')" class="py-2.5 rounded-xl bg-success/10 text-success text-sm font-medium">有效</button><button onclick="submitStrategyFeedback(${strategy.id},'neutral')" class="py-2.5 rounded-xl bg-blue-50 text-blue-700 text-sm font-medium">一般</button><button onclick="submitStrategyFeedback(${strategy.id},'negative')" class="py-2.5 rounded-xl bg-danger/10 text-danger text-sm font-medium">无效/不适</button></div></section>`}
+            ${highRisk ? `<section class="border-t border-border pt-5"><div class="rounded-xl bg-red-50 border border-red-200 p-4"><strong class="text-red-800">这是一条安全分流路径，不评价“是否有效”</strong><p class="text-sm text-red-900 mt-1 leading-6">请记录发生时间、睡眠、用药、伤情和意识变化并交给专业人员判断；不要用完成教程代替求助。</p><button data-ui-action="close-and-navigate" data-nav="emergency" class="w-full mt-3 py-3 rounded-xl bg-red-700 text-white font-bold">进入紧急支持</button></div></section>` : `<section class="border-t border-border pt-5"><p class="text-sm text-text-secondary mb-3">实际尝试后，这个方法对孩子有效吗？</p><textarea id="strategy-feedback-note-${id}" rows="2" maxlength="200" placeholder="选填：使用场景、做到哪一步、孩子的反应" class="w-full mb-3 p-3 rounded-xl border border-border text-sm"></textarea><div class="grid grid-cols-3 gap-2"><button onclick="submitStrategyFeedback(${strategy.id},'positive')" class="py-2.5 rounded-xl bg-success/10 text-success text-sm font-medium">有效</button><button onclick="submitStrategyFeedback(${strategy.id},'neutral')" class="py-2.5 rounded-xl bg-blue-50 text-blue-700 text-sm font-medium">一般</button><button onclick="submitStrategyFeedback(${strategy.id},'negative')" class="py-2.5 rounded-xl bg-danger/10 text-danger text-sm font-medium">无效/不适</button></div></section>`}
           </div>
         </div>`;
       document.body.appendChild(modal);
@@ -1542,7 +1542,7 @@
         <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom max-h-[92vh] overflow-y-auto">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold">记录行为</h2>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="space-y-4">
             <div>
@@ -1853,7 +1853,7 @@
       } catch (_) {}
       const modal = document.createElement('div');
       modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
-      modal.innerHTML = `<div class="bg-white w-full max-w-lg rounded-2xl p-5 animate-fade-in max-h-[90vh] overflow-y-auto"><div class="flex justify-between gap-3 mb-4"><div><div class="text-xs font-semibold text-primary">记录已保存 · 下一步</div><h3 class="text-lg font-bold mt-1">选择一个现在可尝试的策略</h3><p class="text-sm text-text-secondary mt-1">稍后反馈会自动关联刚才的记录，周报会汇总实际尝试结果。</p></div><button onclick="closeTopModal();navigateTo('records')" class="text-text-muted" aria-label="暂不选择">✕</button></div>${consistencyCheck ? '<div class="mb-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">推荐与当前训练目标可能不完全一致，请结合专业人员制定的目标选择。</div>' : ''}<div class="space-y-3">${strategies.map(s => `<button onclick="closeTopModal();showStrategyDetail(${Number(s.id)})" class="w-full text-left border border-border rounded-xl p-4 hover:border-primary"><div class="font-bold text-text-primary">${escapeText(s.name)}</div><div class="text-sm text-text-secondary mt-1">${escapeText(s.description || '查看分步教程与示范话术')}</div><div class="text-xs text-primary mt-2">查看步骤并尝试 →</div></button>`).join('')}</div><div id="record-kb-ref" class="mt-4"></div><button onclick="closeTopModal();navigateTo('records')" class="w-full mt-4 py-2.5 rounded-xl border border-border text-text-secondary">现在不适合，稍后再看</button></div>`;
+      modal.innerHTML = `<div class="bg-white w-full max-w-lg rounded-2xl p-5 animate-fade-in max-h-[90vh] overflow-y-auto"><div class="flex justify-between gap-3 mb-4"><div><div class="text-xs font-semibold text-primary">记录已保存 · 下一步</div><h3 class="text-lg font-bold mt-1">选择一个现在可尝试的策略</h3><p class="text-sm text-text-secondary mt-1">稍后反馈会自动关联刚才的记录，周报会汇总实际尝试结果。</p></div><button data-ui-action="close-and-navigate" data-nav="records" class="text-text-muted" aria-label="暂不选择">✕</button></div>${consistencyCheck ? '<div class="mb-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">推荐与当前训练目标可能不完全一致，请结合专业人员制定的目标选择。</div>' : ''}<div class="space-y-3">${strategies.map(s => `<button onclick="closeTopModal();showStrategyDetail(${Number(s.id)})" class="w-full text-left border border-border rounded-xl p-4 hover:border-primary"><div class="font-bold text-text-primary">${escapeText(s.name)}</div><div class="text-sm text-text-secondary mt-1">${escapeText(s.description || '查看分步教程与示范话术')}</div><div class="text-xs text-primary mt-2">查看步骤并尝试 →</div></button>`).join('')}</div><div id="record-kb-ref" class="mt-4"></div><button data-ui-action="close-and-navigate" data-nav="records" class="w-full mt-4 py-2.5 rounded-xl border border-border text-text-secondary">现在不适合，稍后再看</button></div>`;
       document.body.appendChild(modal);
       loadRecordKbRef(record, category);
     }
@@ -1950,7 +1950,7 @@
         <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in">
           <div class="flex justify-between items-start mb-4">
             <h3 class="text-lg font-bold">记录详情</h3>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="space-y-4">
             <div class="flex items-center gap-3">
@@ -1998,7 +1998,7 @@
         <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold">编辑记录</h2>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="space-y-4">
             <div>
@@ -2078,7 +2078,7 @@
           <h3 class="text-lg font-bold text-text-primary mb-2">确认删除</h3>
           <p class="text-sm text-text-secondary mb-4">删除后无法恢复，确定要删除这条记录吗？</p>
           <div class="flex gap-3">
-            <button onclick="this.closest('.fixed').remove()" class="flex-1 py-2.5 rounded-xl border border-border text-text-secondary">取消</button>
+            <button data-ui-action="remove-overlay" class="flex-1 py-2.5 rounded-xl border border-border text-text-secondary">取消</button>
             <button onclick="confirmDeleteRecord(${id})" class="flex-1 py-2.5 rounded-xl bg-danger text-white">删除</button>
           </div>
         </div>
@@ -2107,7 +2107,7 @@
       const modal = document.createElement('div');
       modal.className = 'fixed inset-0 bg-black/70 flex items-center justify-center z-[70] p-3';
       modal.innerHTML = `<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[92vh] overflow-y-auto">
-        <div class="flex justify-between gap-3"><div><span class="text-xs font-bold text-danger">先判断是否需要立即求助</span><h2 class="text-xl font-bold mt-1">孩子现在有以下情况吗？</h2></div><button aria-label="关闭" onclick="closeTopModal()">✕</button></div>
+        <div class="flex justify-between gap-3"><div><span class="text-xs font-bold text-danger">先判断是否需要立即求助</span><h2 class="text-xl font-bold mt-1">孩子现在有以下情况吗？</h2></div><button aria-label="关闭" data-ui-action="close-top-modal">✕</button></div>
         <p class="text-sm text-text-secondary mt-2">本工具不做诊断。如果拿不准，请按“有或不确定”处理。</p>
         <div class="mt-4 space-y-2 text-sm">${['正在自伤、伤害他人，或说不想活了','提到具体自杀计划、工具或地点','服药过量、严重不良反应或意识异常','出现幻觉、妄想、严重混乱或无法沟通','连续极少睡眠且异常兴奋、冲动或冒险','离家失联或正处于道路、高处、水边等危险地点'].map(t=>`<label class="flex gap-3 p-3 rounded-xl border border-border"><input type="checkbox" class="crisis-risk mt-1 accent-danger"><span>${t}</span></label>`).join('')}</div>
         <div class="mt-5 grid gap-2"><button onclick="showImmediateDangerHelp()" class="w-full py-3 rounded-xl bg-danger text-white font-bold">有或不确定：立即求助</button><button onclick="closeTopModal();startEmergency('red')" class="w-full py-3 rounded-xl border border-border text-text-primary">确认没有即时危险，继续安抚支持</button></div>
@@ -2124,7 +2124,7 @@
         <ol class="mt-4 space-y-3 text-sm leading-6 list-decimal pl-5"><li>不要让孩子独处，保持安全距离和冷静语气。</li><li>在不引发冲突的前提下，移开可安全移除的药物、刀具、绳索等危险物。</li><li>拨打 120；存在暴力、失联或公共危险时同时拨打 110。</li><li>联系既往就诊医院或主治精神科医生，并准确说明自伤/伤人、用药、睡眠和异常行为。</li></ol>
         <p class="mt-4 p-3 rounded-xl bg-amber-50 text-amber-900 text-sm">不要仅依赖本应用、社区回复或呼吸练习处理即时危险。</p>
         <div class="grid grid-cols-2 gap-2 mt-5"><button onclick="callEmergencyContact('120','急救')" class="py-3 rounded-xl bg-danger text-white font-bold">拨打 120</button><button onclick="callEmergencyContact('110','报警')" class="py-3 rounded-xl bg-red-800 text-white font-bold">拨打 110</button></div>
-        <button onclick="closeTopModal()" class="w-full mt-2 py-3 rounded-xl border border-border">关闭</button>
+        <button data-ui-action="close-top-modal" class="w-full mt-2 py-3 rounded-xl border border-border">关闭</button>
       </div>`;
       document.body.appendChild(modal);
     }
@@ -2132,7 +2132,7 @@
     function showSafetyPlan() {
       const saved = JSON.parse(localStorage.getItem('xingban_safety_plan') || '{}');
       const modal = document.createElement('div'); modal.className='fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[70]';
-      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl p-5 max-h-[92vh] overflow-y-auto"><div class="flex justify-between"><div><h2 class="text-xl font-bold">家庭安全计划</h2><p class="text-xs text-text-muted mt-1">建议与儿童精神科专业人员共同确认</p></div><button onclick="closeTopModal()">✕</button></div>
+      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl p-5 max-h-[92vh] overflow-y-auto"><div class="flex justify-between"><div><h2 class="text-xl font-bold">家庭安全计划</h2><p class="text-xs text-text-muted mt-1">建议与儿童精神科专业人员共同确认</p></div><button data-ui-action="close-top-modal">✕</button></div>
       <div class="space-y-3 mt-4">${[['warning','孩子的预警信号','如：连续两晚睡眠少于4小时、谈论死亡'],['calming','确认有效的支持方式','孩子接受的陪伴方式；明确禁用方式'],['hospital','首选医院/科室','医院名称、儿童精神科急诊位置'],['clinician','主治专业人员','姓名、机构、联系电话'],['medication','当前药物与重要提醒','仅记录医嘱；不要在此自行调整剂量'],['school','共同监护人/学校联系人','姓名、关系、电话'],['escalation','何时必须升级求助','自伤、自杀计划、伤人、失联、意识异常等']].map(([id,label,ph])=>`<label class="block text-sm font-medium">${escapeText(label)}<textarea id="safety-${id}" rows="2" placeholder="${escapeText(ph)}" class="mt-1 w-full p-3 rounded-xl border border-border text-sm">${escapeText(saved[id]||'')}</textarea></label>`).join('')}</div>
       <p class="text-xs text-danger mt-3">体验版保存在当前设备浏览器中，请勿录入身份证号、完整病历或其他不必要的敏感信息。</p><button onclick="saveSafetyPlan()" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">保存安全计划</button></div>`; document.body.appendChild(modal);
     }
@@ -2255,7 +2255,7 @@
         <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom max-h-[80vh] overflow-y-auto">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold">紧急联系人管理</h2>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div id="emergency-contacts-list" class="space-y-3">
             ${contacts.map(c => `
@@ -2351,7 +2351,7 @@
               <button onclick="callEmergencyContact('120', '急救')" class="flex-1 py-2.5 rounded-xl bg-red-50 border-2 border-red-300 text-red-800 text-sm font-bold hover:bg-red-100 transition-colors active:scale-[0.98]">🚑 急救 120</button>
             </div>
 
-            <button onclick="navigateTo('emergency')" class="mt-4 text-primary-dark text-sm font-bold hover:underline">← 返回选择</button>
+            <button data-nav="emergency" class="mt-4 text-primary-dark text-sm font-bold hover:underline">← 返回选择</button>
             <button onclick="finishEmergencySession('${level}')" class="mt-3 text-[#52606d] text-sm underline">结束本次支持并记录感受</button>
           </div>
         </div>
@@ -2387,10 +2387,10 @@
             <div id="emergency-strategies-list" class="space-y-4">
               <div class="text-center text-[#52606d] py-8">正在准备建议...</div>
             </div>
-            <button onclick="navigateTo('home')" class="mt-8 w-full py-3 rounded-xl bg-primary text-white font-bold hover:bg-primary-dark transition-colors active:scale-[0.98]">
+            <button data-nav="home" class="mt-8 w-full py-3 rounded-xl bg-primary text-white font-bold hover:bg-primary-dark transition-colors active:scale-[0.98]">
               返回首页
             </button>
-            <button onclick="navigateTo('emergency')" class="mt-3 w-full py-3 rounded-xl bg-white text-primary-dark font-bold border-2 border-primary/30 hover:bg-primary-light/20 transition-colors active:scale-[0.98]">
+            <button data-nav="emergency" class="mt-3 w-full py-3 rounded-xl bg-white text-primary-dark font-bold border-2 border-primary/30 hover:bg-primary-light/20 transition-colors active:scale-[0.98]">
               返回紧急模式
             </button>
             <button onclick="finishEmergencySession('${level}')" class="mt-3 w-full py-3 text-[#52606d] font-medium">结束并记录结果</button>
@@ -2437,7 +2437,7 @@
 
     function finishEmergencySession(level) {
       const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';modal.dataset.modal='true';
-      modal.innerHTML=`<div class="bg-white w-full max-w-md rounded-2xl p-5"><h2 class="text-xl font-bold">刚才很艰难，你已经做得够好了</h2><p class="text-sm text-text-secondary mt-2">只需选择现在的状态，不要求复盘。</p><div class="grid grid-cols-3 gap-2 mt-4">${[['calm','😌','已平静'],['low','😔','仍低落'],['angry','😤','仍激动']].map(([v,e,l])=>`<button onclick="saveEmergencyOutcome('${level}','${v}')" class="p-3 rounded-xl border border-border"><span class="text-2xl block">${e}</span><span class="text-xs">${l}</span></button>`).join('')}</div><button onclick="closeTopModal();navigateTo('home')" class="w-full mt-4 py-3 text-text-secondary">暂不记录</button></div>`;document.body.appendChild(modal);
+      modal.innerHTML=`<div class="bg-white w-full max-w-md rounded-2xl p-5"><h2 class="text-xl font-bold">刚才很艰难，你已经做得够好了</h2><p class="text-sm text-text-secondary mt-2">只需选择现在的状态，不要求复盘。</p><div class="grid grid-cols-3 gap-2 mt-4">${[['calm','😌','已平静'],['low','😔','仍低落'],['angry','😤','仍激动']].map(([v,e,l])=>`<button onclick="saveEmergencyOutcome('${level}','${v}')" class="p-3 rounded-xl border border-border"><span class="text-2xl block">${e}</span><span class="text-xs">${l}</span></button>`).join('')}</div><button data-ui-action="close-and-navigate" data-nav="home" class="w-full mt-4 py-3 text-text-secondary">暂不记录</button></div>`;document.body.appendChild(modal);
     }
 
     function saveEmergencyOutcome(level, outcome) {
@@ -2449,7 +2449,7 @@
       const modal = document.createElement('div');
       modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3';
       modal.innerHTML = `<div class="bg-white w-full max-w-xl rounded-2xl max-h-[92vh] overflow-y-auto p-5 sm:p-6">
-        <div class="flex justify-between gap-3"><div><h2 class="text-xl font-bold">帮我判断先看哪个方案</h2><p class="text-sm text-text-secondary mt-1">约1分钟。只描述观察到的事实，不替孩子诊断。</p></div><button onclick="closeTopModal()" aria-label="关闭判断向导" class="w-10 h-10 rounded-full bg-background">✕</button></div>
+        <div class="flex justify-between gap-3"><div><h2 class="text-xl font-bold">帮我判断先看哪个方案</h2><p class="text-sm text-text-secondary mt-1">约1分钟。只描述观察到的事实，不替孩子诊断。</p></div><button data-ui-action="close-top-modal" aria-label="关闭判断向导" class="w-10 h-10 rounded-full bg-background">✕</button></div>
         <section class="mt-5 rounded-xl bg-red-50 border border-red-200 p-4"><label class="flex gap-3 items-start"><input id="navigator-danger" type="checkbox" class="mt-1 w-5 h-5 accent-red-700"><span><strong class="block text-red-800">现在无法保证安全，或我不确定</strong><span class="text-sm text-red-900">包括自伤/伤人、具体自杀计划、意识异常、药物过量、真实走失、道路/水边/高处风险。</span></span></label></section>
         <label class="block mt-5 text-sm font-bold">孩子现在最明显的表现<select id="navigator-behavior" class="mt-2 w-full p-3 rounded-xl border border-border bg-white">${options.map(item=>`<option value="${item.id}">${item.label}</option>`).join('')}</select></label>
         <fieldset class="mt-5"><legend class="text-sm font-bold">开始前，哪些因素可能刚发生？（可多选）</legend><div class="grid sm:grid-cols-2 gap-2 mt-2">${['疼痛、发热、便秘或身体不适','噪声、灯光、人群或触觉刺激','活动转换、要求突然增加','听不懂或无法表达需要','饥饿、疲劳或睡眠变化','药物漏服、调整或不良反应','学校、家庭、人际或青春期变化','目前不清楚'].map((item,index)=>`<label class="flex gap-2 items-start p-3 rounded-xl bg-background text-sm"><input type="checkbox" name="navigator-trigger" value="${item}" class="mt-0.5 w-4 h-4 accent-primary">${item}</label>`).join('')}</div></fieldset>
@@ -2487,7 +2487,7 @@
               <p class="text-sm text-white/80">孩子现在正在发生什么？</p>
               <h2 class="text-2xl font-bold mt-1 leading-tight">先选行为，不需要先知道策略名称</h2>
               <p class="text-sm leading-6 text-white/85 mt-3">每个方案都包含现场处理、可直接说的话、停止条件和后续训练。拿不准或存在伤害风险时，先进入紧急支持。</p>
-              <div class="mt-4 flex flex-wrap gap-2"><button onclick="showStrategyNavigator()" class="px-4 py-2.5 rounded-xl bg-white text-primary-dark font-bold text-sm">帮我判断先看哪个方案</button><button onclick="navigateTo('emergency')" class="px-4 py-2.5 rounded-xl border border-white/60 text-white font-bold text-sm">有危险：先判断安全</button></div>
+              <div class="mt-4 flex flex-wrap gap-2"><button onclick="showStrategyNavigator()" class="px-4 py-2.5 rounded-xl bg-white text-primary-dark font-bold text-sm">帮我判断先看哪个方案</button><button data-nav="emergency" class="px-4 py-2.5 rounded-xl border border-white/60 text-white font-bold text-sm">有危险：先判断安全</button></div>
             </div>
             <div class="absolute -right-8 -bottom-12 w-40 h-40 rounded-full border-[24px] border-white/10" aria-hidden="true"></div>
           </section>
@@ -2518,7 +2518,7 @@
                   <div class="flex flex-wrap gap-1.5 mt-3">${(context.behaviors || []).slice(0,4).map(item=>`<span class="text-xs px-2 py-1 rounded-lg bg-background text-text-secondary">${item}</span>`).join('')}</div>
                   <div class="pt-3 border-t border-border text-xs text-text-muted"><strong class="text-text-secondary">本方案目标：</strong>${context.goal || '提供可执行的家庭支持步骤'}</div>
                 </button>`;
-              }).join('') : `<div class="sm:col-span-2 rounded-2xl border border-dashed border-border bg-white p-8 text-center"><div class="font-medium text-text-primary">暂时没有完全匹配的方案</div><p class="text-sm text-text-muted mt-2">换一个孩子正在做的动作搜索；如果情况无法判断或正在升级，请先进入紧急支持。</p><button onclick="navigateTo('emergency')" class="mt-4 px-4 py-2.5 rounded-xl bg-primary text-white">去判断安全</button></div>`}
+              }).join('') : `<div class="sm:col-span-2 rounded-2xl border border-dashed border-border bg-white p-8 text-center"><div class="font-medium text-text-primary">暂时没有完全匹配的方案</div><p class="text-sm text-text-muted mt-2">换一个孩子正在做的动作搜索；如果情况无法判断或正在升级，请先进入紧急支持。</p><button data-nav="emergency" class="mt-4 px-4 py-2.5 rounded-xl bg-primary text-white">去判断安全</button></div>`}
             </div>
             ${filteredStrategies.length > visibleStrategies.length ? `<button onclick="showMoreStrategies()" class="w-full mt-4 py-3 rounded-xl bg-white border border-primary/30 text-primary-dark font-bold">显示更多（还有 ${filteredStrategies.length - visibleStrategies.length} 个）</button>` : ''}
           </section>
@@ -2769,7 +2769,7 @@
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3';
         modal.innerHTML = `<div class="bg-white w-full max-w-2xl rounded-2xl max-h-[90vh] overflow-y-auto p-5">
-          <div class="flex justify-between gap-3"><div><h3 class="font-bold text-text-primary">${escapeText(doc.heading || '')} <span class="text-[10px] font-normal px-1.5 py-0.5 rounded bg-background border border-border text-text-muted align-middle" title="章节名按原书扫描件原样保留，未做改动，便于与原文对照">原书章节名</span></h3><p class="text-xs text-text-muted mt-1">《${escapeText(doc.source)}》${doc.child ? ' · 儿童相关' : ''}</p><p class="text-[11px] text-text-muted mt-1">章节名来自原书扫描件，个别错字（如「概急化」应为「概念化」）属扫描识别问题；正文已做过错字校正。${doc.scanQuality === 'weak' ? '<br><span class="text-amber-800">这一版扫描件识别质量欠佳，正文已尽力校正，仍可能有少量错字，引用时请对照原书。</span>' : ''}</p></div><button onclick="this.closest('.fixed').remove()" class="w-9 h-9 rounded-full bg-background shrink-0" aria-label="关闭">✕</button></div>
+          <div class="flex justify-between gap-3"><div><h3 class="font-bold text-text-primary">${escapeText(doc.heading || '')} <span class="text-[10px] font-normal px-1.5 py-0.5 rounded bg-background border border-border text-text-muted align-middle" title="章节名按原书扫描件原样保留，未做改动，便于与原文对照">原书章节名</span></h3><p class="text-xs text-text-muted mt-1">《${escapeText(doc.source)}》${doc.child ? ' · 儿童相关' : ''}</p><p class="text-[11px] text-text-muted mt-1">章节名来自原书扫描件，个别错字（如「概急化」应为「概念化」）属扫描识别问题；正文已做过错字校正。${doc.scanQuality === 'weak' ? '<br><span class="text-amber-800">这一版扫描件识别质量欠佳，正文已尽力校正，仍可能有少量错字，引用时请对照原书。</span>' : ''}</p></div><button data-ui-action="remove-overlay" class="w-9 h-9 rounded-full bg-background shrink-0" aria-label="关闭">✕</button></div>
           <div class="flex flex-wrap gap-1.5 mt-3">${(doc.scenes || []).map(t => `<span class="text-xs px-2 py-1 rounded-lg bg-primary-light/30 text-primary-dark">${escapeText(t)}</span>`).join('')}${(doc.techs || []).map(t => `<span class="text-xs px-2 py-1 rounded-lg bg-background text-text-secondary">${escapeText(t)}</span>`).join('')}${(doc.types || []).map(t => `<span class="text-xs px-2 py-1 rounded-lg bg-background text-text-secondary">${escapeText(t)}</span>`).join('')}</div>
           <div class="mt-4 text-sm leading-7 text-text-secondary whitespace-pre-wrap">${escapeText(doc.text || '')}</div>
         </div>`;
@@ -2851,7 +2851,7 @@
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3';
         modal.innerHTML = `<div class="bg-white w-full max-w-2xl rounded-2xl max-h-[90vh] overflow-y-auto p-5 print-sheet">
-          <div class="flex justify-between gap-3 no-print"><div><h3 class="font-bold text-text-primary">${escapeText(doc.heading || '')}</h3><p class="text-xs text-text-muted mt-1">《${escapeText(doc.source)}》</p></div><div class="flex gap-2 shrink-0"><button onclick="window.print()" class="px-3 py-2 rounded-xl bg-primary text-white text-xs font-bold">打印这一页</button><button onclick="this.closest('.fixed').remove()" class="w-9 h-9 rounded-full bg-background" aria-label="关闭">✕</button></div></div>
+          <div class="flex justify-between gap-3 no-print"><div><h3 class="font-bold text-text-primary">${escapeText(doc.heading || '')}</h3><p class="text-xs text-text-muted mt-1">《${escapeText(doc.source)}》</p></div><div class="flex gap-2 shrink-0"><button data-ui-action="print" class="px-3 py-2 rounded-xl bg-primary text-white text-xs font-bold">打印这一页</button><button data-ui-action="remove-overlay" class="w-9 h-9 rounded-full bg-background" aria-label="关闭">✕</button></div></div>
           <div class="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-900 no-print">下面是原书扫描原文，逐字保留。原书扫描件里的表格在识别时被压平了，列与列的关系已经丢失——星伴没有重排成表格（重排只能靠猜，猜出来的结构就成了编造）。所以打印出来是原书原样的清单，空行与留白按原书排版保留，<strong>留白就是留给你自己填写的</strong>。个别错字来自扫描识别，可对照原书核对。若这条清单里有让你不安的内容，请以专业人员的解释为准。</div>
           <pre class="mt-4 text-sm leading-7 text-text-primary whitespace-pre-wrap font-sans">${escapeText(doc.text || '')}</pre>
           <p class="mt-4 pt-3 border-t border-border text-[11px] text-text-muted">出处：《${escapeText(doc.source)}》 · ${escapeText(doc.heading || '')}${doc.scanQuality === 'weak' ? '（该来源扫描质量欠佳，请对照原书）' : ''}</p>
@@ -2937,7 +2937,7 @@
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3';
         modal.innerHTML = `<div class="bg-white w-full max-w-2xl rounded-2xl max-h-[90vh] overflow-y-auto p-5">
-          <div class="flex justify-between gap-3"><div><h3 class="font-bold text-text-primary">${escapeText(doc.title || '')}</h3><p class="text-xs text-text-muted mt-1">《${escapeText(doc.source)}》 · ${doc.turns} 轮${doc.scenes && doc.scenes.length ? ' · ' + escapeText(doc.scenes[0]) : ''}</p></div><button onclick="this.closest('.fixed').remove()" class="w-9 h-9 rounded-full bg-background shrink-0" aria-label="关闭">✕</button></div>
+          <div class="flex justify-between gap-3"><div><h3 class="font-bold text-text-primary">${escapeText(doc.title || '')}</h3><p class="text-xs text-text-muted mt-1">《${escapeText(doc.source)}》 · ${doc.turns} 轮${doc.scenes && doc.scenes.length ? ' · ' + escapeText(doc.scenes[0]) : ''}</p></div><button data-ui-action="remove-overlay" class="w-9 h-9 rounded-full bg-background shrink-0" aria-label="关闭">✕</button></div>
           <div class="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-[11px] leading-6 text-amber-900">这是教材里的专业示范对话，<strong>不是家庭话术模板</strong>；${doc.needsRewrite ? '下面正文的称谓已按家长语境改写（只换称谓词、未新增内容），' : ''}可切到原文逐字核对。</div>
           <div class="flex gap-2 mt-3">
             <button id="dlg-tab-soft" onclick="switchDialogueTab('soft')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-white">家长语境版</button>
@@ -3009,7 +3009,7 @@
           <div>
             <h3 class="font-bold text-text-primary mb-3">儿童管理</h3>
             <div class="bg-white rounded-xl card-shadow overflow-hidden">
-              <button onclick="navigateTo('children')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+              <button data-nav="children" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
                 <div class="w-10 h-10 bg-primary-light/50 rounded-xl flex items-center justify-center">
                   <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="8" r="5"/>
@@ -3024,7 +3024,7 @@
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
-              <button onclick="navigateTo('safety')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+              <button data-nav="safety" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
                 <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
                   <svg class="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
@@ -3044,7 +3044,7 @@
           <div>
             <h3 class="font-bold text-text-primary mb-3">成长支持</h3>
             <div class="bg-white rounded-xl card-shadow overflow-hidden">
-              <button onclick="navigateTo('growth')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+              <button data-nav="growth" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
                 <div class="w-10 h-10 bg-primary-light/50 rounded-xl flex items-center justify-center">
                   <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
@@ -3058,7 +3058,7 @@
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
-              <button onclick="navigateTo('reports')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+              <button data-nav="reports" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
                 <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
                   <svg class="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -3074,7 +3074,7 @@
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
-              <button onclick="navigateTo('stories')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+              <button data-nav="stories" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
                 <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
                   <svg class="w-5 h-5 text-purple-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -3091,7 +3091,7 @@
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
-              <button onclick="navigateTo('family')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+              <button data-nav="family" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
                 <div class="w-10 h-10 bg-pink-100 rounded-xl flex items-center justify-center">
                   <svg class="w-5 h-5 text-pink-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
@@ -3105,7 +3105,7 @@
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
-              <button onclick="navigateTo('ai')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+              <button data-nav="ai" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
                 <div class="w-10 h-10 bg-cyan-100 rounded-xl flex items-center justify-center">
                   <svg class="w-5 h-5 text-cyan-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"/>
@@ -3121,7 +3121,7 @@
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
-              <button onclick="navigateTo('career')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+              <button data-nav="career" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
                 <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
                   <svg class="w-5 h-5 text-purple-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 8v4l3 3"/>
@@ -3136,7 +3136,7 @@
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
-              <button onclick="navigateTo('finance')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+              <button data-nav="finance" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
                 <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
                   <svg class="w-5 h-5 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="1" x2="12" y2="23"/>
@@ -3151,7 +3151,7 @@
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
-              <button onclick="navigateTo('therapist')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+              <button data-nav="therapist" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
                 <div class="w-10 h-10 bg-teal-100 rounded-xl flex items-center justify-center">
                   <svg class="w-5 h-5 text-teal-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -3168,7 +3168,7 @@
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
-              <button onclick="navigateTo('achievements')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+              <button data-nav="achievements" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
                 <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
                   <svg class="w-5 h-5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="8" r="7"/>
@@ -3183,7 +3183,7 @@
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
-              <button onclick="navigateTo('peer')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+              <button data-nav="peer" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
                 <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
                   <span class="text-lg">🤝</span>
                 </div>
@@ -3201,7 +3201,7 @@
           <div>
             <h3 class="font-bold text-text-primary mb-3">系统</h3>
             <div class="bg-white rounded-xl card-shadow overflow-hidden">
-              <button onclick="navigateTo('settings')" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+              <button data-nav="settings" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
                 <div class="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
                   <svg class="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="3"/>
@@ -3307,7 +3307,7 @@
         <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold">添加孩子</h2>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="space-y-4">
             <div>
@@ -3385,7 +3385,7 @@
         <div class="bg-white w-full max-w-md rounded-2xl p-5 animate-fade-in max-h-[90vh] overflow-y-auto">
           <div class="flex justify-between items-start mb-4">
             <h3 class="text-lg font-bold">孩子详情</h3>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="flex items-center gap-4 mb-6">
             <div class="emoji-avatar bg-primary-light/30" style="font-size:32px;width:64px;height:64px">${escapeText(child.avatar)}</div>
@@ -3428,7 +3428,7 @@
             </div>
           </div>
           </details>
-          <button onclick="this.closest('.fixed').remove()" class="w-full mt-4 py-3 rounded-xl bg-background text-text-secondary font-medium">关闭</button>
+          <button data-ui-action="remove-overlay" class="w-full mt-4 py-3 rounded-xl bg-background text-text-secondary font-medium">关闭</button>
         </div>
       `;
       document.body.appendChild(modal);
@@ -3476,7 +3476,7 @@
         <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold">生成周报</h2>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="space-y-4">
             <div>
@@ -3571,8 +3571,8 @@
           <div class="flex justify-between items-start mb-4 no-print">
             <h3 class="text-lg font-bold">${escapeText(report.week)}周报</h3>
             <div class="flex gap-2 shrink-0">
-              <button onclick="window.print()" class="px-3 py-2 rounded-xl bg-primary text-white text-xs font-bold">打印这一页</button>
-              <button onclick="this.closest('.fixed').remove()" class="text-text-muted" aria-label="关闭">✕</button>
+              <button data-ui-action="print" class="px-3 py-2 rounded-xl bg-primary text-white text-xs font-bold">打印这一页</button>
+              <button data-ui-action="remove-overlay" class="text-text-muted" aria-label="关闭">✕</button>
             </div>
           </div>
           <div class="space-y-4">
@@ -3676,7 +3676,7 @@
         <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in max-h-[80vh] overflow-y-auto">
           <div class="flex justify-between items-start mb-4">
             <h3 class="text-lg font-bold">分享给专业人员</h3>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="space-y-4">
             <div>
@@ -3772,7 +3772,7 @@
     function showProfessionalIntake() {
       const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3';
       modal.innerHTML=`<div class="bg-white w-full max-w-2xl rounded-2xl max-h-[94vh] overflow-y-auto p-5 sm:p-6">
-        <div class="flex justify-between gap-3"><div><h2 class="text-xl font-bold">AI会前问题整理</h2><p class="text-sm text-text-secondary mt-1">把零散观察整理成专业人员容易快速理解的摘要；不诊断、不推荐药物。</p></div><button onclick="closeTopModal()" aria-label="关闭问题整理" class="w-10 h-10 rounded-full bg-background">✕</button></div>
+        <div class="flex justify-between gap-3"><div><h2 class="text-xl font-bold">AI会前问题整理</h2><p class="text-sm text-text-secondary mt-1">把零散观察整理成专业人员容易快速理解的摘要；不诊断、不推荐药物。</p></div><button data-ui-action="close-top-modal" aria-label="关闭问题整理" class="w-10 h-10 rounded-full bg-background">✕</button></div>
         <label class="mt-5 flex gap-3 p-4 rounded-xl bg-red-50 border border-red-200"><input id="pro-danger" type="checkbox" class="mt-1 w-5 h-5 accent-red-700"><span><strong class="block text-red-800">现在无法保证安全，或我不确定</strong><span class="text-sm text-red-900">自伤/伤人、自杀计划、意识异常、服药过量、严重不良反应或真实走失。</span></span></label>
         <div class="grid sm:grid-cols-2 gap-4 mt-5">
           <label class="text-sm font-bold">主要问题<select id="pro-concern" class="mt-2 w-full p-3 rounded-xl border bg-white"><option value="behavior">行为突然变化/频繁爆发</option><option value="mood">低落、焦虑、易激惹或异常兴奋</option><option value="sleep">睡眠变化</option><option value="communication">沟通与表达</option><option value="sensory">感官与日常参与</option><option value="feeding">进食、营养或吞咽</option><option value="school">学校学习与同伴</option><option value="medication">药物、漏服或不良反应</option></select></label>
@@ -3808,7 +3808,7 @@
       const suggestion=feedback?.suggestions?.[suggestionIndex];
       if(!suggestion)return;
       const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[70] p-0 sm:p-4';modal.dataset.modal='true';
-      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl p-5 max-h-[92vh] overflow-y-auto"><div class="flex justify-between gap-3"><div><div class="text-xs font-bold text-primary">建议 → 可执行计划</div><h2 class="text-lg font-bold mt-1">先补全，再开始</h2></div><button onclick="closeTopModal()" aria-label="关闭">✕</button></div><p class="mt-3 p-3 rounded-xl bg-background text-sm">${escapeText(suggestion)}</p><div class="grid gap-3 mt-4"><label class="text-sm font-medium">计划标题<input id="plan-title" maxlength="200" value="${escapeText(suggestion)}" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">希望看到的具体变化<textarea id="plan-goal" maxlength="500" rows="2" placeholder="例如：孩子能在情绪升级前用卡片表达暂停" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><label class="text-sm font-medium">频率与使用情境<input id="plan-frequency" maxlength="200" placeholder="例如：每天一次，在平静时练习" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">谁来执行<input id="plan-owner" maxlength="100" placeholder="例如：家长；学校老师确认后参与" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">停止并求助的条件<textarea id="plan-stop" maxlength="500" rows="2" placeholder="例如：孩子明显不适、冲突升级或出现安全风险" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><label class="text-sm font-medium">复核日期<input id="plan-review" type="date" class="mt-1 w-full p-3 rounded-xl border border-border"></label></div><label class="flex gap-2 mt-4 text-sm text-text-secondary"><input id="plan-confirmed" type="checkbox" class="mt-1"><span>这项计划已经与具备相应资质的专业人员确认；未确认时只保存为“待确认”，不自动开始。</span></label><button onclick="saveProfessionalAction(${Number(feedbackId)},${Number(suggestionIndex)})" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">保存计划</button></div>`;
+      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl p-5 max-h-[92vh] overflow-y-auto"><div class="flex justify-between gap-3"><div><div class="text-xs font-bold text-primary">建议 → 可执行计划</div><h2 class="text-lg font-bold mt-1">先补全，再开始</h2></div><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><p class="mt-3 p-3 rounded-xl bg-background text-sm">${escapeText(suggestion)}</p><div class="grid gap-3 mt-4"><label class="text-sm font-medium">计划标题<input id="plan-title" maxlength="200" value="${escapeText(suggestion)}" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">希望看到的具体变化<textarea id="plan-goal" maxlength="500" rows="2" placeholder="例如：孩子能在情绪升级前用卡片表达暂停" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><label class="text-sm font-medium">频率与使用情境<input id="plan-frequency" maxlength="200" placeholder="例如：每天一次，在平静时练习" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">谁来执行<input id="plan-owner" maxlength="100" placeholder="例如：家长；学校老师确认后参与" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">停止并求助的条件<textarea id="plan-stop" maxlength="500" rows="2" placeholder="例如：孩子明显不适、冲突升级或出现安全风险" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><label class="text-sm font-medium">复核日期<input id="plan-review" type="date" class="mt-1 w-full p-3 rounded-xl border border-border"></label></div><label class="flex gap-2 mt-4 text-sm text-text-secondary"><input id="plan-confirmed" type="checkbox" class="mt-1"><span>这项计划已经与具备相应资质的专业人员确认；未确认时只保存为“待确认”，不自动开始。</span></label><button onclick="saveProfessionalAction(${Number(feedbackId)},${Number(suggestionIndex)})" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">保存计划</button></div>`;
       document.body.appendChild(modal);
     }
 
@@ -3824,7 +3824,7 @@
       if (currentUser?.role !== 'parent') return;
       const options = MOCK_DATA.therapists.map(item => `<option value="${Number(item.id)}">${escapeText(item.name)} · ${escapeText(item.title)}</option>`).join('');
       const modal=document.createElement('div');modal.className='modal-backdrop';modal.dataset.modal='true';
-      modal.innerHTML=`<div class="modal-content max-w-xl"><div class="p-5 border-b border-border flex justify-between gap-3"><div><h2 class="text-lg font-bold">提交协作计划</h2><p class="text-xs text-text-muted mt-1">指定专业人员后，必须由对方账号确认，家长才能开始执行</p></div><button onclick="closeTopModal()" aria-label="关闭">✕</button></div><div class="p-5 grid gap-3"><label class="text-sm font-medium">接收专业人员<select id="manual-plan-therapist" class="mt-1 w-full p-3 rounded-xl border border-border bg-white"><option value="">暂不指定，仅保存草稿</option>${options}</select></label><label class="text-sm font-medium">计划标题<input id="manual-plan-title" maxlength="200" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">具体目标<textarea id="manual-plan-goal" maxlength="500" rows="2" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><label class="text-sm font-medium">频率与情境<input id="manual-plan-frequency" maxlength="200" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">执行人<input id="manual-plan-owner" maxlength="100" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">停止并求助条件<textarea id="manual-plan-stop" maxlength="500" rows="2" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><label class="text-sm font-medium">复核日期<input id="manual-plan-review" type="date" class="mt-1 w-full p-3 rounded-xl border border-border"></label><button onclick="saveManualProfessionalPlan()" class="mt-2 py-3 rounded-xl bg-primary text-white font-bold">提交计划</button></div></div>`;
+      modal.innerHTML=`<div class="modal-content max-w-xl"><div class="p-5 border-b border-border flex justify-between gap-3"><div><h2 class="text-lg font-bold">提交协作计划</h2><p class="text-xs text-text-muted mt-1">指定专业人员后，必须由对方账号确认，家长才能开始执行</p></div><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="p-5 grid gap-3"><label class="text-sm font-medium">接收专业人员<select id="manual-plan-therapist" class="mt-1 w-full p-3 rounded-xl border border-border bg-white"><option value="">暂不指定，仅保存草稿</option>${options}</select></label><label class="text-sm font-medium">计划标题<input id="manual-plan-title" maxlength="200" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">具体目标<textarea id="manual-plan-goal" maxlength="500" rows="2" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><label class="text-sm font-medium">频率与情境<input id="manual-plan-frequency" maxlength="200" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">执行人<input id="manual-plan-owner" maxlength="100" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">停止并求助条件<textarea id="manual-plan-stop" maxlength="500" rows="2" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><label class="text-sm font-medium">复核日期<input id="manual-plan-review" type="date" class="mt-1 w-full p-3 rounded-xl border border-border"></label><button onclick="saveManualProfessionalPlan()" class="mt-2 py-3 rounded-xl bg-primary text-white font-bold">提交计划</button></div></div>`;
       document.body.appendChild(modal);
     }
 
@@ -3841,7 +3841,7 @@
       const plan=professionalActions[index];if(!plan||currentUser?.role!=='therapist')return;
       const returning=decision==='returned';
       const modal=document.createElement('div');modal.className='modal-backdrop';modal.dataset.modal='true';
-      modal.innerHTML=`<div class="modal-content max-w-lg p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">${returning?'退回计划修改':'确认计划内容'}</h2><button onclick="closeTopModal()" aria-label="关闭">✕</button></div><div class="mt-4 p-3 rounded-xl bg-background text-sm"><strong>${escapeText(plan.title)}</strong><div class="mt-2">目标：${escapeText(plan.goal||'未填写')}</div><div>频率：${escapeText(plan.frequency||'未填写')}</div><div>停止条件：${escapeText(plan.stop_conditions||'未填写')}</div></div><label class="block mt-4 text-sm font-medium">${returning?'需要家长修改的具体内容':'专业备注（可选）'}<textarea id="plan-review-note" maxlength="1000" rows="3" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><button onclick="submitPlanReview(${index},'${decision}')" class="w-full mt-4 py-3 rounded-xl ${returning?'bg-amber-600':'bg-success'} text-white font-bold">${returning?'退回家长修改':'确认本版本'}</button><p class="text-xs text-text-muted mt-3">操作会记录账号、角色、时间和备注；确认不等于替家长决定开始，也不能替代医疗处方。</p></div>`;
+      modal.innerHTML=`<div class="modal-content max-w-lg p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">${returning?'退回计划修改':'确认计划内容'}</h2><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="mt-4 p-3 rounded-xl bg-background text-sm"><strong>${escapeText(plan.title)}</strong><div class="mt-2">目标：${escapeText(plan.goal||'未填写')}</div><div>频率：${escapeText(plan.frequency||'未填写')}</div><div>停止条件：${escapeText(plan.stop_conditions||'未填写')}</div></div><label class="block mt-4 text-sm font-medium">${returning?'需要家长修改的具体内容':'专业备注（可选）'}<textarea id="plan-review-note" maxlength="1000" rows="3" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><button onclick="submitPlanReview(${index},'${decision}')" class="w-full mt-4 py-3 rounded-xl ${returning?'bg-amber-600':'bg-success'} text-white font-bold">${returning?'退回家长修改':'确认本版本'}</button><p class="text-xs text-text-muted mt-3">操作会记录账号、角色、时间和备注；确认不等于替家长决定开始，也不能替代医疗处方。</p></div>`;
       document.body.appendChild(modal);
     }
 
@@ -3868,7 +3868,7 @@
       const actions=professionalActions;
       const isTherapist=currentUser?.role==='therapist';
       container.innerHTML=`<div class="p-4 sm:p-6 space-y-5 max-w-5xl mx-auto animate-fade-in">
-        ${isTherapist?`<section class="rounded-2xl bg-primary-dark text-white p-5 sm:p-6"><p class="text-sm text-white/75">专业账号工作台</p><h2 class="text-2xl font-bold mt-1">核对计划，而不是替家庭做决定</h2><p class="text-sm leading-6 text-white/85 mt-3">只处理明确分配给当前已认证账号的计划。确认本版本后，仍由家长决定是否开始；不适用或信息不足时请具体退回。</p></section>`:`<section class="rounded-2xl bg-primary-dark text-white p-5 sm:p-6"><p class="text-sm text-white/75">不知道该找谁、该怎么说？</p><h2 class="text-2xl font-bold mt-1">AI先帮你整理，专业人员负责判断</h2><p class="text-sm leading-6 text-white/85 mt-3">把变化、时间、诱因、已尝试方法和用药信息整理成一页会前沟通单。AI不诊断、不决定治疗、不修改药物。</p><div class="flex flex-wrap gap-2 mt-4"><button onclick="showProfessionalIntake()" class="px-4 py-2.5 rounded-xl bg-white text-primary-dark font-bold">整理一个新问题</button><button onclick="showManualProfessionalPlanEditor()" class="px-4 py-2.5 rounded-xl bg-white/10 border border-white/60 text-white font-bold">创建协作计划</button><button onclick="navigateTo('emergency')" class="px-4 py-2.5 rounded-xl border border-white/60 text-white font-bold">现在有危险</button></div></section>`}
+        ${isTherapist?`<section class="rounded-2xl bg-primary-dark text-white p-5 sm:p-6"><p class="text-sm text-white/75">专业账号工作台</p><h2 class="text-2xl font-bold mt-1">核对计划，而不是替家庭做决定</h2><p class="text-sm leading-6 text-white/85 mt-3">只处理明确分配给当前已认证账号的计划。确认本版本后，仍由家长决定是否开始；不适用或信息不足时请具体退回。</p></section>`:`<section class="rounded-2xl bg-primary-dark text-white p-5 sm:p-6"><p class="text-sm text-white/75">不知道该找谁、该怎么说？</p><h2 class="text-2xl font-bold mt-1">AI先帮你整理，专业人员负责判断</h2><p class="text-sm leading-6 text-white/85 mt-3">把变化、时间、诱因、已尝试方法和用药信息整理成一页会前沟通单。AI不诊断、不决定治疗、不修改药物。</p><div class="flex flex-wrap gap-2 mt-4"><button onclick="showProfessionalIntake()" class="px-4 py-2.5 rounded-xl bg-white text-primary-dark font-bold">整理一个新问题</button><button onclick="showManualProfessionalPlanEditor()" class="px-4 py-2.5 rounded-xl bg-white/10 border border-white/60 text-white font-bold">创建协作计划</button><button data-nav="emergency" class="px-4 py-2.5 rounded-xl border border-white/60 text-white font-bold">现在有危险</button></div></section>`}
         ${isTherapist?`<section class="rounded-2xl bg-white border border-border p-4"><h3 class="font-bold">分配给我的计划</h3><p class="text-xs text-text-muted mt-1">确认或退回均会写入审计记录并通知家长</p><div class="mt-3 space-y-3">${actions.length?actions.map((plan,index)=>`<article class="p-4 rounded-xl bg-background"><div class="flex justify-between gap-3"><strong>${escapeText(plan.title)}</strong><span class="text-xs font-bold">${({pending:'待确认',confirmed:'已确认',returned:'已退回',not_requested:'未请求'})[plan.confirmation_status]||'待确认'}</span></div><div class="text-sm text-text-secondary mt-2">目标：${escapeText(plan.goal||'未填写')}</div><div class="text-sm text-text-secondary">频率：${escapeText(plan.frequency||'未填写')}</div><div class="text-sm text-text-secondary">停止条件：${escapeText(plan.stop_conditions||'未填写')}</div>${plan.confirmation_status==='pending'?`<div class="grid grid-cols-2 gap-2 mt-3"><button onclick="showPlanReviewModal(${index},'confirmed')" class="py-2 rounded-lg bg-success text-white font-bold">确认本版本</button><button onclick="showPlanReviewModal(${index},'returned')" class="py-2 rounded-lg border border-amber-600 text-amber-700 font-bold">退回修改</button></div>`:`<div class="text-xs text-text-muted mt-2">${plan.professional_note?'备注：'+escapeText(plan.professional_note):'本版本已处理'}</div>`}</article>`).join(''):'<div class="p-4 rounded-xl bg-background text-sm text-text-muted">当前没有分配给您的待审计划。</div>'}</div></section>`:''}
         ${brief?`<section class="rounded-2xl bg-white border border-primary/30 p-5"><div class="flex justify-between gap-3"><div><div class="text-xs font-bold text-primary">AI整理 · 请家长核对</div><h3 class="font-bold text-lg mt-1">会前沟通单</h3></div><button onclick="clearProfessionalBrief()" class="text-sm text-text-muted">清除</button></div><div class="mt-4 rounded-xl bg-primary-light/20 p-4"><div class="font-bold">建议首先联系：${escapeText(brief.role)}</div><p class="text-sm mt-1">${escapeText(brief.reason)}</p></div><dl class="mt-4 grid gap-3 text-sm"><div><dt class="font-bold">持续与频率</dt><dd class="text-text-secondary">${escapeText(brief.duration)}；${escapeText(brief.frequency)}</dd></div><div><dt class="font-bold">与平时相比</dt><dd class="text-text-secondary">${escapeText(brief.baseline)}</dd></div><div><dt class="font-bold">前后情境</dt><dd class="text-text-secondary whitespace-pre-wrap">${escapeText(brief.context)}</dd></div><div><dt class="font-bold">已经尝试及反应</dt><dd class="text-text-secondary whitespace-pre-wrap">${escapeText(brief.tried)}</dd></div><div><dt class="font-bold">药物与变化</dt><dd class="text-text-secondary whitespace-pre-wrap">${escapeText(brief.meds)}</dd></div><div><dt class="font-bold">本次最重要的问题</dt><dd class="text-text-primary">${escapeText(brief.question)}</dd></div></dl><div class="grid sm:grid-cols-2 gap-2 mt-4"><button onclick="copyProfessionalBrief()" class="py-3 rounded-xl bg-primary text-white font-bold">复制沟通单</button>${reports.length?`<button onclick="showShareToTherapistModal(${Number(reports[0].id)})" class="py-3 rounded-xl border border-primary text-primary font-bold">连同周报分享</button>`:''}</div><p class="text-xs text-text-muted mt-3">分享前再次确认接收人、范围和有效期；紧急情况不要等待回复。</p></section>`:''}
         <section><h3 class="font-bold text-text-primary">这个问题通常该找谁</h3><div class="grid sm:grid-cols-2 gap-3 mt-3">${[['behavior','行为反复或突然变化'],['mood','低落、焦虑或异常兴奋'],['communication','理解、表达或AAC'],['sensory','感官与日常参与'],['feeding','进食、营养或吞咽'],['medication','药物或明显不良反应']].map(([key,label])=>{const r=getProfessionalRoute(key);return`<div class="bg-white border border-border rounded-xl p-4"><div class="font-bold">${label}</div><div class="text-sm text-primary mt-1">${r.role}</div><p class="text-xs leading-5 text-text-muted mt-2">${r.reason}</p></div>`}).join('')}</div></section>
@@ -4161,7 +4161,7 @@
               <span class="text-2xl">${escapeText(group.avatar)}</span>
               <h3 class="text-lg font-bold">${escapeText(group.name)}</h3>
             </div>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <p class="text-sm text-text-secondary mb-3">${escapeText(group.description)}</p>
           <div class="flex items-center gap-3 mb-4">
@@ -4219,7 +4219,7 @@
         <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in">
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-bold">当下孤独感记录</h3>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="text-center mb-6">
             <div class="text-4xl mb-2">💙</div>
@@ -4267,7 +4267,7 @@
           <div class="mt-4 space-y-2">
             <button onclick="this.closest('.fixed').remove(); navigateTo('emergency')" class="w-full py-3 rounded-xl bg-danger text-white font-bold">有 / 不确定：立即查看紧急支持</button>
             <button onclick="this.closest('.fixed').remove(); navigateTo('therapist')" class="w-full py-3 rounded-xl border border-primary text-primary font-medium">没有即时危险：联系专业支持</button>
-            <button onclick="this.closest('.fixed').remove()" class="w-full py-2 text-sm text-text-muted">稍后处理</button>
+            <button data-ui-action="remove-overlay" class="w-full py-2 text-sm text-text-muted">稍后处理</button>
           </div>
           <p class="text-xs text-text-muted leading-5 mt-3">如危险迫近，不要独处或等待平台/群聊回复：联系身边可信成人，拨打 120/110，或前往最近急诊。</p>
         </div>`;
@@ -4308,20 +4308,20 @@
     }
 
     async function showCaregiverAccessCenter(){
-      const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[80] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML='<div class="modal-content max-w-2xl p-5 max-h-[94vh] overflow-y-auto"><div class="flex justify-between"><h2 class="text-lg font-bold">共同照护授权</h2><button onclick="closeTopModal()" aria-label="关闭">✕</button></div><div class="py-10 text-center text-text-muted">正在读取授权…</div></div>';document.body.appendChild(modal);
-      if(sessionDataMode!=='server'){modal.firstElementChild.innerHTML='<div class="flex justify-between"><h2 class="text-lg font-bold">共同照护授权</h2><button onclick="closeTopModal()" aria-label="关闭">✕</button></div><div class="mt-4 p-4 rounded-xl bg-amber-50 text-sm text-amber-900">公开体验版没有真实家庭账号，不能生成可使用的邀请码。连接真实后端后，每位照护者必须用自己的手机号账号接受儿童级授权。</div>';return}
+      const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[80] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML='<div class="modal-content max-w-2xl p-5 max-h-[94vh] overflow-y-auto"><div class="flex justify-between"><h2 class="text-lg font-bold">共同照护授权</h2><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="py-10 text-center text-text-muted">正在读取授权…</div></div>';document.body.appendChild(modal);
+      if(sessionDataMode!=='server'){modal.firstElementChild.innerHTML='<div class="flex justify-between"><h2 class="text-lg font-bold">共同照护授权</h2><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="mt-4 p-4 rounded-xl bg-amber-50 text-sm text-amber-900">公开体验版没有真实家庭账号，不能生成可使用的邀请码。连接真实后端后，每位照护者必须用自己的手机号账号接受儿童级授权。</div>';return}
       try{const [members,assigned]=await Promise.all([apiRequest('/family/caregivers','GET'),apiRequest('/family/caregivers/children','GET')]);if(!members.success||!assigned.success)throw new Error('授权读取失败');renderCaregiverAccessCenter(modal,members.caregivers||[],assigned.children||[])}catch(error){modal.firstElementChild.innerHTML=`<p class="p-5 text-center text-text-muted">${escapeText(error.message||'读取失败')}</p>`}
     }
     function renderCaregiverAccessCenter(modal,members,assigned){
       const childOptions=(MOCK_DATA.children||[]).map(c=>`<option value="${Number(c.id)}">${escapeText(c.name||c.nickname||'儿童')}</option>`).join('');
       const memberCards=members.length?members.map(m=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between"><strong>${escapeText(m.nickname||'照护者')} · ${escapeText(m.phone||'')}</strong><span>${escapeText(m.status)}</span></div><div class="text-xs text-text-muted mt-1">范围：${(m.permissions||[]).map(escapeText).join('、')}</div>${m.status==='active'?`<button onclick="revokeCaregiverAccess(${Number(m.id)})" class="mt-2 px-3 py-1.5 rounded-lg border border-red-200 text-red-700">撤销授权</button>`:''}</div>`).join(''):'<p class="text-sm text-text-muted">尚无已接受的共同照护者。</p>';
       const assignedCards=assigned.length?assigned.map(c=>`<div class="p-3 rounded-xl bg-teal-50 text-sm"><strong>${escapeText(c.nickname)}</strong><div class="text-xs text-teal-800 mt-1">获授权：${(c.permissions||[]).map(escapeText).join('、')}</div><div class="flex flex-wrap gap-2 mt-2">${(c.permissions||[]).filter(p=>p!=='profile_summary').map(p=>`<button onclick="showCaregiverResource(${Number(c.id)},'${escapeText(p)}')" class="px-3 py-1.5 rounded-lg bg-white border">${escapeText({behavior_records:'行为记录',weekly_reports:'周报',safety_plan:'安全预案'}[p]||p)}</button>`).join('')}</div></div>`).join(''):'<p class="text-sm text-text-muted">当前账号没有获授权儿童。</p>';
-      modal.firstElementChild.innerHTML=`<div class="flex justify-between"><div><h2 class="text-lg font-bold">共同照护授权</h2><p class="text-xs text-text-muted mt-1">不共享密码；每项授权绑定具体儿童</p></div><button onclick="closeTopModal()" aria-label="关闭">✕</button></div><section class="mt-5"><h3 class="font-bold">邀请照护者</h3><select id="caregiver-child" class="mt-2 w-full p-3 rounded-xl border">${childOptions}</select><input id="caregiver-phone" inputmode="tel" maxlength="20" class="mt-2 w-full p-3 rounded-xl border" placeholder="对方登录手机号"><div class="mt-2 grid grid-cols-2 gap-2 text-sm">${[['profile_summary','基本档案摘要'],['behavior_records','行为记录'],['weekly_reports','周报'],['safety_plan','安全预案']].map(([v,l])=>`<label class="p-2 rounded-lg border"><input type="checkbox" name="caregiver-permission" value="${v}" ${v==='profile_summary'?'checked':''}> ${l}</label>`).join('')}</div><button onclick="createCaregiverInvitation()" class="mt-3 w-full py-3 rounded-xl bg-primary text-white font-bold">生成7天邀请码</button></section><section class="mt-5"><h3 class="font-bold mb-2">我邀请的照护者</h3><div class="space-y-2">${memberCards}</div></section><section class="mt-5"><h3 class="font-bold">接受邀请码</h3><div class="flex gap-2 mt-2"><input id="caregiver-code" class="flex-1 p-3 rounded-xl border" placeholder="粘贴对方发送的邀请码"><button onclick="acceptCaregiverInvitation()" class="px-4 rounded-xl border">接受</button></div></section><section class="mt-5"><h3 class="font-bold mb-2">别人授权给我的儿童</h3><div class="space-y-2">${assignedCards}</div></section>`;
+      modal.firstElementChild.innerHTML=`<div class="flex justify-between"><div><h2 class="text-lg font-bold">共同照护授权</h2><p class="text-xs text-text-muted mt-1">不共享密码；每项授权绑定具体儿童</p></div><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><section class="mt-5"><h3 class="font-bold">邀请照护者</h3><select id="caregiver-child" class="mt-2 w-full p-3 rounded-xl border">${childOptions}</select><input id="caregiver-phone" inputmode="tel" maxlength="20" class="mt-2 w-full p-3 rounded-xl border" placeholder="对方登录手机号"><div class="mt-2 grid grid-cols-2 gap-2 text-sm">${[['profile_summary','基本档案摘要'],['behavior_records','行为记录'],['weekly_reports','周报'],['safety_plan','安全预案']].map(([v,l])=>`<label class="p-2 rounded-lg border"><input type="checkbox" name="caregiver-permission" value="${v}" ${v==='profile_summary'?'checked':''}> ${l}</label>`).join('')}</div><button onclick="createCaregiverInvitation()" class="mt-3 w-full py-3 rounded-xl bg-primary text-white font-bold">生成7天邀请码</button></section><section class="mt-5"><h3 class="font-bold mb-2">我邀请的照护者</h3><div class="space-y-2">${memberCards}</div></section><section class="mt-5"><h3 class="font-bold">接受邀请码</h3><div class="flex gap-2 mt-2"><input id="caregiver-code" class="flex-1 p-3 rounded-xl border" placeholder="粘贴对方发送的邀请码"><button onclick="acceptCaregiverInvitation()" class="px-4 rounded-xl border">接受</button></div></section><section class="mt-5"><h3 class="font-bold mb-2">别人授权给我的儿童</h3><div class="space-y-2">${assignedCards}</div></section>`;
     }
     async function createCaregiverInvitation(){const child_id=Number(document.getElementById('caregiver-child')?.value),phone=document.getElementById('caregiver-phone')?.value.trim(),permissions=[...document.querySelectorAll('input[name="caregiver-permission"]:checked')].map(el=>el.value);try{const r=await apiRequest('/family/caregivers/invitations','POST',{child_id,phone,permissions});if(!r.success)throw new Error(r.error||'邀请失败');window.prompt('请通过可信方式单独发送此邀请码；7天内有效。',r.invitation_code)}catch(e){showToast(e.message||'邀请失败')}}
     async function acceptCaregiverInvitation(){const invitation_code=document.getElementById('caregiver-code')?.value.trim();try{const r=await apiRequest('/family/caregivers/invitations/accept','POST',{invitation_code});if(!r.success)throw new Error(r.error||'接受失败');closeTopModal();showToast('已接受儿童级授权');showCaregiverAccessCenter()}catch(e){showToast(e.message||'接受失败')}}
     async function revokeCaregiverAccess(id){if(!confirm('确认撤销该照护者对这个儿童的全部授权？'))return;try{const r=await apiRequest(`/family/caregivers/${encodeURIComponent(id)}`,'DELETE');if(!r.success)throw new Error(r.error||'撤销失败');closeTopModal();showToast('授权已撤销');showCaregiverAccessCenter()}catch(e){showToast(e.message||'撤销失败')}}
-    async function showCaregiverResource(childId,permission){const paths={behavior_records:'records',weekly_reports:'reports',safety_plan:'safety-plan'},titles={behavior_records:'获授权行为记录',weekly_reports:'获授权周报',safety_plan:'获授权安全预案'};try{const r=await apiRequest(`/family/caregivers/children/${encodeURIComponent(childId)}/${paths[permission]}`,'GET');if(!r.success)throw new Error(r.error||'读取失败');const items=permission==='behavior_records'?(r.records||[]):permission==='weekly_reports'?(r.reports||[]):[r.plan];const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[90] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML=`<div class="modal-content max-w-2xl p-5 max-h-[90vh] overflow-y-auto"><div class="flex justify-between"><h2 class="text-lg font-bold">${titles[permission]}</h2><button onclick="closeTopModal()" aria-label="关闭">✕</button></div><div class="mt-4 space-y-2">${items.length?items.map(item=>`<pre class="p-3 rounded-xl bg-background text-xs whitespace-pre-wrap break-words">${escapeText(JSON.stringify(item,null,2))}</pre>`).join(''):'<p class="text-text-muted">暂无数据</p>'}</div><p class="mt-3 text-xs text-text-muted">只显示儿童档案所有者明确授权的范围；不要转发或截图扩散。</p></div>`;document.body.appendChild(modal)}catch(e){showToast(e.message||'读取失败')}}
+    async function showCaregiverResource(childId,permission){const paths={behavior_records:'records',weekly_reports:'reports',safety_plan:'safety-plan'},titles={behavior_records:'获授权行为记录',weekly_reports:'获授权周报',safety_plan:'获授权安全预案'};try{const r=await apiRequest(`/family/caregivers/children/${encodeURIComponent(childId)}/${paths[permission]}`,'GET');if(!r.success)throw new Error(r.error||'读取失败');const items=permission==='behavior_records'?(r.records||[]):permission==='weekly_reports'?(r.reports||[]):[r.plan];const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[90] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML=`<div class="modal-content max-w-2xl p-5 max-h-[90vh] overflow-y-auto"><div class="flex justify-between"><h2 class="text-lg font-bold">${titles[permission]}</h2><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="mt-4 space-y-2">${items.length?items.map(item=>`<pre class="p-3 rounded-xl bg-background text-xs whitespace-pre-wrap break-words">${escapeText(JSON.stringify(item,null,2))}</pre>`).join(''):'<p class="text-text-muted">暂无数据</p>'}</div><p class="mt-3 text-xs text-text-muted">只显示儿童档案所有者明确授权的范围；不要转发或截图扩散。</p></div>`;document.body.appendChild(modal)}catch(e){showToast(e.message||'读取失败')}}
 
     function renderFamilyMoodContent() {
       return `
@@ -4423,7 +4423,7 @@
         <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold">创建感谢卡</h2>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="space-y-4">
             <div>
@@ -4476,7 +4476,7 @@
       const [title, fields, warning] = configs[type];
       const saved = JSON.parse(sessionStorage.getItem(`xingban_family_${type}`) || '{}');
       const modal = document.createElement('div'); modal.className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'; modal.dataset.modal='true';
-      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[90vh] overflow-y-auto"><div class="flex justify-between mb-4"><h2 class="text-lg font-bold">${escapeText(title)}</h2><button onclick="closeTopModal()">✕</button></div><div class="space-y-3">${fields.map(([id,label,ph])=>`<label class="block text-sm font-medium">${escapeText(label)}<textarea id="family-${type}-${id}" rows="2" placeholder="${escapeText(ph)}" class="mt-1 w-full p-3 rounded-xl border border-border">${escapeText(saved[id]||'')}</textarea></label>`).join('')}</div><p class="mt-3 text-xs text-text-muted">${escapeText(warning)}</p><button onclick="saveFamilyTool('${type}',${JSON.stringify(fields.map(f=>f[0])).replace(/"/g,"'")})" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">保存到当前标签页</button></div>`;
+      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[90vh] overflow-y-auto"><div class="flex justify-between mb-4"><h2 class="text-lg font-bold">${escapeText(title)}</h2><button data-ui-action="close-top-modal">✕</button></div><div class="space-y-3">${fields.map(([id,label,ph])=>`<label class="block text-sm font-medium">${escapeText(label)}<textarea id="family-${type}-${id}" rows="2" placeholder="${escapeText(ph)}" class="mt-1 w-full p-3 rounded-xl border border-border">${escapeText(saved[id]||'')}</textarea></label>`).join('')}</div><p class="mt-3 text-xs text-text-muted">${escapeText(warning)}</p><button onclick="saveFamilyTool('${type}',${JSON.stringify(fields.map(f=>f[0])).replace(/"/g,"'")})" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">保存到当前标签页</button></div>`;
       document.body.appendChild(modal);
     }
 
@@ -4549,7 +4549,7 @@
               <div>
                 <div class="flex items-center justify-between mb-3">
                   <h3 class="font-bold text-text-primary">成长课程</h3>
-                  <button onclick="navigateTo('achievements')" class="text-sm text-primary font-medium">查看成就 →</button>
+                  <button data-nav="achievements" class="text-sm text-primary font-medium">查看成就 →</button>
                 </div>
                 <div class="flex gap-2 overflow-x-auto scrollbar-hide pb-2 mb-3">
                   ${courseCategories.map((cat, i) => `
@@ -4645,7 +4645,7 @@
       const modal = document.createElement('div');
       modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
       modal.innerHTML = `<div class="bg-white w-full max-w-lg rounded-2xl p-5 animate-fade-in max-h-[90vh] overflow-y-auto">
-        <div class="flex justify-between items-start mb-4"><div><div class="text-xs text-primary">${escapeText(course.category)} · 第${currentIndex + 1}/${content.chapters.length}章</div><h3 class="text-lg font-bold mt-1">${escapeText(chapterTitle)}</h3></div><button onclick="closeTopModal()" aria-label="关闭课程">✕</button></div>
+        <div class="flex justify-between items-start mb-4"><div><div class="text-xs text-primary">${escapeText(course.category)} · 第${currentIndex + 1}/${content.chapters.length}章</div><h3 class="text-lg font-bold mt-1">${escapeText(chapterTitle)}</h3></div><button data-ui-action="close-top-modal" aria-label="关闭课程">✕</button></div>
         <section class="rounded-xl bg-primary-light/20 p-4"><strong>本课程目标</strong><p class="text-sm text-text-secondary mt-1">${escapeText(content.goal)}</p></section>
         <section class="mt-4"><h4 class="font-bold">本章跟着做</h4><ol class="mt-2 space-y-2">${content.steps.map((step,index)=>`<li class="flex gap-3 text-sm"><span class="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0">${index+1}</span><span>${escapeText(step)}</span></li>`).join('')}</ol></section>
         <section class="mt-4 rounded-xl bg-blue-50 border border-blue-100 p-3 text-sm text-blue-900"><strong>完成前核对：</strong>${escapeText(content.check)}</section>
@@ -4852,7 +4852,7 @@
         <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in">
           <div class="flex justify-between items-start mb-4">
             <h3 class="text-lg font-bold">成就详情</h3>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="text-center py-4">
             <div class="text-6xl mb-3">${achievement.icon}</div>
@@ -4863,7 +4863,7 @@
               <div class="text-sm text-text-muted">解锁时间</div>
               <div class="font-medium text-text-primary">${achievement.unlocked_at}</div>
             </div>
-            <button onclick="this.closest('.fixed').remove()" class="w-full mt-4 py-2.5 rounded-xl bg-primary text-white font-medium">太棒了！</button>
+            <button data-ui-action="remove-overlay" class="w-full mt-4 py-2.5 rounded-xl bg-primary text-white font-medium">太棒了！</button>
           </div>
         </div>
       `;
@@ -4924,7 +4924,7 @@
         <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in">
           <div class="flex justify-between items-start mb-4">
             <h3 class="text-lg font-bold">安全档案</h3>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="space-y-4">
             <div>
@@ -4952,7 +4952,7 @@
               <p class="text-text-secondary text-sm">孩子对视觉提示反应较好，请使用图片卡片沟通。</p>
             </div>
           </div>
-          <button onclick="this.closest('.fixed').remove()" class="w-full mt-6 py-3 rounded-xl bg-primary text-white font-medium">知道了</button>
+          <button data-ui-action="remove-overlay" class="w-full mt-6 py-3 rounded-xl bg-primary text-white font-medium">知道了</button>
         </div>
       `;
       document.body.appendChild(modal);
@@ -4965,12 +4965,12 @@
         <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in">
           <div class="flex justify-between items-start mb-4">
             <h3 class="text-lg font-bold">安全技能训练</h3>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div id="safety-skills-list" class="space-y-3">
             <div class="text-center py-4 text-text-muted">加载中...</div>
           </div>
-          <button onclick="this.closest('.fixed').remove()" class="w-full mt-6 py-3 rounded-xl bg-primary text-white font-medium">知道了</button>
+          <button data-ui-action="remove-overlay" class="w-full mt-6 py-3 rounded-xl bg-primary text-white font-medium">知道了</button>
         </div>
       `;
       document.body.appendChild(modal);
@@ -5025,14 +5025,14 @@
       const p = JSON.parse(localStorage.getItem('xingban_wandering_plan') || '{}');
       const modal=document.createElement('div'); modal.className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'; modal.dataset.modal='true';
       const fields=[['photo','近期照片与衣着描述','如：照片保存位置、今日上衣颜色'],['places','孩子常去或偏好的地点','逐行填写'],['communication','沟通与感官注意','姓名回应、是否怕警笛、沟通方式'],['contacts','信任联系人分工','谁报警、谁找常去地点、谁留守'],['meeting','家庭集合点','走散后的固定集合位置']];
-      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[90vh] overflow-y-auto"><div class="flex justify-between"><div><h2 class="text-xl font-bold">防走失预案</h2><p class="text-xs text-text-muted">建议与共同监护人定期演练</p></div><button onclick="closeTopModal()">✕</button></div><div class="space-y-3 mt-4">${fields.map(([id,l,ph])=>`<label class="block text-sm font-medium">${escapeText(l)}<textarea id="wander-${id}" rows="2" placeholder="${escapeText(ph)}" class="mt-1 w-full p-3 rounded-xl border border-border">${escapeText(p[id]||'')}</textarea></label>`).join('')}</div><button onclick="saveWanderingPlan()" class="w-full mt-4 py-3 bg-primary text-white rounded-xl font-bold">保存预案</button></div>`; document.body.appendChild(modal);
+      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[90vh] overflow-y-auto"><div class="flex justify-between"><div><h2 class="text-xl font-bold">防走失预案</h2><p class="text-xs text-text-muted">建议与共同监护人定期演练</p></div><button data-ui-action="close-top-modal">✕</button></div><div class="space-y-3 mt-4">${fields.map(([id,l,ph])=>`<label class="block text-sm font-medium">${escapeText(l)}<textarea id="wander-${id}" rows="2" placeholder="${escapeText(ph)}" class="mt-1 w-full p-3 rounded-xl border border-border">${escapeText(p[id]||'')}</textarea></label>`).join('')}</div><button onclick="saveWanderingPlan()" class="w-full mt-4 py-3 bg-primary text-white rounded-xl font-bold">保存预案</button></div>`; document.body.appendChild(modal);
     }
 
     async function saveWanderingPlan(){const ids=['photo','places','communication','contacts','meeting'];const p={updatedAt:new Date().toISOString()};ids.forEach(id=>p[id]=document.getElementById('wander-'+id).value.trim());try{const saved=await persistSensitiveRecord('wandering_plan',p,'xingban_wandering_plan');closeTopModal();showToast(saved.server?'防走失预案已加密保存':'服务不可用，体验数据暂存当前设备');}catch(_){showToast('安全存储不可用，未保存敏感数据');}}
 
     function startMissingChildMode() {
       const p=JSON.parse(localStorage.getItem('xingban_wandering_plan')||'{}'); const modal=document.createElement('div');modal.className='fixed inset-0 bg-red-950/90 flex items-center justify-center z-[80] p-3';modal.dataset.modal='true';
-      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[94vh] overflow-y-auto"><div class="text-xs font-bold text-red-700">走失立即行动</div><h2 class="text-2xl font-bold mt-1">不要独自盲目寻找</h2><ol class="mt-4 space-y-3 list-decimal pl-5 text-sm leading-6"><li>立即确认最后出现的时间、地点和衣着，安排一名成人留在原地。</li><li>拨打 110，说明孩子年龄、沟通特点、诊断/特殊需要及可能去向。</li><li>分工检查水边、道路、交通站点、高处和孩子常去地点，不进入危险区域。</li><li>向场所工作人员出示近期照片；不要在公开群发送身份证号或完整住址。</li></ol><div class="mt-4 p-3 bg-background rounded-xl text-sm"><strong>预案摘要：</strong><p class="mt-1">常去地点：${escapeText(p.places||'尚未填写')}</p><p>沟通注意：${escapeText(p.communication||'尚未填写')}</p><p>家庭分工：${escapeText(p.contacts||'尚未填写')}</p></div><div class="grid grid-cols-2 gap-2 mt-4"><button onclick="callEmergencyContact('110','报警')" class="py-3 bg-red-700 text-white rounded-xl font-bold">拨打 110</button><button onclick="showEmergencyContactManager()" class="py-3 border border-border rounded-xl font-bold">联系家人</button></div><button onclick="closeTopModal()" class="w-full mt-2 py-3 text-text-secondary">取消 / 已找回</button></div>`;document.body.appendChild(modal);
+      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[94vh] overflow-y-auto"><div class="text-xs font-bold text-red-700">走失立即行动</div><h2 class="text-2xl font-bold mt-1">不要独自盲目寻找</h2><ol class="mt-4 space-y-3 list-decimal pl-5 text-sm leading-6"><li>立即确认最后出现的时间、地点和衣着，安排一名成人留在原地。</li><li>拨打 110，说明孩子年龄、沟通特点、诊断/特殊需要及可能去向。</li><li>分工检查水边、道路、交通站点、高处和孩子常去地点，不进入危险区域。</li><li>向场所工作人员出示近期照片；不要在公开群发送身份证号或完整住址。</li></ol><div class="mt-4 p-3 bg-background rounded-xl text-sm"><strong>预案摘要：</strong><p class="mt-1">常去地点：${escapeText(p.places||'尚未填写')}</p><p>沟通注意：${escapeText(p.communication||'尚未填写')}</p><p>家庭分工：${escapeText(p.contacts||'尚未填写')}</p></div><div class="grid grid-cols-2 gap-2 mt-4"><button onclick="callEmergencyContact('110','报警')" class="py-3 bg-red-700 text-white rounded-xl font-bold">拨打 110</button><button onclick="showEmergencyContactManager()" class="py-3 border border-border rounded-xl font-bold">联系家人</button></div><button data-ui-action="close-top-modal" class="w-full mt-2 py-3 text-text-secondary">取消 / 已找回</button></div>`;document.body.appendChild(modal);
     }
 
     async function renderStories(container) {
@@ -5090,7 +5090,7 @@
         <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold">创建故事</h2>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900">故事用于预告具体场景，不是服从脚本。不要强迫眼神接触、身体接触或掩饰痛苦；必须保留拒绝、求助和退出方式。</div>
           <div class="space-y-4 mt-4">
@@ -5158,7 +5158,7 @@
         <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in max-h-[80vh] overflow-y-auto">
           <div class="flex justify-between items-start mb-4">
             <h3 class="text-lg font-bold">加载中...</h3>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="text-center py-8 text-text-muted">加载中...</div>
         </div>
@@ -5175,7 +5175,7 @@
             <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in max-h-[80vh] overflow-y-auto">
               <div class="flex justify-between items-start mb-4">
                 <h3 class="text-lg font-bold">${escapeText(story.title)}</h3>
-                <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+                <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
               </div>
               <div class="flex items-center gap-2 mb-4">
                 <span class="text-xs px-2 py-0.5 bg-secondary/50 text-text-secondary rounded-full">${escapeText(story.category)}</span>
@@ -5198,7 +5198,7 @@
           modal.innerHTML = `
             <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in">
               <div class="text-center py-8 text-text-muted">加载失败</div>
-              <button onclick="this.closest('.fixed').remove()" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-medium">关闭</button>
+              <button data-ui-action="remove-overlay" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-medium">关闭</button>
             </div>
           `;
         }
@@ -5207,7 +5207,7 @@
         modal.innerHTML = `
           <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in">
             <div class="text-center py-8 text-text-muted">网络错误</div>
-            <button onclick="this.closest('.fixed').remove()" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-medium">关闭</button>
+            <button data-ui-action="remove-overlay" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-medium">关闭</button>
           </div>
         `;
       }
@@ -5628,7 +5628,7 @@
         <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold">发布帖子</h2>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="space-y-4">
             <div>
@@ -5707,7 +5707,7 @@
         <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in max-h-[80vh] overflow-y-auto">
           <div class="flex justify-between items-start mb-4">
             <h3 class="text-lg font-bold">加载中...</h3>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="text-center py-8 text-text-muted">加载中...</div>
         </div>
@@ -5728,7 +5728,7 @@
             <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in max-h-[80vh] flex flex-col">
               <div class="flex justify-between items-start mb-4">
                 <h3 class="text-lg font-bold">${escapeText(post.title)}</h3>
-                <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+                <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
               </div>
               <div class="flex items-center gap-2 mb-4">
                 <span class="text-xs px-2 py-0.5 bg-secondary/50 text-text-secondary rounded-full">${escapeText(getCategoryName(post.category))}</span>
@@ -5767,7 +5767,7 @@
           modal.innerHTML = `
             <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in">
               <div class="text-center py-8 text-text-muted">加载失败</div>
-              <button onclick="this.closest('.fixed').remove()" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-medium">关闭</button>
+              <button data-ui-action="remove-overlay" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-medium">关闭</button>
             </div>
           `;
         }
@@ -5776,7 +5776,7 @@
         modal.innerHTML = `
           <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-fade-in">
             <div class="text-center py-8 text-text-muted">网络错误</div>
-            <button onclick="this.closest('.fixed').remove()" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-medium">关闭</button>
+            <button data-ui-action="remove-overlay" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-medium">关闭</button>
           </div>
         `;
       }
@@ -5801,11 +5801,11 @@
 
     function reportCommunityContent(id) {
       const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[70] p-0 sm:p-4';modal.dataset.modal='true';
-      modal.innerHTML=`<div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">举报社区内容</h2><button onclick="closeTopModal()">✕</button></div><p class="text-xs text-text-muted mt-2">举报会生成可查询工单；若有人当前可能受伤，不要等待审核。</p><label class="block text-sm font-medium mt-4">原因<select id="community-report-reason" class="mt-1 w-full p-3 rounded-xl border border-border"><option value="crisis">涉及自伤、伤人或即时危险</option><option value="privacy">泄露儿童或家庭隐私</option><option value="harassment">骚扰、攻击或歧视</option><option value="misinformation">疑似医疗错误信息</option><option value="fraud">诈骗或违规推销</option><option value="other">其他</option></select></label><label class="block text-sm font-medium mt-3">补充说明<textarea id="community-report-details" maxlength="500" rows="3" class="mt-1 w-full p-3 rounded-xl border border-border" placeholder="不要重复粘贴不必要的隐私信息"></textarea></label><button onclick="submitCommunityReport(${Number(id)})" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">提交举报</button></div>`;
+      modal.innerHTML=`<div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">举报社区内容</h2><button data-ui-action="close-top-modal">✕</button></div><p class="text-xs text-text-muted mt-2">举报会生成可查询工单；若有人当前可能受伤，不要等待审核。</p><label class="block text-sm font-medium mt-4">原因<select id="community-report-reason" class="mt-1 w-full p-3 rounded-xl border border-border"><option value="crisis">涉及自伤、伤人或即时危险</option><option value="privacy">泄露儿童或家庭隐私</option><option value="harassment">骚扰、攻击或歧视</option><option value="misinformation">疑似医疗错误信息</option><option value="fraud">诈骗或违规推销</option><option value="other">其他</option></select></label><label class="block text-sm font-medium mt-3">补充说明<textarea id="community-report-details" maxlength="500" rows="3" class="mt-1 w-full p-3 rounded-xl border border-border" placeholder="不要重复粘贴不必要的隐私信息"></textarea></label><button onclick="submitCommunityReport(${Number(id)})" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">提交举报</button></div>`;
       document.body.appendChild(modal);
     }
     async function submitCommunityReport(id){const reason=document.getElementById('community-report-reason')?.value;const details=document.getElementById('community-report-details')?.value.trim()||'';try{const result=await apiRequest('/community/reports','POST',{target_type:'post',target_id:id,reason,details});if(!result.success)throw new Error(result.error||'举报失败');closeTopModal();if(reason==='crisis'){showCommunitySafetyHold({...result,safety:{title:'举报已进入紧急优先队列',actions:result.safety?.actions||['不要等待社区回复','立即联系120/110或既往就诊机构']}})}else{showToast(`举报已提交，工单号 ${result.case_ref}`)}}catch(error){showToast(error.message||'举报失败')}}
-    async function showMyCommunityReports(){const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[70] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML='<div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">我的举报记录</h2><button onclick="closeTopModal()">✕</button></div><div class="py-8 text-center text-text-muted">加载中…</div></div>';document.body.appendChild(modal);try{const result=await apiRequest('/community/reports/mine','GET');if(!result.success)throw new Error(result.error||'读取失败');const names={crisis:'即时危险',harassment:'骚扰攻击',privacy:'隐私泄露',misinformation:'错误信息',fraud:'诈骗推销',other:'其他'};const statuses={open:'待处理',reviewing:'处理中',resolved:'已处理',dismissed:'不成立'};modal.firstElementChild.innerHTML=`<div class="flex justify-between"><div><h2 class="text-lg font-bold">我的举报记录</h2><p class="text-xs text-text-muted mt-1">这里显示处理状态，不展示其他用户身份</p></div><button onclick="closeTopModal()">✕</button></div><div class="mt-4 space-y-3 max-h-[65vh] overflow-y-auto">${result.reports.length?result.reports.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>${escapeText(names[item.reason]||item.reason)}</strong><span class="text-primary">${escapeText(statuses[item.status]||item.status)}</span></div><div class="text-xs text-text-muted mt-1 break-all">工单：${escapeText(item.case_ref)}</div><div class="text-xs text-text-muted mt-1">${formatDate(item.created_at)}</div></div>`).join(''):'<div class="py-8 text-center text-text-muted">暂无举报记录</div>'}</div>`}catch(error){modal.firstElementChild.innerHTML=`<div class="text-center py-8 text-text-muted">${escapeText(error.message||'读取失败')}</div><button onclick="closeTopModal()" class="w-full py-3 rounded-xl bg-primary text-white">关闭</button>`}}
+    async function showMyCommunityReports(){const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[70] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML='<div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">我的举报记录</h2><button data-ui-action="close-top-modal">✕</button></div><div class="py-8 text-center text-text-muted">加载中…</div></div>';document.body.appendChild(modal);try{const result=await apiRequest('/community/reports/mine','GET');if(!result.success)throw new Error(result.error||'读取失败');const names={crisis:'即时危险',harassment:'骚扰攻击',privacy:'隐私泄露',misinformation:'错误信息',fraud:'诈骗推销',other:'其他'};const statuses={open:'待处理',reviewing:'处理中',resolved:'已处理',dismissed:'不成立'};modal.firstElementChild.innerHTML=`<div class="flex justify-between"><div><h2 class="text-lg font-bold">我的举报记录</h2><p class="text-xs text-text-muted mt-1">这里显示处理状态，不展示其他用户身份</p></div><button data-ui-action="close-top-modal">✕</button></div><div class="mt-4 space-y-3 max-h-[65vh] overflow-y-auto">${result.reports.length?result.reports.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>${escapeText(names[item.reason]||item.reason)}</strong><span class="text-primary">${escapeText(statuses[item.status]||item.status)}</span></div><div class="text-xs text-text-muted mt-1 break-all">工单：${escapeText(item.case_ref)}</div><div class="text-xs text-text-muted mt-1">${formatDate(item.created_at)}</div></div>`).join(''):'<div class="py-8 text-center text-text-muted">暂无举报记录</div>'}</div>`}catch(error){modal.firstElementChild.innerHTML=`<div class="text-center py-8 text-text-muted">${escapeText(error.message||'读取失败')}</div><button data-ui-action="close-top-modal" class="w-full py-3 rounded-xl bg-primary text-white">关闭</button>`}}
     function blockCommunityContent(id) { MOCK_DATA.communityPosts = MOCK_DATA.communityPosts.filter(p => p.id !== id); closeTopModal(); showToast('已在当前设备屏蔽该内容'); renderCommunity(document.getElementById('main-content')); }
 
     async function addComment(postId) {
@@ -5948,7 +5948,7 @@
       modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
       modal.dataset.modal = 'true';
       modal.innerHTML = `<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[90vh] overflow-y-auto">
-        <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">心理健康照护档案</h3><button onclick="closeTopModal()" aria-label="关闭">✕</button></div>
+        <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">心理健康照护档案</h3><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div>
         <div class="rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900 mb-4">仅记录专业人员已确认或家长观察到的信息，不用于自行诊断。当前体验版保存在本机浏览器，请勿填写身份证号、详细住址等不必要信息。</div>
         <div class="space-y-3">
           <label class="block text-sm">诊断/评估状态<input id="mh-status" value="${p.status || ''}" placeholder="如：儿童精神科评估中 / 医生已确诊" class="mt-1 w-full p-3 rounded-xl border border-border"></label>
@@ -6336,7 +6336,7 @@
         <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold">添加干预目标</h2>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="space-y-4">
             <div>
@@ -6608,7 +6608,7 @@
         <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold">添加里程碑</h2>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="space-y-4">
             <div>
@@ -6667,7 +6667,7 @@
         <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold">添加生涯目标</h2>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="space-y-4">
             <div>
@@ -6761,7 +6761,7 @@
         <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold">编辑生涯目标</h2>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="space-y-4">
             <div>
@@ -7003,7 +7003,7 @@
         <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold">添加记账记录</h2>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="space-y-4">
             <div>
@@ -7124,6 +7124,16 @@
 
     // === 初始化 ===
     document.addEventListener('DOMContentLoaded', () => {
+      document.addEventListener('click', event => {
+        const trigger = event.target.closest('[data-ui-action],[data-nav]');
+        if (!trigger) return;
+        const action = trigger.dataset.uiAction;
+        if (action === 'close-top-modal') closeTopModal();
+        else if (action === 'remove-overlay') trigger.closest('.fixed')?.remove();
+        else if (action === 'print') window.print();
+        else if (action === 'close-and-navigate') { closeTopModal(); navigateTo(trigger.dataset.nav); }
+        else if (trigger.dataset.nav) navigateTo(trigger.dataset.nav);
+      });
       // 恢复全局应用状态
       loadAppState();
 
@@ -7378,17 +7388,17 @@
     const deletionStatusLabel = value => ({pending:'待处理',processing:'处理中',completed:'已完成',rejected:'未批准',cancelled:'已撤销'}[value] || value);
     async function showDataDeletionCenter() {
       const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[70] p-0 sm:p-4';modal.dataset.modal='true';
-      if(useMockMode){modal.innerHTML='<div class="modal-content max-w-lg p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">数据删除申请</h2><button onclick="closeTopModal()" aria-label="关闭">✕</button></div><div class="mt-4 rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-900">公开体验版没有真实云端账号数据，因此不会生成虚假的删除工单。连接正式后端后，可申请删除某个孩子或整个账号数据。</div><button onclick="closeTopModal()" class="w-full mt-4 py-3 rounded-xl bg-primary text-white">知道了</button></div>';document.body.appendChild(modal);return;}
-      modal.innerHTML='<div class="modal-content max-w-xl p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">数据删除申请</h2><button onclick="closeTopModal()" aria-label="关闭">✕</button></div><div class="py-10 text-center text-text-muted">正在读取申请记录…</div></div>';document.body.appendChild(modal);
-      try{const result=await apiRequest('/sensitive/deletion-requests/mine','GET');if(!result.success)throw new Error(result.error||'读取失败');renderDataDeletionCenter(modal,result.requests||[])}catch(error){modal.firstElementChild.innerHTML=`<div class="p-5 text-center text-text-muted">${escapeText(error.message||'读取失败')}</div><button onclick="closeTopModal()" class="w-full py-3 bg-primary text-white">关闭</button>`}
+      if(useMockMode){modal.innerHTML='<div class="modal-content max-w-lg p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">数据删除申请</h2><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="mt-4 rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-900">公开体验版没有真实云端账号数据，因此不会生成虚假的删除工单。连接正式后端后，可申请删除某个孩子或整个账号数据。</div><button data-ui-action="close-top-modal" class="w-full mt-4 py-3 rounded-xl bg-primary text-white">知道了</button></div>';document.body.appendChild(modal);return;}
+      modal.innerHTML='<div class="modal-content max-w-xl p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">数据删除申请</h2><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="py-10 text-center text-text-muted">正在读取申请记录…</div></div>';document.body.appendChild(modal);
+      try{const result=await apiRequest('/sensitive/deletion-requests/mine','GET');if(!result.success)throw new Error(result.error||'读取失败');renderDataDeletionCenter(modal,result.requests||[])}catch(error){modal.firstElementChild.innerHTML=`<div class="p-5 text-center text-text-muted">${escapeText(error.message||'读取失败')}</div><button data-ui-action="close-top-modal" class="w-full py-3 bg-primary text-white">关闭</button>`}
     }
     function renderDataDeletionCenter(modal,requests){
       const cards=requests.length?requests.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>${item.scope==='account'?'整个账号':'儿童档案 #'+Number(item.child_id)}</strong><span class="text-primary">${escapeText(deletionStatusLabel(item.status))}</span></div><div class="text-xs text-text-muted mt-1">工单：${escapeText(item.id)} · 申请于 ${formatDate(item.created_at)}</div><div class="text-xs text-text-muted mt-1">目标处理日期：${formatDate(item.due_at)}</div>${item.resolution_note?`<div class="mt-2">处理说明：${escapeText(item.resolution_note)}</div>`:''}${item.status==='pending'?`<button onclick="cancelDataDeletionRequest('${escapeText(item.id)}')" class="mt-2 px-3 py-1.5 rounded-lg border border-border">撤销申请</button>`:''}</div>`).join(''):'<div class="py-6 text-center text-text-muted">暂无删除申请</div>';
-      modal.firstElementChild.innerHTML=`<div class="flex justify-between gap-3"><div><h2 class="text-lg font-bold">数据删除申请</h2><p class="text-xs text-text-muted mt-1">处理前可撤销；申请创建后现有分享会立即撤销</p></div><button onclick="closeTopModal()" aria-label="关闭">✕</button></div><div class="mt-4 space-y-3 max-h-[48vh] overflow-y-auto">${cards}</div><button onclick="showDataDeletionRequestForm()" class="w-full mt-4 py-3 rounded-xl bg-red-700 text-white font-bold">新建删除申请</button>`;
+      modal.firstElementChild.innerHTML=`<div class="flex justify-between gap-3"><div><h2 class="text-lg font-bold">数据删除申请</h2><p class="text-xs text-text-muted mt-1">处理前可撤销；申请创建后现有分享会立即撤销</p></div><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="mt-4 space-y-3 max-h-[48vh] overflow-y-auto">${cards}</div><button onclick="showDataDeletionRequestForm()" class="w-full mt-4 py-3 rounded-xl bg-red-700 text-white font-bold">新建删除申请</button>`;
     }
     function showDataDeletionRequestForm(){
       const options=MOCK_DATA.children.map(child=>`<option value="${Number(child.id)}">${escapeText(child.name||child.nickname||'未命名儿童')}</option>`).join('');
-      const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[80] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML=`<div class="modal-content max-w-lg p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">新建删除申请</h2><button onclick="closeTopModal()" aria-label="关闭">✕</button></div><div class="mt-4 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-900"><strong>删除完成后不能恢复。</strong>账号级删除会移除账号及其儿童、记录和业务数据；为防止继续扩散，提交申请后现有分享会立即撤销。</div><label class="block mt-4 text-sm font-medium">删除范围<select id="deletion-scope" onchange="toggleDeletionChildField(this.value)" class="mt-1 w-full p-3 rounded-xl border border-border bg-white"><option value="child">某个儿童及关联数据</option><option value="account">整个账号及全部数据</option></select></label><label id="deletion-child-field" class="block mt-3 text-sm font-medium">选择儿童<select id="deletion-child" class="mt-1 w-full p-3 rounded-xl border border-border bg-white">${options}</select></label><label class="block mt-3 text-sm font-medium">原因（可选）<textarea id="deletion-reason" maxlength="500" rows="2" class="mt-1 w-full p-3 rounded-xl border border-border" placeholder="帮助处理人员确认范围，不要重复填写隐私详情"></textarea></label><label class="block mt-3 text-sm font-medium">输入 DELETE 确认<input id="deletion-confirmation" autocomplete="off" class="mt-1 w-full p-3 rounded-xl border border-red-300"></label><button onclick="submitDataDeletionRequest()" class="w-full mt-4 py-3 rounded-xl bg-red-700 text-white font-bold">提交删除申请</button></div>`;document.body.appendChild(modal);
+      const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[80] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML=`<div class="modal-content max-w-lg p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">新建删除申请</h2><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="mt-4 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-900"><strong>删除完成后不能恢复。</strong>账号级删除会移除账号及其儿童、记录和业务数据；为防止继续扩散，提交申请后现有分享会立即撤销。</div><label class="block mt-4 text-sm font-medium">删除范围<select id="deletion-scope" onchange="toggleDeletionChildField(this.value)" class="mt-1 w-full p-3 rounded-xl border border-border bg-white"><option value="child">某个儿童及关联数据</option><option value="account">整个账号及全部数据</option></select></label><label id="deletion-child-field" class="block mt-3 text-sm font-medium">选择儿童<select id="deletion-child" class="mt-1 w-full p-3 rounded-xl border border-border bg-white">${options}</select></label><label class="block mt-3 text-sm font-medium">原因（可选）<textarea id="deletion-reason" maxlength="500" rows="2" class="mt-1 w-full p-3 rounded-xl border border-border" placeholder="帮助处理人员确认范围，不要重复填写隐私详情"></textarea></label><label class="block mt-3 text-sm font-medium">输入 DELETE 确认<input id="deletion-confirmation" autocomplete="off" class="mt-1 w-full p-3 rounded-xl border border-red-300"></label><button onclick="submitDataDeletionRequest()" class="w-full mt-4 py-3 rounded-xl bg-red-700 text-white font-bold">提交删除申请</button></div>`;document.body.appendChild(modal);
     }
     function toggleDeletionChildField(scope){document.getElementById('deletion-child-field')?.classList.toggle('hidden',scope==='account')}
     async function submitDataDeletionRequest(){
@@ -7400,23 +7410,23 @@
 
     async function showSecurityOperations(){
       if(currentUser?.role!=='admin'){showToast('当前账号无权访问安全运营台');return}
-      const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[80] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML='<div class="modal-content max-w-3xl p-5 max-h-[94vh] overflow-y-auto"><div class="flex justify-between"><div><h2 class="text-lg font-bold">安全运营台</h2><p class="text-xs text-text-muted mt-1">仅显示最小工单标识与聚合证据，不展示儿童内容</p></div><button onclick="closeTopModal()" aria-label="关闭">✕</button></div><div class="py-10 text-center text-text-muted">正在读取安全队列…</div></div>';document.body.appendChild(modal);
+      const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[80] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML='<div class="modal-content max-w-3xl p-5 max-h-[94vh] overflow-y-auto"><div class="flex justify-between"><div><h2 class="text-lg font-bold">安全运营台</h2><p class="text-xs text-text-muted mt-1">仅显示最小工单标识与聚合证据，不展示儿童内容</p></div><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="py-10 text-center text-text-muted">正在读取安全队列…</div></div>';document.body.appendChild(modal);
       try{
         const [pending,processing,open,acknowledged,failedJobs]=await Promise.all([apiRequest('/sensitive/admin/deletion-requests?status=pending','GET'),apiRequest('/sensitive/admin/deletion-requests?status=processing','GET'),apiRequest('/sensitive/admin/security-alerts?status=open','GET'),apiRequest('/sensitive/admin/security-alerts?status=acknowledged','GET'),apiRequest('/report/admin/jobs?status=failed','GET')]);
         if(!pending.success||!processing.success||!open.success||!acknowledged.success||!failedJobs.success)throw new Error('运营队列读取失败');
         renderSecurityOperations(modal,[...(pending.requests||[]),...(processing.requests||[])],[...(open.alerts||[]),...(acknowledged.alerts||[])],failedJobs.jobs||[]);
-      }catch(error){modal.firstElementChild.innerHTML=`<div class="p-6 text-center text-text-muted">${escapeText(error.message||'读取失败')}</div><button onclick="closeTopModal()" class="w-full py-3 bg-primary text-white">关闭</button>`}
+      }catch(error){modal.firstElementChild.innerHTML=`<div class="p-6 text-center text-text-muted">${escapeText(error.message||'读取失败')}</div><button data-ui-action="close-top-modal" class="w-full py-3 bg-primary text-white">关闭</button>`}
     }
     function renderSecurityOperations(modal,deletions,alerts,weeklyJobs){
       const deletionCards=deletions.length?deletions.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>${item.scope==='account'?'账号级':'儿童级'}删除 · 用户 #${Number(item.requester_user_id)}</strong><span>${escapeText(deletionStatusLabel(item.status))}</span></div><div class="text-xs text-text-muted mt-1">${escapeText(item.id)} · 截止 ${formatDate(item.due_at)}</div><div class="flex flex-wrap gap-2 mt-2">${item.status==='pending'?`<button onclick="showAdminResolution('deletion','${escapeText(item.id)}','processing')" class="px-3 py-1.5 rounded-lg bg-primary text-white">开始处理</button>`:`<button onclick="showAdminResolution('deletion','${escapeText(item.id)}','completed')" class="px-3 py-1.5 rounded-lg bg-success text-white">确认完成删除</button>`}<button onclick="showAdminResolution('deletion','${escapeText(item.id)}','rejected')" class="px-3 py-1.5 rounded-lg border border-border">拒绝并说明</button></div></div>`).join(''):'<div class="py-5 text-center text-text-muted">没有待处理删除工单</div>';
       const alertCards=alerts.length?alerts.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>${escapeText(item.summary)}</strong><span class="${item.severity==='critical'?'text-red-700':'text-amber-700'}">${escapeText(item.severity)} · ${Number(item.occurrence_count)}次</span></div><div class="text-xs text-text-muted mt-1">${escapeText(item.rule)} · 最后 ${formatDate(item.last_seen_at)}</div><div class="flex gap-2 mt-2">${item.status==='open'?`<button onclick="showAdminResolution('alert','${escapeText(item.id)}','acknowledged')" class="px-3 py-1.5 rounded-lg bg-primary text-white">确认接手</button>`:''}<button onclick="showAdminResolution('alert','${escapeText(item.id)}','resolved')" class="px-3 py-1.5 rounded-lg border border-border">标记解决</button></div></div>`).join(''):'<div class="py-5 text-center text-text-muted">没有未解决安全告警</div>';
       const weeklyCards=weeklyJobs.length?weeklyJobs.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>儿童 #${Number(item.child_id)} · ${escapeText(String(item.week_start).slice(0,10))}</strong><span class="text-red-700">失败 ${Number(item.attempt_count)} 次</span></div><div class="text-xs text-text-muted mt-1">通知：${escapeText(item.notification_status)} · ${escapeText(item.last_error||'未记录错误')}</div><button onclick="retryWeeklyReportJob(${Number(item.id)})" class="mt-2 px-3 py-1.5 rounded-lg border border-border">重新排队</button></div>`).join(''):'<div class="py-5 text-center text-text-muted">没有失败的周报任务</div>';
-      modal.firstElementChild.innerHTML=`<div class="flex justify-between gap-3"><div><h2 class="text-lg font-bold">安全运营台</h2><p class="text-xs text-text-muted mt-1">操作均记录管理员账号、时间和说明</p></div><button onclick="closeTopModal()" aria-label="关闭">✕</button></div><div class="mt-4 flex flex-wrap gap-2"><button onclick="runSecurityAlertScan()" class="px-4 py-2 rounded-xl border border-border bg-white text-sm font-medium">扫描安全告警</button><button onclick="runWeeklyReportJobs()" class="px-4 py-2 rounded-xl border border-border bg-white text-sm font-medium">执行周报任务</button></div><section class="mt-5"><h3 class="font-bold">数据删除工单（${deletions.length}）</h3><div class="mt-2 space-y-2">${deletionCards}</div></section><section class="mt-5"><h3 class="font-bold">安全告警（${alerts.length}）</h3><div class="mt-2 space-y-2">${alertCards}</div></section><section class="mt-5"><h3 class="font-bold">周报失败任务（${weeklyJobs.length}）</h3><div class="mt-2 space-y-2">${weeklyCards}</div></section>`;
+      modal.firstElementChild.innerHTML=`<div class="flex justify-between gap-3"><div><h2 class="text-lg font-bold">安全运营台</h2><p class="text-xs text-text-muted mt-1">操作均记录管理员账号、时间和说明</p></div><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="mt-4 flex flex-wrap gap-2"><button onclick="runSecurityAlertScan()" class="px-4 py-2 rounded-xl border border-border bg-white text-sm font-medium">扫描安全告警</button><button onclick="runWeeklyReportJobs()" class="px-4 py-2 rounded-xl border border-border bg-white text-sm font-medium">执行周报任务</button></div><section class="mt-5"><h3 class="font-bold">数据删除工单（${deletions.length}）</h3><div class="mt-2 space-y-2">${deletionCards}</div></section><section class="mt-5"><h3 class="font-bold">安全告警（${alerts.length}）</h3><div class="mt-2 space-y-2">${alertCards}</div></section><section class="mt-5"><h3 class="font-bold">周报失败任务（${weeklyJobs.length}）</h3><div class="mt-2 space-y-2">${weeklyCards}</div></section>`;
     }
     async function runSecurityAlertScan(){try{const result=await apiRequest('/sensitive/admin/security-alerts/scan','POST',{window_minutes:15});if(!result.success)throw new Error(result.error||'扫描失败');closeTopModal();showToast(`扫描完成，命中${Number(result.matched_rules||0)}条规则`);showSecurityOperations()}catch(error){showToast(error.message||'扫描失败')}}
     async function runWeeklyReportJobs(){try{const result=await apiRequest('/report/admin/jobs/run','POST',{});if(!result.success)throw new Error(result.error||'执行失败');closeTopModal();showToast(`周报任务完成：尝试${Number(result.attempted||0)}，成功${Number(result.succeeded||0)}`);showSecurityOperations()}catch(error){showToast(error.message||'执行失败')}}
     async function retryWeeklyReportJob(id){try{const result=await apiRequest(`/report/admin/jobs/${encodeURIComponent(id)}/retry`,'PATCH',{});if(!result.success)throw new Error(result.error||'重试失败');closeTopModal();showToast('周报任务已重新排队');showSecurityOperations()}catch(error){showToast(error.message||'重试失败')}}
-    function showAdminResolution(kind,id,status){const labels={processing:'开始处理',completed:'确认完成删除',rejected:'拒绝申请',acknowledged:'确认接手',resolved:'标记解决'};const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[90] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML=`<div class="modal-content max-w-lg p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">${escapeText(labels[status]||'处理')}</h2><button onclick="closeTopModal()" aria-label="关闭">✕</button></div><label class="block mt-4 text-sm font-medium">核查或处理说明<textarea id="admin-resolution-note" maxlength="1000" rows="3" class="mt-1 w-full p-3 rounded-xl border border-border" placeholder="至少5个字，不粘贴不必要的儿童隐私"></textarea></label><button onclick="submitAdminResolution('${kind}','${escapeText(id)}','${status}')" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">确认提交</button></div>`;document.body.appendChild(modal)}
+    function showAdminResolution(kind,id,status){const labels={processing:'开始处理',completed:'确认完成删除',rejected:'拒绝申请',acknowledged:'确认接手',resolved:'标记解决'};const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[90] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML=`<div class="modal-content max-w-lg p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">${escapeText(labels[status]||'处理')}</h2><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><label class="block mt-4 text-sm font-medium">核查或处理说明<textarea id="admin-resolution-note" maxlength="1000" rows="3" class="mt-1 w-full p-3 rounded-xl border border-border" placeholder="至少5个字，不粘贴不必要的儿童隐私"></textarea></label><button onclick="submitAdminResolution('${kind}','${escapeText(id)}','${status}')" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">确认提交</button></div>`;document.body.appendChild(modal)}
     async function submitAdminResolution(kind,id,status){const note=document.getElementById('admin-resolution-note')?.value.trim()||'';if(note.length<5){showToast('请填写至少5字处理说明');return}const path=kind==='alert'?`/sensitive/admin/security-alerts/${encodeURIComponent(id)}`:`/sensitive/admin/deletion-requests/${encodeURIComponent(id)}`;try{const result=await apiRequest(path,'PATCH',{status,resolution_note:note});if(!result.success)throw new Error(result.error||'处理失败');closeTopModal();closeTopModal();showToast('处理状态已更新并记录审计');showSecurityOperations()}catch(error){showToast(error.message||'处理失败')}}
 
     function showEditProfile() {
@@ -7426,7 +7436,7 @@
         <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold">修改个人信息</h2>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="space-y-4">
             <div>
@@ -7464,7 +7474,7 @@
         <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold">修改密码</h2>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="space-y-4">
             <div>
@@ -7505,7 +7515,7 @@
     function exportData() {
       const modal = document.createElement('div');
       modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
-      modal.innerHTML = `<div class="bg-white w-full max-w-sm rounded-2xl p-6"><h3 class="text-lg font-bold">导出前确认</h3><p class="text-sm text-text-secondary leading-6 mt-2">文件是未加密的 JSON，可能包含儿童昵称、观察记录、安全计划、家庭状态和账号资料。只保存到受控设备，不要通过公共群聊或不明网盘传输。</p><label class="flex items-start gap-2 mt-4 text-sm"><input id="export-risk-confirm" type="checkbox" class="mt-1"><span>我了解这是明文体验数据，并会自行保护导出文件</span></label><div class="flex gap-2 mt-4"><button onclick="closeTopModal()" class="flex-1 py-2.5 border border-border rounded-xl">取消</button><button onclick="confirmExportFromModal()" class="flex-1 py-2.5 bg-primary text-white rounded-xl">确认导出</button></div></div>`;
+      modal.innerHTML = `<div class="bg-white w-full max-w-sm rounded-2xl p-6"><h3 class="text-lg font-bold">导出前确认</h3><p class="text-sm text-text-secondary leading-6 mt-2">文件是未加密的 JSON，可能包含儿童昵称、观察记录、安全计划、家庭状态和账号资料。只保存到受控设备，不要通过公共群聊或不明网盘传输。</p><label class="flex items-start gap-2 mt-4 text-sm"><input id="export-risk-confirm" type="checkbox" class="mt-1"><span>我了解这是明文体验数据，并会自行保护导出文件</span></label><div class="flex gap-2 mt-4"><button data-ui-action="close-top-modal" class="flex-1 py-2.5 border border-border rounded-xl">取消</button><button onclick="confirmExportFromModal()" class="flex-1 py-2.5 bg-primary text-white rounded-xl">确认导出</button></div></div>`;
       document.body.appendChild(modal);
     }
 
@@ -7546,7 +7556,7 @@
         <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom max-h-[80vh] overflow-y-auto">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold">隐私政策</h2>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="space-y-4 text-sm text-text-secondary leading-relaxed">
             <p><strong class="text-text-primary">数据收集：</strong>星伴仅收集您主动提供的孩子信息、行为记录等必要数据，用于提供个性化服务。</p>
@@ -7570,7 +7580,7 @@
           <h3 class="text-lg font-bold text-text-primary mb-2">清除缓存</h3>
           <p class="text-sm text-text-secondary mb-4">确定要清除所有本地缓存数据吗？登录状态不会受影响。</p>
           <div class="flex gap-3">
-            <button onclick="this.closest('.fixed').remove()" class="flex-1 py-2.5 rounded-xl border border-border text-text-secondary">取消</button>
+            <button data-ui-action="remove-overlay" class="flex-1 py-2.5 rounded-xl border border-border text-text-secondary">取消</button>
             <button onclick="confirmClearCache()" class="flex-1 py-2.5 rounded-xl bg-primary text-white">确认</button>
           </div>
         </div>
@@ -7581,7 +7591,7 @@
     async function showAuthorizationCenter() {
       const modal = document.createElement('div');
       modal.className = 'modal-backdrop';
-      modal.innerHTML = `<div class="modal-content max-w-xl"><div class="p-5 border-b border-border flex items-center justify-between"><div><h2 class="text-lg font-bold">授权与访问记录</h2><p class="text-xs text-text-muted mt-1">服务端记录，不展示分享密钥或敏感正文</p></div><button onclick="closeTopModal()" class="text-2xl text-text-muted" aria-label="关闭">×</button></div><div id="authorization-center-body" class="p-5 text-sm text-text-secondary"><p>正在读取安全记录…</p></div></div>`;
+      modal.innerHTML = `<div class="modal-content max-w-xl"><div class="p-5 border-b border-border flex items-center justify-between"><div><h2 class="text-lg font-bold">授权与访问记录</h2><p class="text-xs text-text-muted mt-1">服务端记录，不展示分享密钥或敏感正文</p></div><button data-ui-action="close-top-modal" class="text-2xl text-text-muted" aria-label="关闭">×</button></div><div id="authorization-center-body" class="p-5 text-sm text-text-secondary"><p>正在读取安全记录…</p></div></div>`;
       document.body.appendChild(modal);
       const body = modal.querySelector('#authorization-center-body');
       try {
@@ -7654,7 +7664,7 @@
             通过行为记录、策略推荐、AI分析等功能，帮助家长更好地了解和陪伴孩子成长。
           </p>
           <p class="text-xs text-text-muted mb-6">版本 2.5.0 | 体验模式</p>
-          <button onclick="this.closest('.fixed').remove()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">知道了</button>
+          <button data-ui-action="remove-overlay" class="w-full py-3 rounded-xl bg-primary text-white font-medium">知道了</button>
         </div>
       `;
       document.body.appendChild(modal);
@@ -7667,7 +7677,7 @@
         <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold">意见反馈</h2>
-            <button onclick="this.closest('.fixed').remove()" class="text-text-muted">✕</button>
+            <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div class="space-y-4">
             <div>
