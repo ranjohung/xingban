@@ -113,7 +113,7 @@ with sync_playwright() as p:
         page.evaluate("reportCommunityContent(1)")
         page.locator("#community-report-reason").select_option("privacy")
         page.locator("#community-report-details").fill("帖子包含可识别的学校信息")
-        page.locator('button[onclick^="submitCommunityReport"]:visible').click()
+        page.locator('button[data-ui-call="submitCommunityReport"]:visible').click()
         page.wait_for_timeout(100)
         assert page.locator("#community-report-reason").count() == 0, "普通举报提交后弹窗未关闭"
         page.evaluate("showMyCommunityReports()")
