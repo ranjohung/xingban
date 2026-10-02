@@ -10,7 +10,7 @@ function assert(condition, message) {
 
 const checks = [
   ['release mirror matches source', mirror === app],
-  ['admin entry is role gated', app.includes("currentUser?.role==='admin'?`<button onclick=\"showSecurityOperations()\"" )],
+  ['admin entry is role gated', app.includes("currentUser?.role==='admin'?`<button data-ui-call=\"showSecurityOperations\"" )],
   ['direct access is role gated', app.includes("if(currentUser?.role!=='admin'){showToast('当前账号无权访问安全运营台');return}" )],
   ['loads pending deletion requests', app.includes("/sensitive/admin/deletion-requests?status=pending" )],
   ['loads processing deletion requests', app.includes("/sensitive/admin/deletion-requests?status=processing" )],

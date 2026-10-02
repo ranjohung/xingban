@@ -51,7 +51,7 @@
         </div>
 
         <div class="text-center mt-4">
-          <button onclick="showRegister()" class="text-primary text-sm">注册新账号</button>
+          <button data-ui-call="showRegister" class="text-primary text-sm">注册新账号</button>
         </div>
       </div>
     </div>
@@ -61,7 +61,7 @@
       <div class="bg-white w-full max-w-md rounded-t-3xl p-6 modal-slide safe-area-bottom">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-lg font-bold">注册账号</h2>
-          <button onclick="hideRegister()" class="text-text-muted">✕</button>
+          <button data-ui-call="hideRegister" class="text-text-muted">✕</button>
         </div>
         <div class="space-y-4">
           <div>
@@ -76,7 +76,7 @@
             <label class="block text-sm text-text-secondary">密码</label>
             <input type="password" id="reg-password" autocomplete="new-password" placeholder="请输入密码" class="w-full px-4 py-2.5 rounded-xl border border-border">
           </div>
-          <button onclick="handleRegister()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">注 册</button>
+          <button data-ui-call="handleRegister" class="w-full py-3 rounded-xl bg-primary text-white font-medium">注 册</button>
         </div>
       </div>
     </div>
@@ -87,23 +87,23 @@
         <div class="brand-lockup"><div class="brand-mark">星</div><div><div class="font-bold text-text-primary">星伴</div><div class="text-xs text-text-muted">成长陪伴工作台</div></div></div>
         <div class="sidebar-label">核心工作</div>
         <nav class="space-y-1">
-          <button class="side-nav-item active" data-page="home" onclick="navigateTo('home')"><span>⌂</span><span>总览</span></button>
-          <button class="side-nav-item" data-page="records" onclick="navigateTo('records')"><span>◫</span><span>快速记录</span></button>
-          <button class="side-nav-item" data-page="strategies" onclick="navigateTo('strategies')"><span>◇</span><span>干预策略</span></button>
-          <button class="side-nav-item" data-page="knowledge" onclick="navigateTo('knowledge')"><span>▩</span><span>知识问答</span></button>
-          <button class="side-nav-item" data-page="worksheets" onclick="navigateTo('worksheets')"><span>▣</span><span>可打印表格</span></button>
-          <button class="side-nav-item" data-page="dialogues" onclick="navigateTo('dialogues')"><span>≡</span><span>示范对话</span></button>
-          <button class="side-nav-item" data-page="reports" onclick="navigateTo('reports')"><span>▤</span><span>成长周报</span></button>
-          <button class="side-nav-item" data-page="children" onclick="navigateTo('children')"><span>○</span><span>孩子与记录</span></button>
+          <button class="side-nav-item active" data-page="home" data-nav="home"><span>⌂</span><span>总览</span></button>
+          <button class="side-nav-item" data-page="records" data-nav="records"><span>◫</span><span>快速记录</span></button>
+          <button class="side-nav-item" data-page="strategies" data-nav="strategies"><span>◇</span><span>干预策略</span></button>
+          <button class="side-nav-item" data-page="knowledge" data-nav="knowledge"><span>▩</span><span>知识问答</span></button>
+          <button class="side-nav-item" data-page="worksheets" data-nav="worksheets"><span>▣</span><span>可打印表格</span></button>
+          <button class="side-nav-item" data-page="dialogues" data-nav="dialogues"><span>≡</span><span>示范对话</span></button>
+          <button class="side-nav-item" data-page="reports" data-nav="reports"><span>▤</span><span>成长周报</span></button>
+          <button class="side-nav-item" data-page="children" data-nav="children"><span>○</span><span>孩子与记录</span></button>
         </nav>
         <div class="sidebar-label">支持服务</div>
         <nav class="space-y-1">
-          <button class="side-nav-item" data-page="growth" onclick="navigateTo('growth')"><span>△</span><span>家长成长</span></button>
-          <button class="side-nav-item" data-page="community" onclick="navigateTo('community')"><span>◎</span><span>同伴社区</span></button>
-          <button class="side-nav-item" data-page="therapist" onclick="navigateTo('therapist')"><span>＋</span><span>专业协作</span></button>
-          <button class="side-nav-item" data-page="profile" onclick="navigateTo('profile')"><span>◉</span><span>个人中心</span></button>
+          <button class="side-nav-item" data-page="growth" data-nav="growth"><span>△</span><span>家长成长</span></button>
+          <button class="side-nav-item" data-page="community" data-nav="community"><span>◎</span><span>同伴社区</span></button>
+          <button class="side-nav-item" data-page="therapist" data-nav="therapist"><span>＋</span><span>专业协作</span></button>
+          <button class="side-nav-item" data-page="profile" data-nav="profile"><span>◉</span><span>个人中心</span></button>
         </nav>
-        <button onclick="navigateTo('emergency')" class="mt-4 w-full py-3 rounded-xl bg-emergency text-white font-semibold shadow-lg">紧急支持</button>
+        <button data-nav="emergency" class="mt-4 w-full py-3 rounded-xl bg-emergency text-white font-semibold shadow-lg">紧急支持</button>
         <div class="sidebar-help"><div class="text-xs font-semibold mb-1">需要帮助？</div><div class="text-xs opacity-70">紧急情况请优先保障人身安全，并联系专业机构。</div></div>
       </aside>
       <!-- 头部 -->
@@ -118,7 +118,7 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button onclick="navigateTo('profile')" class="relative">
+          <button data-nav="profile" class="relative">
             <div class="w-9 h-9 bg-secondary rounded-full flex items-center justify-center">
               <svg class="w-5 h-5 text-text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -137,14 +137,14 @@
       <!-- 底部导航 -->
       <nav class="mobile-bottom-nav fixed bottom-0 left-0 right-0 bg-white border-t border-border z-50 safe-area-bottom">
         <div class="max-w-md mx-auto flex items-center justify-around h-16">
-          <button onclick="navigateTo('home')" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted" id="nav-home">
+          <button data-nav="home" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted" id="nav-home">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
               <polyline points="9 22 9 12 15 12 15 22"/>
             </svg>
             <span class="text-xs">首页</span>
           </button>
-          <button onclick="navigateTo('records')" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted" id="nav-records">
+          <button data-nav="records" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted" id="nav-records">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
               <polyline points="14 2 14 8 20 8"/>
@@ -154,7 +154,7 @@
             </svg>
             <span class="text-xs">快记</span>
           </button>
-          <button onclick="navigateTo('emergency')" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted relative" id="nav-emergency">
+          <button data-nav="emergency" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted relative" id="nav-emergency">
             <div class="w-10 h-10 rounded-full bg-emergency flex items-center justify-center -mt-5 shadow-lg">
               <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -164,20 +164,20 @@
             </div>
             <span class="text-xs">紧急</span>
           </button>
-          <button onclick="navigateTo('strategies')" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted" id="nav-strategies">
+          <button data-nav="strategies" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted" id="nav-strategies">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
             <span class="text-xs">策略</span>
           </button>
-          <button onclick="navigateTo('children')" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted" id="nav-children">
+          <button data-nav="children" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted" id="nav-children">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="8" r="4"/>
               <path d="M5 21v-2a7 7 0 0 1 14 0v2"/>
             </svg>
             <span class="text-xs">孩子</span>
           </button>
-          <button onclick="navigateTo('profile')" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted" id="nav-profile">
+          <button data-nav="profile" class="nav-item flex flex-col items-center justify-center gap-0.5 w-16 transition-colors text-text-muted" id="nav-profile">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
               <circle cx="12" cy="7" r="4"/>

@@ -1124,7 +1124,7 @@
               <div class="text-sm font-medium text-text-primary">今日还未签到</div>
               <div class="text-xs text-text-muted">连续签到 ${appState.checkInStreak} 天 · 签到可获 +3 成长积分</div>
             </div>
-            <button onclick="checkIn()" class="px-4 py-1.5 bg-primary text-white text-sm rounded-lg font-medium hover:bg-primary-dark transition-colors">签到</button>
+            <button data-ui-call="checkIn" class="px-4 py-1.5 bg-primary text-white text-sm rounded-lg font-medium hover:bg-primary-dark transition-colors">签到</button>
           </div>
           `}
 
@@ -1443,7 +1443,7 @@
                 oninput="onRecordsSearch(this.value)"
                 class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary">
             </div>
-            <button onclick="showNewRecord()" class="px-4 py-2.5 bg-primary text-white rounded-xl font-medium flex items-center gap-2">
+            <button data-ui-call="showNewRecord" class="px-4 py-2.5 bg-primary text-white rounded-xl font-medium flex items-center gap-2">
               <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"/>
                 <line x1="5" y1="12" x2="19" y2="12"/>
@@ -1489,7 +1489,7 @@
                   </svg>
                 </div>
                 <p class="text-text-muted">${recordsFilter.search || recordsFilter.childId ? '没有匹配的记录' : '还没有记录'}</p>
-                ${!recordsFilter.search && !recordsFilter.childId ? '<button onclick="showNewRecord()" class="mt-3 text-primary text-sm">添加第一条记录</button>' : ''}
+                ${!recordsFilter.search && !recordsFilter.childId ? '<button data-ui-call="showNewRecord" class="mt-3 text-primary text-sm">添加第一条记录</button>' : ''}
               </div>
             `}
           </div>
@@ -1566,7 +1566,7 @@
                 <textarea id="record-content" placeholder="请写可观察事实：之前发生了什么、孩子做了什么、之后发生了什么" maxlength="1000" class="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary" rows="3"></textarea>
               </div>
               <div id="voice-input-area" style="display:none" class="bg-background rounded-xl p-6 text-center">
-                <button id="voice-record-btn" onclick="toggleVoiceRecording()" class="w-16 h-16 rounded-full bg-primary text-white mx-auto flex items-center justify-center shadow-lg hover:bg-primary-dark transition-colors">
+                <button id="voice-record-btn" data-ui-call="toggleVoiceRecording" class="w-16 h-16 rounded-full bg-primary text-white mx-auto flex items-center justify-center shadow-lg hover:bg-primary-dark transition-colors">
                   <svg class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
                     <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
@@ -1642,7 +1642,7 @@
               <input type="hidden" id="record-intensity" value="medium">
               <div class="grid grid-cols-3 gap-2 mt-2 text-xs text-text-muted"><span><strong>低：</strong>可继续日常活动</span><span><strong>中：</strong>明显中断，需成人支持</span><span><strong>高：</strong>无法保持安全或基本活动</span></div>
             </div>
-            <button onclick="saveRecord()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存记录</button>
+            <button data-ui-call="saveRecord" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存记录</button>
           </div>
         </div>
       `;
@@ -2110,7 +2110,7 @@
         <div class="flex justify-between gap-3"><div><span class="text-xs font-bold text-danger">先判断是否需要立即求助</span><h2 class="text-xl font-bold mt-1">孩子现在有以下情况吗？</h2></div><button aria-label="关闭" data-ui-action="close-top-modal">✕</button></div>
         <p class="text-sm text-text-secondary mt-2">本工具不做诊断。如果拿不准，请按“有或不确定”处理。</p>
         <div class="mt-4 space-y-2 text-sm">${['正在自伤、伤害他人，或说不想活了','提到具体自杀计划、工具或地点','服药过量、严重不良反应或意识异常','出现幻觉、妄想、严重混乱或无法沟通','连续极少睡眠且异常兴奋、冲动或冒险','离家失联或正处于道路、高处、水边等危险地点'].map(t=>`<label class="flex gap-3 p-3 rounded-xl border border-border"><input type="checkbox" class="crisis-risk mt-1 accent-danger"><span>${t}</span></label>`).join('')}</div>
-        <div class="mt-5 grid gap-2"><button onclick="showImmediateDangerHelp()" class="w-full py-3 rounded-xl bg-danger text-white font-bold">有或不确定：立即求助</button><button onclick="closeTopModal();startEmergency('red')" class="w-full py-3 rounded-xl border border-border text-text-primary">确认没有即时危险，继续安抚支持</button></div>
+        <div class="mt-5 grid gap-2"><button data-ui-call="showImmediateDangerHelp" class="w-full py-3 rounded-xl bg-danger text-white font-bold">有或不确定：立即求助</button><button onclick="closeTopModal();startEmergency('red')" class="w-full py-3 rounded-xl border border-border text-text-primary">确认没有即时危险，继续安抚支持</button></div>
       </div>`;
       document.body.appendChild(modal);
     }
@@ -2134,7 +2134,7 @@
       const modal = document.createElement('div'); modal.className='fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[70]';
       modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl p-5 max-h-[92vh] overflow-y-auto"><div class="flex justify-between"><div><h2 class="text-xl font-bold">家庭安全计划</h2><p class="text-xs text-text-muted mt-1">建议与儿童精神科专业人员共同确认</p></div><button data-ui-action="close-top-modal">✕</button></div>
       <div class="space-y-3 mt-4">${[['warning','孩子的预警信号','如：连续两晚睡眠少于4小时、谈论死亡'],['calming','确认有效的支持方式','孩子接受的陪伴方式；明确禁用方式'],['hospital','首选医院/科室','医院名称、儿童精神科急诊位置'],['clinician','主治专业人员','姓名、机构、联系电话'],['medication','当前药物与重要提醒','仅记录医嘱；不要在此自行调整剂量'],['school','共同监护人/学校联系人','姓名、关系、电话'],['escalation','何时必须升级求助','自伤、自杀计划、伤人、失联、意识异常等']].map(([id,label,ph])=>`<label class="block text-sm font-medium">${escapeText(label)}<textarea id="safety-${id}" rows="2" placeholder="${escapeText(ph)}" class="mt-1 w-full p-3 rounded-xl border border-border text-sm">${escapeText(saved[id]||'')}</textarea></label>`).join('')}</div>
-      <p class="text-xs text-danger mt-3">体验版保存在当前设备浏览器中，请勿录入身份证号、完整病历或其他不必要的敏感信息。</p><button onclick="saveSafetyPlan()" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">保存安全计划</button></div>`; document.body.appendChild(modal);
+      <p class="text-xs text-danger mt-3">体验版保存在当前设备浏览器中，请勿录入身份证号、完整病历或其他不必要的敏感信息。</p><button data-ui-call="saveSafetyPlan" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">保存安全计划</button></div>`; document.body.appendChild(modal);
     }
 
     async function saveSafetyPlan(){const ids=['warning','calming','hospital','clinician','medication','school','escalation'];const data={};ids.forEach(id=>data[id]=document.getElementById('safety-'+id).value.trim());try{const saved=await persistSensitiveRecord('safety_plan',data,'xingban_safety_plan');showToast(saved.server?'安全计划已加密保存':'服务不可用，体验数据暂存当前设备');closeTopModal();}catch(_){showToast('安全存储不可用，未保存敏感数据');}}
@@ -2158,7 +2158,7 @@
             </svg></div>
             <h1 class="text-2xl font-bold text-[#17212b] text-center mb-2">当前情况属于？</h1>
             <p class="text-[#52606d] text-center mb-5 font-medium">先判断即时危险，再获取针对性帮助</p>
-            <button onclick="showSafetyPlan()" class="mb-4 w-full py-3.5 rounded-xl bg-white border-2 border-primary/30 text-primary-dark text-sm font-bold shadow-sm hover:bg-primary-light/20">查看 / 编辑家庭安全计划</button>
+            <button data-ui-call="showSafetyPlan" class="mb-4 w-full py-3.5 rounded-xl bg-white border-2 border-primary/30 text-primary-dark text-sm font-bold shadow-sm hover:bg-primary-light/20">查看 / 编辑家庭安全计划</button>
 
             <div class="space-y-4">
               <button onclick="startEmergency('green')" class="w-full bg-white border-2 border-green-500 rounded-2xl p-5 text-left text-[#17212b] shadow-sm hover:bg-green-50 transition-colors active:scale-[0.98]">
@@ -2190,7 +2190,7 @@
                 </div>
               </button>
 
-              <button onclick="showMentalHealthTriage()" class="w-full bg-white border-2 border-red-500 rounded-2xl p-5 text-left text-[#17212b] shadow-sm hover:bg-red-50 transition-colors active:scale-[0.98]">
+              <button data-ui-call="showMentalHealthTriage" class="w-full bg-white border-2 border-red-500 rounded-2xl p-5 text-left text-[#17212b] shadow-sm hover:bg-red-50 transition-colors active:scale-[0.98]">
                 <div class="flex items-center gap-4">
                   <div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center">
                     <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2210,7 +2210,7 @@
             <div class="mt-6 pt-6 border-t border-[#dfe5e2]">
               <div class="flex items-center justify-between mb-3">
                 <h3 class="text-[#25313c] text-sm font-bold">紧急联系人</h3>
-                <button onclick="showEmergencyContactManager()" class="text-primary-dark text-sm font-medium hover:underline">管理 →</button>
+                <button data-ui-call="showEmergencyContactManager" class="text-primary-dark text-sm font-medium hover:underline">管理 →</button>
               </div>
               <div class="grid grid-cols-2 gap-3">
                 ${emergencyContacts.map(c => `
@@ -2275,7 +2275,7 @@
               <input id="new-contact-name" type="text" placeholder="称呼" class="flex-1 px-3 py-2 rounded-xl border border-border text-sm">
               <input id="new-contact-phone" type="tel" placeholder="电话号码" class="flex-1 px-3 py-2 rounded-xl border border-border text-sm">
             </div>
-            <button onclick="addEmergencyContact()" class="w-full mt-3 py-2.5 rounded-xl bg-primary text-white font-medium text-sm">添加联系人</button>
+            <button data-ui-call="addEmergencyContact" class="w-full mt-3 py-2.5 rounded-xl bg-primary text-white font-medium text-sm">添加联系人</button>
           </div>
         </div>
       `;
@@ -2455,7 +2455,7 @@
         <fieldset class="mt-5"><legend class="text-sm font-bold">开始前，哪些因素可能刚发生？（可多选）</legend><div class="grid sm:grid-cols-2 gap-2 mt-2">${['疼痛、发热、便秘或身体不适','噪声、灯光、人群或触觉刺激','活动转换、要求突然增加','听不懂或无法表达需要','饥饿、疲劳或睡眠变化','药物漏服、调整或不良反应','学校、家庭、人际或青春期变化','目前不清楚'].map((item,index)=>`<label class="flex gap-2 items-start p-3 rounded-xl bg-background text-sm"><input type="checkbox" name="navigator-trigger" value="${item}" class="mt-0.5 w-4 h-4 accent-primary">${item}</label>`).join('')}</div></fieldset>
         <label class="block mt-5 text-sm font-bold">请用一句话写“之前—行为—之后”<textarea id="navigator-abc" rows="3" maxlength="240" class="mt-2 w-full p-3 rounded-xl border border-border text-sm" placeholder="例如：关掉平板后，孩子尖叫并扔遥控器；我把平板还给了他。"></textarea></label>
         <p class="text-xs text-text-muted mt-2">这段描述仅用于本页判断，不会作为诊断。疼痛、疾病、睡眠和药物变化应优先交医生评估。</p>
-        <button onclick="finishStrategyNavigator()" class="w-full mt-5 py-3 rounded-xl bg-primary text-white font-bold">查看建议路径</button>
+        <button data-ui-call="finishStrategyNavigator" class="w-full mt-5 py-3 rounded-xl bg-primary text-white font-bold">查看建议路径</button>
       </div>`;
       document.body.appendChild(modal);
     }
@@ -2487,7 +2487,7 @@
               <p class="text-sm text-white/80">孩子现在正在发生什么？</p>
               <h2 class="text-2xl font-bold mt-1 leading-tight">先选行为，不需要先知道策略名称</h2>
               <p class="text-sm leading-6 text-white/85 mt-3">每个方案都包含现场处理、可直接说的话、停止条件和后续训练。拿不准或存在伤害风险时，先进入紧急支持。</p>
-              <div class="mt-4 flex flex-wrap gap-2"><button onclick="showStrategyNavigator()" class="px-4 py-2.5 rounded-xl bg-white text-primary-dark font-bold text-sm">帮我判断先看哪个方案</button><button data-nav="emergency" class="px-4 py-2.5 rounded-xl border border-white/60 text-white font-bold text-sm">有危险：先判断安全</button></div>
+              <div class="mt-4 flex flex-wrap gap-2"><button data-ui-call="showStrategyNavigator" class="px-4 py-2.5 rounded-xl bg-white text-primary-dark font-bold text-sm">帮我判断先看哪个方案</button><button data-nav="emergency" class="px-4 py-2.5 rounded-xl border border-white/60 text-white font-bold text-sm">有危险：先判断安全</button></div>
             </div>
             <div class="absolute -right-8 -bottom-12 w-40 h-40 rounded-full border-[24px] border-white/10" aria-hidden="true"></div>
           </section>
@@ -2520,7 +2520,7 @@
                 </button>`;
               }).join('') : `<div class="sm:col-span-2 rounded-2xl border border-dashed border-border bg-white p-8 text-center"><div class="font-medium text-text-primary">暂时没有完全匹配的方案</div><p class="text-sm text-text-muted mt-2">换一个孩子正在做的动作搜索；如果情况无法判断或正在升级，请先进入紧急支持。</p><button data-nav="emergency" class="mt-4 px-4 py-2.5 rounded-xl bg-primary text-white">去判断安全</button></div>`}
             </div>
-            ${filteredStrategies.length > visibleStrategies.length ? `<button onclick="showMoreStrategies()" class="w-full mt-4 py-3 rounded-xl bg-white border border-primary/30 text-primary-dark font-bold">显示更多（还有 ${filteredStrategies.length - visibleStrategies.length} 个）</button>` : ''}
+            ${filteredStrategies.length > visibleStrategies.length ? `<button data-ui-call="showMoreStrategies" class="w-full mt-4 py-3 rounded-xl bg-white border border-primary/30 text-primary-dark font-bold">显示更多（还有 ${filteredStrategies.length - visibleStrategies.length} 个）</button>` : ''}
           </section>
 
           <section class="rounded-2xl bg-white border border-border p-4">
@@ -2595,8 +2595,8 @@
             <p class="text-xs text-text-muted mt-1">写「发生了什么」比写「他故意不听话」更有用。可以包含年龄、持续时间、什么情况下发生。</p>
             <textarea id="knowledge-question" rows="3" maxlength="1000" class="mt-3 w-full p-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="例如：7岁男孩，最近两周每天晚上都要我陪到睡着，一说关灯就哭，第二天早上叫不醒。">${escapeText(st.query)}</textarea>
             <div class="flex flex-wrap gap-2 mt-3">
-              <button onclick="askKnowledge()" ${st.loading ? 'disabled' : ''} class="px-5 py-2.5 rounded-xl bg-primary text-white font-bold text-sm disabled:opacity-60">${st.loading ? '正在查知识库…' : '查知识库'}</button>
-              <button onclick="clearKnowledge()" class="px-5 py-2.5 rounded-xl border border-border text-text-secondary text-sm">清空</button>
+              <button data-ui-call="askKnowledge" ${st.loading ? 'disabled' : ''} class="px-5 py-2.5 rounded-xl bg-primary text-white font-bold text-sm disabled:opacity-60">${st.loading ? '正在查知识库…' : '查知识库'}</button>
+              <button data-ui-call="clearKnowledge" class="px-5 py-2.5 rounded-xl border border-border text-text-secondary text-sm">清空</button>
             </div>
             <div class="mt-4">
               <div class="text-xs font-bold text-text-muted mb-2">常见困扰，点一下就问</div>
@@ -3216,7 +3216,7 @@
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
-              <button onclick="handleLogout()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
+              <button data-ui-call="handleLogout" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-t border-border">
                 <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
                   <svg class="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -3262,7 +3262,7 @@
           <section class="rounded-2xl bg-primary text-white p-5 shadow-lg shadow-primary/15">
             <div class="flex items-start justify-between gap-4">
               <div><p class="text-xs text-white/75">儿童档案是长期归属</p><h2 class="text-xl font-bold mt-1">资料、观察与下一步放在一起</h2><p class="text-sm text-white/80 leading-6 mt-2">底部“快记”用于当下快速留痕；完整记录历史按孩子收进这里。</p></div>
-              <button onclick="showNewChild()" class="shrink-0 px-3 py-2 rounded-xl bg-white text-primary text-sm font-bold">添加孩子</button>
+              <button data-ui-call="showNewChild" class="shrink-0 px-3 py-2 rounded-xl bg-white text-primary text-sm font-bold">添加孩子</button>
             </div>
           </section>
 
@@ -3331,7 +3331,7 @@
             <details open class="rounded-xl border border-border p-3"><summary class="font-medium text-sm">第2步 · 当前支持需要观察（非标准量表）</summary><div class="grid grid-cols-2 gap-3 mt-3">${[['communication','沟通'],['social','社交'],['selfcare','自理'],['cognition','认知']].map(([id,label])=>`<label class="text-xs text-text-secondary">${label}水平<select id="child-${id}" class="mt-1 w-full p-2 rounded-lg border"><option value="1">1 需要全面支持</option><option value="2">2 较多支持</option><option value="3" selected>3 部分支持</option><option value="4">4 少量支持</option><option value="5">5 基本独立</option></select></label>`).join('')}</div><p class="text-xs text-text-muted mt-2">只记录家长对当前支持需要的观察，不给孩子的能力定级，也不能代替专业评估。</p></details>
             <details class="rounded-xl border border-border p-3"><summary class="font-medium text-sm">第3步 · 感官与偏好</summary><div class="space-y-3 mt-3"><label class="block text-xs">主要感官特点<select id="child-sensory" class="mt-1 w-full p-2 rounded-lg border"><option>尚不明确</option><option>声音敏感</option><option>视觉敏感</option><option>触觉敏感</option><option>寻求运动/前庭刺激</option><option>多种特点</option></select></label><label class="block text-xs">喜欢的物品或活动<textarea id="child-reinforcers" rows="2" class="mt-1 w-full p-2 rounded-lg border" placeholder="如：泡泡、绘本、散步；不要用剥夺基本需求作为奖励"></textarea></label></div></details>
             <label class="flex items-start gap-2 text-xs text-text-secondary"><input id="child-consent" type="checkbox" class="mt-1"><span>我确认自己具备监护或合法授权关系，并会以适龄方式告知孩子记录用途。</span></label>
-            <button onclick="saveChild()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
+            <button data-ui-call="saveChild" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
           </div>
         </div>
       `;
@@ -3442,7 +3442,7 @@
         <div class="p-4 space-y-4 animate-fade-in">
           <div class="flex justify-between items-center">
             <div><h3 class="font-bold text-text-primary">周报列表</h3><p class="text-xs text-text-muted mt-1">只汇总家庭记录，不判断进步、退步或疗效</p></div>
-            <button onclick="showNewReport()" class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium">
+            <button data-ui-call="showNewReport" class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium">
               + 生成
             </button>
           </div>
@@ -3493,7 +3493,7 @@
               </div>
               <input type="hidden" id="report-week" value="this_week">
             </div>
-            <button onclick="generateReport()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">生成周报</button>
+            <button data-ui-call="generateReport" class="w-full py-3 rounded-xl bg-primary text-white font-medium">生成周报</button>
           </div>
         </div>
       `;
@@ -3785,7 +3785,7 @@
         <label class="block mt-4 text-sm font-bold">药物、补充剂和近期变化<textarea id="pro-meds" rows="2" maxlength="240" class="mt-2 w-full p-3 rounded-xl border" placeholder="药名、剂量、服用时间、漏服、调整日期；没有可写“无”"></textarea></label>
         <label class="block mt-4 text-sm font-bold">这次最想得到什么帮助<textarea id="pro-question" rows="2" maxlength="200" class="mt-2 w-full p-3 rounded-xl border" placeholder="如：先排查哪些身体原因？家庭和学校下一周统一做哪一步？"></textarea></label>
         <p class="text-xs text-text-muted mt-3">内容仅保存在当前标签页。生成前请去掉真实姓名、学校、住址和身份证等非必要信息。</p>
-        <button onclick="generateProfessionalBrief()" class="w-full mt-5 py-3 rounded-xl bg-primary text-white font-bold">生成会前沟通单</button>
+        <button data-ui-call="generateProfessionalBrief" class="w-full mt-5 py-3 rounded-xl bg-primary text-white font-bold">生成会前沟通单</button>
       </div>`;document.body.appendChild(modal);
     }
 
@@ -3824,7 +3824,7 @@
       if (currentUser?.role !== 'parent') return;
       const options = MOCK_DATA.therapists.map(item => `<option value="${Number(item.id)}">${escapeText(item.name)} · ${escapeText(item.title)}</option>`).join('');
       const modal=document.createElement('div');modal.className='modal-backdrop';modal.dataset.modal='true';
-      modal.innerHTML=`<div class="modal-content max-w-xl"><div class="p-5 border-b border-border flex justify-between gap-3"><div><h2 class="text-lg font-bold">提交协作计划</h2><p class="text-xs text-text-muted mt-1">指定专业人员后，必须由对方账号确认，家长才能开始执行</p></div><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="p-5 grid gap-3"><label class="text-sm font-medium">接收专业人员<select id="manual-plan-therapist" class="mt-1 w-full p-3 rounded-xl border border-border bg-white"><option value="">暂不指定，仅保存草稿</option>${options}</select></label><label class="text-sm font-medium">计划标题<input id="manual-plan-title" maxlength="200" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">具体目标<textarea id="manual-plan-goal" maxlength="500" rows="2" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><label class="text-sm font-medium">频率与情境<input id="manual-plan-frequency" maxlength="200" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">执行人<input id="manual-plan-owner" maxlength="100" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">停止并求助条件<textarea id="manual-plan-stop" maxlength="500" rows="2" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><label class="text-sm font-medium">复核日期<input id="manual-plan-review" type="date" class="mt-1 w-full p-3 rounded-xl border border-border"></label><button onclick="saveManualProfessionalPlan()" class="mt-2 py-3 rounded-xl bg-primary text-white font-bold">提交计划</button></div></div>`;
+      modal.innerHTML=`<div class="modal-content max-w-xl"><div class="p-5 border-b border-border flex justify-between gap-3"><div><h2 class="text-lg font-bold">提交协作计划</h2><p class="text-xs text-text-muted mt-1">指定专业人员后，必须由对方账号确认，家长才能开始执行</p></div><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="p-5 grid gap-3"><label class="text-sm font-medium">接收专业人员<select id="manual-plan-therapist" class="mt-1 w-full p-3 rounded-xl border border-border bg-white"><option value="">暂不指定，仅保存草稿</option>${options}</select></label><label class="text-sm font-medium">计划标题<input id="manual-plan-title" maxlength="200" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">具体目标<textarea id="manual-plan-goal" maxlength="500" rows="2" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><label class="text-sm font-medium">频率与情境<input id="manual-plan-frequency" maxlength="200" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">执行人<input id="manual-plan-owner" maxlength="100" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">停止并求助条件<textarea id="manual-plan-stop" maxlength="500" rows="2" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><label class="text-sm font-medium">复核日期<input id="manual-plan-review" type="date" class="mt-1 w-full p-3 rounded-xl border border-border"></label><button data-ui-call="saveManualProfessionalPlan" class="mt-2 py-3 rounded-xl bg-primary text-white font-bold">提交计划</button></div></div>`;
       document.body.appendChild(modal);
     }
 
@@ -3868,9 +3868,9 @@
       const actions=professionalActions;
       const isTherapist=currentUser?.role==='therapist';
       container.innerHTML=`<div class="p-4 sm:p-6 space-y-5 max-w-5xl mx-auto animate-fade-in">
-        ${isTherapist?`<section class="rounded-2xl bg-primary-dark text-white p-5 sm:p-6"><p class="text-sm text-white/75">专业账号工作台</p><h2 class="text-2xl font-bold mt-1">核对计划，而不是替家庭做决定</h2><p class="text-sm leading-6 text-white/85 mt-3">只处理明确分配给当前已认证账号的计划。确认本版本后，仍由家长决定是否开始；不适用或信息不足时请具体退回。</p></section>`:`<section class="rounded-2xl bg-primary-dark text-white p-5 sm:p-6"><p class="text-sm text-white/75">不知道该找谁、该怎么说？</p><h2 class="text-2xl font-bold mt-1">AI先帮你整理，专业人员负责判断</h2><p class="text-sm leading-6 text-white/85 mt-3">把变化、时间、诱因、已尝试方法和用药信息整理成一页会前沟通单。AI不诊断、不决定治疗、不修改药物。</p><div class="flex flex-wrap gap-2 mt-4"><button onclick="showProfessionalIntake()" class="px-4 py-2.5 rounded-xl bg-white text-primary-dark font-bold">整理一个新问题</button><button onclick="showManualProfessionalPlanEditor()" class="px-4 py-2.5 rounded-xl bg-white/10 border border-white/60 text-white font-bold">创建协作计划</button><button data-nav="emergency" class="px-4 py-2.5 rounded-xl border border-white/60 text-white font-bold">现在有危险</button></div></section>`}
+        ${isTherapist?`<section class="rounded-2xl bg-primary-dark text-white p-5 sm:p-6"><p class="text-sm text-white/75">专业账号工作台</p><h2 class="text-2xl font-bold mt-1">核对计划，而不是替家庭做决定</h2><p class="text-sm leading-6 text-white/85 mt-3">只处理明确分配给当前已认证账号的计划。确认本版本后，仍由家长决定是否开始；不适用或信息不足时请具体退回。</p></section>`:`<section class="rounded-2xl bg-primary-dark text-white p-5 sm:p-6"><p class="text-sm text-white/75">不知道该找谁、该怎么说？</p><h2 class="text-2xl font-bold mt-1">AI先帮你整理，专业人员负责判断</h2><p class="text-sm leading-6 text-white/85 mt-3">把变化、时间、诱因、已尝试方法和用药信息整理成一页会前沟通单。AI不诊断、不决定治疗、不修改药物。</p><div class="flex flex-wrap gap-2 mt-4"><button data-ui-call="showProfessionalIntake" class="px-4 py-2.5 rounded-xl bg-white text-primary-dark font-bold">整理一个新问题</button><button data-ui-call="showManualProfessionalPlanEditor" class="px-4 py-2.5 rounded-xl bg-white/10 border border-white/60 text-white font-bold">创建协作计划</button><button data-nav="emergency" class="px-4 py-2.5 rounded-xl border border-white/60 text-white font-bold">现在有危险</button></div></section>`}
         ${isTherapist?`<section class="rounded-2xl bg-white border border-border p-4"><h3 class="font-bold">分配给我的计划</h3><p class="text-xs text-text-muted mt-1">确认或退回均会写入审计记录并通知家长</p><div class="mt-3 space-y-3">${actions.length?actions.map((plan,index)=>`<article class="p-4 rounded-xl bg-background"><div class="flex justify-between gap-3"><strong>${escapeText(plan.title)}</strong><span class="text-xs font-bold">${({pending:'待确认',confirmed:'已确认',returned:'已退回',not_requested:'未请求'})[plan.confirmation_status]||'待确认'}</span></div><div class="text-sm text-text-secondary mt-2">目标：${escapeText(plan.goal||'未填写')}</div><div class="text-sm text-text-secondary">频率：${escapeText(plan.frequency||'未填写')}</div><div class="text-sm text-text-secondary">停止条件：${escapeText(plan.stop_conditions||'未填写')}</div>${plan.confirmation_status==='pending'?`<div class="grid grid-cols-2 gap-2 mt-3"><button onclick="showPlanReviewModal(${index},'confirmed')" class="py-2 rounded-lg bg-success text-white font-bold">确认本版本</button><button onclick="showPlanReviewModal(${index},'returned')" class="py-2 rounded-lg border border-amber-600 text-amber-700 font-bold">退回修改</button></div>`:`<div class="text-xs text-text-muted mt-2">${plan.professional_note?'备注：'+escapeText(plan.professional_note):'本版本已处理'}</div>`}</article>`).join(''):'<div class="p-4 rounded-xl bg-background text-sm text-text-muted">当前没有分配给您的待审计划。</div>'}</div></section>`:''}
-        ${brief?`<section class="rounded-2xl bg-white border border-primary/30 p-5"><div class="flex justify-between gap-3"><div><div class="text-xs font-bold text-primary">AI整理 · 请家长核对</div><h3 class="font-bold text-lg mt-1">会前沟通单</h3></div><button onclick="clearProfessionalBrief()" class="text-sm text-text-muted">清除</button></div><div class="mt-4 rounded-xl bg-primary-light/20 p-4"><div class="font-bold">建议首先联系：${escapeText(brief.role)}</div><p class="text-sm mt-1">${escapeText(brief.reason)}</p></div><dl class="mt-4 grid gap-3 text-sm"><div><dt class="font-bold">持续与频率</dt><dd class="text-text-secondary">${escapeText(brief.duration)}；${escapeText(brief.frequency)}</dd></div><div><dt class="font-bold">与平时相比</dt><dd class="text-text-secondary">${escapeText(brief.baseline)}</dd></div><div><dt class="font-bold">前后情境</dt><dd class="text-text-secondary whitespace-pre-wrap">${escapeText(brief.context)}</dd></div><div><dt class="font-bold">已经尝试及反应</dt><dd class="text-text-secondary whitespace-pre-wrap">${escapeText(brief.tried)}</dd></div><div><dt class="font-bold">药物与变化</dt><dd class="text-text-secondary whitespace-pre-wrap">${escapeText(brief.meds)}</dd></div><div><dt class="font-bold">本次最重要的问题</dt><dd class="text-text-primary">${escapeText(brief.question)}</dd></div></dl><div class="grid sm:grid-cols-2 gap-2 mt-4"><button onclick="copyProfessionalBrief()" class="py-3 rounded-xl bg-primary text-white font-bold">复制沟通单</button>${reports.length?`<button onclick="showShareToTherapistModal(${Number(reports[0].id)})" class="py-3 rounded-xl border border-primary text-primary font-bold">连同周报分享</button>`:''}</div><p class="text-xs text-text-muted mt-3">分享前再次确认接收人、范围和有效期；紧急情况不要等待回复。</p></section>`:''}
+        ${brief?`<section class="rounded-2xl bg-white border border-primary/30 p-5"><div class="flex justify-between gap-3"><div><div class="text-xs font-bold text-primary">AI整理 · 请家长核对</div><h3 class="font-bold text-lg mt-1">会前沟通单</h3></div><button data-ui-call="clearProfessionalBrief" class="text-sm text-text-muted">清除</button></div><div class="mt-4 rounded-xl bg-primary-light/20 p-4"><div class="font-bold">建议首先联系：${escapeText(brief.role)}</div><p class="text-sm mt-1">${escapeText(brief.reason)}</p></div><dl class="mt-4 grid gap-3 text-sm"><div><dt class="font-bold">持续与频率</dt><dd class="text-text-secondary">${escapeText(brief.duration)}；${escapeText(brief.frequency)}</dd></div><div><dt class="font-bold">与平时相比</dt><dd class="text-text-secondary">${escapeText(brief.baseline)}</dd></div><div><dt class="font-bold">前后情境</dt><dd class="text-text-secondary whitespace-pre-wrap">${escapeText(brief.context)}</dd></div><div><dt class="font-bold">已经尝试及反应</dt><dd class="text-text-secondary whitespace-pre-wrap">${escapeText(brief.tried)}</dd></div><div><dt class="font-bold">药物与变化</dt><dd class="text-text-secondary whitespace-pre-wrap">${escapeText(brief.meds)}</dd></div><div><dt class="font-bold">本次最重要的问题</dt><dd class="text-text-primary">${escapeText(brief.question)}</dd></div></dl><div class="grid sm:grid-cols-2 gap-2 mt-4"><button data-ui-call="copyProfessionalBrief" class="py-3 rounded-xl bg-primary text-white font-bold">复制沟通单</button>${reports.length?`<button onclick="showShareToTherapistModal(${Number(reports[0].id)})" class="py-3 rounded-xl border border-primary text-primary font-bold">连同周报分享</button>`:''}</div><p class="text-xs text-text-muted mt-3">分享前再次确认接收人、范围和有效期；紧急情况不要等待回复。</p></section>`:''}
         <section><h3 class="font-bold text-text-primary">这个问题通常该找谁</h3><div class="grid sm:grid-cols-2 gap-3 mt-3">${[['behavior','行为反复或突然变化'],['mood','低落、焦虑或异常兴奋'],['communication','理解、表达或AAC'],['sensory','感官与日常参与'],['feeding','进食、营养或吞咽'],['medication','药物或明显不良反应']].map(([key,label])=>{const r=getProfessionalRoute(key);return`<div class="bg-white border border-border rounded-xl p-4"><div class="font-bold">${label}</div><div class="text-sm text-primary mt-1">${r.role}</div><p class="text-xs leading-5 text-text-muted mt-2">${r.reason}</p></div>`}).join('')}</div></section>
         <section><div class="flex items-end justify-between"><div><h3 class="font-bold text-text-primary">协作联系人</h3><p class="text-xs text-text-muted mt-1">${sessionDataMode==='server'?'仅显示后端已标记认证的资料；仍需家长确认实际服务关系':'以下均为虚构体验数据，资质和服务关系尚未核验'}</p></div></div><div class="space-y-3 mt-3">${therapists.length?therapists.map(t=>`<div class="bg-white rounded-xl border border-border p-4 flex gap-3"><div class="w-12 h-12 bg-primary-light/30 rounded-full flex items-center justify-center text-2xl">${escapeText(t.avatar)}</div><div><div class="font-bold">${escapeText(t.name)} <span class="text-xs font-normal ${sessionDataMode==='server'?'text-success bg-success/10':'text-amber-700 bg-amber-50'} px-2 py-1 rounded-lg">${sessionDataMode==='server'?'后台已核验':'演示资料·未核验'}</span></div><div class="text-sm text-text-secondary mt-1">${escapeText(t.title)} · ${escapeText(t.specialty)}</div>${t.years_of_experience?`<div class="text-xs text-text-muted">从业年限：${Number(t.years_of_experience)} 年</div>`:''}</div></div>`).join(''):'<div class="p-4 rounded-xl bg-background text-sm text-text-muted">暂无已认证的协作联系人。请通过当地正规医疗或专业渠道联系，不要等待平台回复。</div>'}</div></section>
         <section><h3 class="font-bold text-text-primary">收到建议后，不要只收藏</h3><div class="space-y-3 mt-3">${feedback.length?feedback.map(f=>`<article class="bg-white rounded-xl border border-border p-4"><div class="text-xs text-text-muted">${escapeText(f.therapist_name)} · ${formatDate(f.created_at)} · 演示反馈</div><p class="text-sm leading-6 mt-2">${escapeText(f.content)}</p><div class="mt-3 space-y-2">${(f.suggestions||[]).map((s,index)=>`<div class="flex items-center justify-between gap-3 rounded-lg bg-background p-3"><span class="text-sm">${escapeText(s)}</span><button onclick="showProfessionalPlanEditor(${Number(f.id)},${index})" class="shrink-0 text-sm text-primary font-bold">制定计划</button></div>`).join('')}</div></article>`).join(''):'<div class="p-4 rounded-xl bg-background text-sm text-text-muted">真实专业反馈尚未接入当前账号。请先通过已核验渠道沟通，再把确认后的内容整理为协作计划。</div>'}</div></section>
@@ -3903,7 +3903,7 @@
                 <h3 class="font-bold text-text-primary">当下孤独感记录</h3>
                 <p class="text-xs text-text-muted">单题主观记录，不是量表、诊断或风险评估</p>
               </div>
-              <button onclick="showLonelinessAssessModal()" class="px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium">重新记录</button>
+              <button data-ui-call="showLonelinessAssessModal" class="px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium">重新记录</button>
             </div>
             <div class="flex items-center gap-4 mb-3">
               <div class="text-center">
@@ -4041,7 +4041,7 @@
           <!-- 发送消息 -->
           <div class="bg-white rounded-xl card-shadow p-3 flex gap-2">
             <input type="text" id="peer-message-input" maxlength="500" placeholder="体验消息：不要填写姓名、电话、住址、病历或学校信息" class="flex-1 px-3 py-2 rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" onkeydown="if(event.key==='Enter')sendPeerMessage()">
-            <button onclick="sendPeerMessage()" class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium">发送</button>
+            <button data-ui-call="sendPeerMessage" class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium">发送</button>
           </div>
         </div>`;
       }
@@ -4297,7 +4297,7 @@
             ${renderFamilyMoodContent()}
           </div>
           <div class="bg-white rounded-xl card-shadow p-4"><h3 class="font-bold text-text-primary mb-3">更多家庭支持</h3><div class="grid grid-cols-2 gap-3">
-            <button onclick="showCaregiverAccessCenter()" class="col-span-2 p-3 rounded-xl bg-teal-50 text-left"><strong class="block text-teal-900">共同照护授权</strong><span class="text-xs text-teal-700">各自账号 · 儿童级范围 · 可随时撤销</span></button>
+            <button data-ui-call="showCaregiverAccessCenter" class="col-span-2 p-3 rounded-xl bg-teal-50 text-left"><strong class="block text-teal-900">共同照护授权</strong><span class="text-xs text-teal-700">各自账号 · 儿童级范围 · 可随时撤销</span></button>
             <button onclick="showFamilyTool('caregiver')" class="p-3 rounded-xl bg-blue-50 text-left"><strong class="block text-blue-900">照护者支持</strong><span class="text-xs text-blue-700">替班与恢复计划</span></button>
             <button onclick="showFamilyTool('grandparent')" class="p-3 rounded-xl bg-amber-50 text-left"><strong class="block text-amber-900">隔代沟通</strong><span class="text-xs text-amber-700">三种表达模板</span></button>
             <button onclick="showFamilyTool('sibling')" class="p-3 rounded-xl bg-purple-50 text-left"><strong class="block text-purple-900">手足专属时光</strong><span class="text-xs text-purple-700">活动计划与记录</span></button>
@@ -4316,7 +4316,7 @@
       const childOptions=(MOCK_DATA.children||[]).map(c=>`<option value="${Number(c.id)}">${escapeText(c.name||c.nickname||'儿童')}</option>`).join('');
       const memberCards=members.length?members.map(m=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between"><strong>${escapeText(m.nickname||'照护者')} · ${escapeText(m.phone||'')}</strong><span>${escapeText(m.status)}</span></div><div class="text-xs text-text-muted mt-1">范围：${(m.permissions||[]).map(escapeText).join('、')}</div>${m.status==='active'?`<button onclick="revokeCaregiverAccess(${Number(m.id)})" class="mt-2 px-3 py-1.5 rounded-lg border border-red-200 text-red-700">撤销授权</button>`:''}</div>`).join(''):'<p class="text-sm text-text-muted">尚无已接受的共同照护者。</p>';
       const assignedCards=assigned.length?assigned.map(c=>`<div class="p-3 rounded-xl bg-teal-50 text-sm"><strong>${escapeText(c.nickname)}</strong><div class="text-xs text-teal-800 mt-1">获授权：${(c.permissions||[]).map(escapeText).join('、')}</div><div class="flex flex-wrap gap-2 mt-2">${(c.permissions||[]).filter(p=>p!=='profile_summary').map(p=>`<button onclick="showCaregiverResource(${Number(c.id)},'${escapeText(p)}')" class="px-3 py-1.5 rounded-lg bg-white border">${escapeText({behavior_records:'行为记录',weekly_reports:'周报',safety_plan:'安全预案'}[p]||p)}</button>`).join('')}</div></div>`).join(''):'<p class="text-sm text-text-muted">当前账号没有获授权儿童。</p>';
-      modal.firstElementChild.innerHTML=`<div class="flex justify-between"><div><h2 class="text-lg font-bold">共同照护授权</h2><p class="text-xs text-text-muted mt-1">不共享密码；每项授权绑定具体儿童</p></div><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><section class="mt-5"><h3 class="font-bold">邀请照护者</h3><select id="caregiver-child" class="mt-2 w-full p-3 rounded-xl border">${childOptions}</select><input id="caregiver-phone" inputmode="tel" maxlength="20" class="mt-2 w-full p-3 rounded-xl border" placeholder="对方登录手机号"><div class="mt-2 grid grid-cols-2 gap-2 text-sm">${[['profile_summary','基本档案摘要'],['behavior_records','行为记录'],['weekly_reports','周报'],['safety_plan','安全预案']].map(([v,l])=>`<label class="p-2 rounded-lg border"><input type="checkbox" name="caregiver-permission" value="${v}" ${v==='profile_summary'?'checked':''}> ${l}</label>`).join('')}</div><button onclick="createCaregiverInvitation()" class="mt-3 w-full py-3 rounded-xl bg-primary text-white font-bold">生成7天邀请码</button></section><section class="mt-5"><h3 class="font-bold mb-2">我邀请的照护者</h3><div class="space-y-2">${memberCards}</div></section><section class="mt-5"><h3 class="font-bold">接受邀请码</h3><div class="flex gap-2 mt-2"><input id="caregiver-code" class="flex-1 p-3 rounded-xl border" placeholder="粘贴对方发送的邀请码"><button onclick="acceptCaregiverInvitation()" class="px-4 rounded-xl border">接受</button></div></section><section class="mt-5"><h3 class="font-bold mb-2">别人授权给我的儿童</h3><div class="space-y-2">${assignedCards}</div></section>`;
+      modal.firstElementChild.innerHTML=`<div class="flex justify-between"><div><h2 class="text-lg font-bold">共同照护授权</h2><p class="text-xs text-text-muted mt-1">不共享密码；每项授权绑定具体儿童</p></div><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><section class="mt-5"><h3 class="font-bold">邀请照护者</h3><select id="caregiver-child" class="mt-2 w-full p-3 rounded-xl border">${childOptions}</select><input id="caregiver-phone" inputmode="tel" maxlength="20" class="mt-2 w-full p-3 rounded-xl border" placeholder="对方登录手机号"><div class="mt-2 grid grid-cols-2 gap-2 text-sm">${[['profile_summary','基本档案摘要'],['behavior_records','行为记录'],['weekly_reports','周报'],['safety_plan','安全预案']].map(([v,l])=>`<label class="p-2 rounded-lg border"><input type="checkbox" name="caregiver-permission" value="${v}" ${v==='profile_summary'?'checked':''}> ${l}</label>`).join('')}</div><button data-ui-call="createCaregiverInvitation" class="mt-3 w-full py-3 rounded-xl bg-primary text-white font-bold">生成7天邀请码</button></section><section class="mt-5"><h3 class="font-bold mb-2">我邀请的照护者</h3><div class="space-y-2">${memberCards}</div></section><section class="mt-5"><h3 class="font-bold">接受邀请码</h3><div class="flex gap-2 mt-2"><input id="caregiver-code" class="flex-1 p-3 rounded-xl border" placeholder="粘贴对方发送的邀请码"><button data-ui-call="acceptCaregiverInvitation" class="px-4 rounded-xl border">接受</button></div></section><section class="mt-5"><h3 class="font-bold mb-2">别人授权给我的儿童</h3><div class="space-y-2">${assignedCards}</div></section>`;
     }
     async function createCaregiverInvitation(){const child_id=Number(document.getElementById('caregiver-child')?.value),phone=document.getElementById('caregiver-phone')?.value.trim(),permissions=[...document.querySelectorAll('input[name="caregiver-permission"]:checked')].map(el=>el.value);try{const r=await apiRequest('/family/caregivers/invitations','POST',{child_id,phone,permissions});if(!r.success)throw new Error(r.error||'邀请失败');window.prompt('请通过可信方式单独发送此邀请码；7天内有效。',r.invitation_code)}catch(e){showToast(e.message||'邀请失败')}}
     async function acceptCaregiverInvitation(){const invitation_code=document.getElementById('caregiver-code')?.value.trim();try{const r=await apiRequest('/family/caregivers/invitations/accept','POST',{invitation_code});if(!r.success)throw new Error(r.error||'接受失败');closeTopModal();showToast('已接受儿童级授权');showCaregiverAccessCenter()}catch(e){showToast(e.message||'接受失败')}}
@@ -4380,7 +4380,7 @@
         <div>
           <div class="flex justify-between items-center mb-3">
             <h3 class="font-bold text-text-primary">感谢卡</h3>
-            <button onclick="showNewGratitude()" class="px-3 py-1.5 bg-primary text-white rounded-lg text-sm">+ 新建</button>
+            <button data-ui-call="showNewGratitude" class="px-3 py-1.5 bg-primary text-white rounded-lg text-sm">+ 新建</button>
           </div>
           <div class="space-y-3">
             ${MOCK_DATA.gratitudeCards.map(c => `
@@ -4434,7 +4434,7 @@
               <label class="block text-sm text-text-secondary mb-1">感谢内容</label>
               <textarea id="gratitude-content" placeholder="写下你的感谢..." class="w-full px-4 py-3 rounded-xl border border-border" rows="3"></textarea>
             </div>
-            <button onclick="saveGratitude()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
+            <button data-ui-call="saveGratitude" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
           </div>
         </div>
       `;
@@ -4877,7 +4877,7 @@
       container.innerHTML = `
         <div class="p-4 space-y-4 animate-fade-in">
           <div class="grid grid-cols-2 gap-3">
-            <button onclick="showSafetyProfile()" class="bg-white p-4 rounded-xl card-shadow flex flex-col items-center gap-2">
+            <button data-ui-call="showSafetyProfile" class="bg-white p-4 rounded-xl card-shadow flex flex-col items-center gap-2">
               <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
                 <svg class="w-6 h-6 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
@@ -4889,7 +4889,7 @@
               <span class="font-medium text-text-primary">安全档案</span>
               <span class="text-xs text-text-muted">紧急联系信息</span>
             </button>
-            <button onclick="showSafetySkills()" class="bg-white p-4 rounded-xl card-shadow flex flex-col items-center gap-2">
+            <button data-ui-call="showSafetySkills" class="bg-white p-4 rounded-xl card-shadow flex flex-col items-center gap-2">
               <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <svg class="w-6 h-6 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
@@ -4898,8 +4898,8 @@
               <span class="font-medium text-text-primary">技能训练</span>
               <span class="text-xs text-text-muted">安全技能学习</span>
             </button>
-            <button onclick="showWanderingPlan()" class="bg-white p-4 rounded-xl card-shadow flex flex-col items-center gap-2"><div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-2xl">🗺️</div><span class="font-medium text-text-primary">防走失预案</span><span class="text-xs text-text-muted">地点与行动清单</span></button>
-            <button onclick="startMissingChildMode()" class="bg-red-50 border-2 border-red-300 p-4 rounded-xl flex flex-col items-center gap-2"><div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center text-2xl">🚨</div><span class="font-bold text-red-800">孩子走失</span><span class="text-xs text-red-700">立即行动模式</span></button>
+            <button data-ui-call="showWanderingPlan" class="bg-white p-4 rounded-xl card-shadow flex flex-col items-center gap-2"><div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-2xl">🗺️</div><span class="font-medium text-text-primary">防走失预案</span><span class="text-xs text-text-muted">地点与行动清单</span></button>
+            <button data-ui-call="startMissingChildMode" class="bg-red-50 border-2 border-red-300 p-4 rounded-xl flex flex-col items-center gap-2"><div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center text-2xl">🚨</div><span class="font-bold text-red-800">孩子走失</span><span class="text-xs text-red-700">立即行动模式</span></button>
           </div>
 
           <div class="bg-gradient-to-br from-red-500 to-orange-500 rounded-2xl p-4 text-white">
@@ -5025,14 +5025,14 @@
       const p = JSON.parse(localStorage.getItem('xingban_wandering_plan') || '{}');
       const modal=document.createElement('div'); modal.className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'; modal.dataset.modal='true';
       const fields=[['photo','近期照片与衣着描述','如：照片保存位置、今日上衣颜色'],['places','孩子常去或偏好的地点','逐行填写'],['communication','沟通与感官注意','姓名回应、是否怕警笛、沟通方式'],['contacts','信任联系人分工','谁报警、谁找常去地点、谁留守'],['meeting','家庭集合点','走散后的固定集合位置']];
-      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[90vh] overflow-y-auto"><div class="flex justify-between"><div><h2 class="text-xl font-bold">防走失预案</h2><p class="text-xs text-text-muted">建议与共同监护人定期演练</p></div><button data-ui-action="close-top-modal">✕</button></div><div class="space-y-3 mt-4">${fields.map(([id,l,ph])=>`<label class="block text-sm font-medium">${escapeText(l)}<textarea id="wander-${id}" rows="2" placeholder="${escapeText(ph)}" class="mt-1 w-full p-3 rounded-xl border border-border">${escapeText(p[id]||'')}</textarea></label>`).join('')}</div><button onclick="saveWanderingPlan()" class="w-full mt-4 py-3 bg-primary text-white rounded-xl font-bold">保存预案</button></div>`; document.body.appendChild(modal);
+      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[90vh] overflow-y-auto"><div class="flex justify-between"><div><h2 class="text-xl font-bold">防走失预案</h2><p class="text-xs text-text-muted">建议与共同监护人定期演练</p></div><button data-ui-action="close-top-modal">✕</button></div><div class="space-y-3 mt-4">${fields.map(([id,l,ph])=>`<label class="block text-sm font-medium">${escapeText(l)}<textarea id="wander-${id}" rows="2" placeholder="${escapeText(ph)}" class="mt-1 w-full p-3 rounded-xl border border-border">${escapeText(p[id]||'')}</textarea></label>`).join('')}</div><button data-ui-call="saveWanderingPlan" class="w-full mt-4 py-3 bg-primary text-white rounded-xl font-bold">保存预案</button></div>`; document.body.appendChild(modal);
     }
 
     async function saveWanderingPlan(){const ids=['photo','places','communication','contacts','meeting'];const p={updatedAt:new Date().toISOString()};ids.forEach(id=>p[id]=document.getElementById('wander-'+id).value.trim());try{const saved=await persistSensitiveRecord('wandering_plan',p,'xingban_wandering_plan');closeTopModal();showToast(saved.server?'防走失预案已加密保存':'服务不可用，体验数据暂存当前设备');}catch(_){showToast('安全存储不可用，未保存敏感数据');}}
 
     function startMissingChildMode() {
       const p=JSON.parse(localStorage.getItem('xingban_wandering_plan')||'{}'); const modal=document.createElement('div');modal.className='fixed inset-0 bg-red-950/90 flex items-center justify-center z-[80] p-3';modal.dataset.modal='true';
-      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[94vh] overflow-y-auto"><div class="text-xs font-bold text-red-700">走失立即行动</div><h2 class="text-2xl font-bold mt-1">不要独自盲目寻找</h2><ol class="mt-4 space-y-3 list-decimal pl-5 text-sm leading-6"><li>立即确认最后出现的时间、地点和衣着，安排一名成人留在原地。</li><li>拨打 110，说明孩子年龄、沟通特点、诊断/特殊需要及可能去向。</li><li>分工检查水边、道路、交通站点、高处和孩子常去地点，不进入危险区域。</li><li>向场所工作人员出示近期照片；不要在公开群发送身份证号或完整住址。</li></ol><div class="mt-4 p-3 bg-background rounded-xl text-sm"><strong>预案摘要：</strong><p class="mt-1">常去地点：${escapeText(p.places||'尚未填写')}</p><p>沟通注意：${escapeText(p.communication||'尚未填写')}</p><p>家庭分工：${escapeText(p.contacts||'尚未填写')}</p></div><div class="grid grid-cols-2 gap-2 mt-4"><button onclick="callEmergencyContact('110','报警')" class="py-3 bg-red-700 text-white rounded-xl font-bold">拨打 110</button><button onclick="showEmergencyContactManager()" class="py-3 border border-border rounded-xl font-bold">联系家人</button></div><button data-ui-action="close-top-modal" class="w-full mt-2 py-3 text-text-secondary">取消 / 已找回</button></div>`;document.body.appendChild(modal);
+      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[94vh] overflow-y-auto"><div class="text-xs font-bold text-red-700">走失立即行动</div><h2 class="text-2xl font-bold mt-1">不要独自盲目寻找</h2><ol class="mt-4 space-y-3 list-decimal pl-5 text-sm leading-6"><li>立即确认最后出现的时间、地点和衣着，安排一名成人留在原地。</li><li>拨打 110，说明孩子年龄、沟通特点、诊断/特殊需要及可能去向。</li><li>分工检查水边、道路、交通站点、高处和孩子常去地点，不进入危险区域。</li><li>向场所工作人员出示近期照片；不要在公开群发送身份证号或完整住址。</li></ol><div class="mt-4 p-3 bg-background rounded-xl text-sm"><strong>预案摘要：</strong><p class="mt-1">常去地点：${escapeText(p.places||'尚未填写')}</p><p>沟通注意：${escapeText(p.communication||'尚未填写')}</p><p>家庭分工：${escapeText(p.contacts||'尚未填写')}</p></div><div class="grid grid-cols-2 gap-2 mt-4"><button onclick="callEmergencyContact('110','报警')" class="py-3 bg-red-700 text-white rounded-xl font-bold">拨打 110</button><button data-ui-call="showEmergencyContactManager" class="py-3 border border-border rounded-xl font-bold">联系家人</button></div><button data-ui-action="close-top-modal" class="w-full mt-2 py-3 text-text-secondary">取消 / 已找回</button></div>`;document.body.appendChild(modal);
     }
 
     async function renderStories(container) {
@@ -5043,7 +5043,7 @@
         <div class="p-4 space-y-4 animate-fade-in">
           <div class="flex justify-between items-center">
             <h3 class="font-bold text-text-primary">故事库</h3>
-            <button onclick="showNewStory()" class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium">
+            <button data-ui-call="showNewStory" class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium">
               + 创建
             </button>
           </div>
@@ -5111,7 +5111,7 @@
               <label class="block text-sm text-text-secondary mb-1">内容</label>
               <textarea id="new-story-content" placeholder="用描述性语言写一个具体场景，保留孩子说不、求助和退出的方式" maxlength="3000" class="w-full px-4 py-3 rounded-xl border border-border" rows="4"></textarea>
             </div>
-            <button onclick="createStory()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">创建</button>
+            <button data-ui-call="createStory" class="w-full py-3 rounded-xl bg-primary text-white font-medium">创建</button>
           </div>
         </div>
       `;
@@ -5223,7 +5223,7 @@
       modal.className = 'fixed inset-0 bg-[#1a1a2e] z-[60] flex flex-col';
       modal.innerHTML = `
         <div class="flex items-center justify-between p-4 text-white/60">
-          <button onclick="closeStoryReader()" class="text-sm">✕ 关闭</button>
+          <button data-ui-call="closeStoryReader" class="text-sm">✕ 关闭</button>
           <span class="text-sm">${escapeText(story.title)}</span>
           <span id="story-progress-text" class="text-xs">阅读模式</span>
         </div>
@@ -5238,7 +5238,7 @@
         </div>
         <div class="p-4 max-w-md mx-auto w-full">
           <div class="flex items-center justify-center gap-6 text-white/60">
-            <button onclick="storyPrevParagraph()" class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20">
+            <button data-ui-call="storyPrevParagraph" class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20">
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="15 18 9 12 15 6"/>
               </svg>
@@ -5248,7 +5248,7 @@
                 <polygon points="5 3 19 12 5 21 5 3"/>
               </svg>
             </button>
-            <button onclick="storyNextParagraph()" class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20">
+            <button data-ui-call="storyNextParagraph" class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20">
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="9 18 15 12 9 6"/>
               </svg>
@@ -5393,7 +5393,7 @@
           <!-- 快速分析 -->
           <div>
             <h3 class="font-bold text-text-primary mb-3">快速分析</h3>
-            <button onclick="runAIAnalysis()" class="w-full bg-white p-4 rounded-xl card-shadow flex items-center gap-4 hover:shadow-md transition-shadow active:scale-[0.98]">
+            <button data-ui-call="runAIAnalysis" class="w-full bg-white p-4 rounded-xl card-shadow flex items-center gap-4 hover:shadow-md transition-shadow active:scale-[0.98]">
               <div class="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center">
                 <svg class="w-6 h-6 text-cyan-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
@@ -5513,7 +5513,7 @@
           <div class="rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900"><strong>社区不是危机热线。</strong> 如孩子或照护者当前可能伤害自己/他人、意识异常或失控，请不要等待回复，立即使用“紧急支持”并联系 120/110。</div>
           <div class="flex justify-between items-center gap-2">
             <h3 class="font-bold text-text-primary">社区帖子</h3>
-            <div class="flex gap-2"><button onclick="showMyCommunityReports()" class="px-3 py-2 border border-border bg-white rounded-xl text-sm font-medium">我的举报</button><button onclick="showNewPost()" class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium">+ 发帖</button></div>
+            <div class="flex gap-2"><button data-ui-call="showMyCommunityReports" class="px-3 py-2 border border-border bg-white rounded-xl text-sm font-medium">我的举报</button><button data-ui-call="showNewPost" class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium">+ 发帖</button></div>
           </div>
 
           <!-- 搜索栏 -->
@@ -5651,7 +5651,7 @@
             </div>
             <label class="flex items-start gap-3 p-3 rounded-xl bg-background text-sm"><input id="new-post-anonymous" type="checkbox" checked class="mt-1 accent-primary"><span><strong class="block">匿名发布</strong><span class="text-xs text-text-muted">默认不展示昵称；发布前请删除姓名、学校、电话、诊断证明和照片信息。</span></span></label>
             <p class="text-xs text-danger">社区不是危机热线。如孩子有即时自伤、自杀或伤人风险，请使用紧急支持并联系 120/110。</p>
-            <button onclick="createPost()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">发布</button>
+            <button data-ui-call="createPost" class="w-full py-3 rounded-xl bg-primary text-white font-medium">发布</button>
           </div>
         </div>
       `;
@@ -5845,7 +5845,7 @@
           ${settingsState.quietNight ? '<div class="rounded-xl bg-blue-50 border border-blue-100 p-3 text-sm text-blue-800">安静时段已开启：非紧急互动提醒将在夜间静默；危机处置请勿依赖应用通知。</div>' : ''}
           <div class="flex justify-between items-center">
             <h3 class="font-bold text-text-primary">通知列表</h3>
-            <button onclick="markAllRead()" class="text-sm text-primary">全部已读</button>
+            <button data-ui-call="markAllRead" class="text-sm text-primary">全部已读</button>
           </div>
 
           <div id="notification-list" class="space-y-3">
@@ -5959,7 +5959,7 @@
           <label class="block text-sm">既往危机与有效处理<textarea id="mh-history" rows="2" class="mt-1 w-full p-3 rounded-xl border border-border">${p.history || ''}</textarea></label>
           <label class="block text-sm">首选就诊机构<input id="mh-hospital" value="${p.hospital || ''}" class="mt-1 w-full p-3 rounded-xl border border-border"></label>
         </div>
-        <button onclick="saveMentalHealthProfile()" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-medium">保存档案</button>
+        <button data-ui-call="saveMentalHealthProfile" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-medium">保存档案</button>
       </div>`;
       document.body.appendChild(modal);
     }
@@ -5990,7 +5990,7 @@
           </div>
 
           <div class="bg-white rounded-xl card-shadow p-4 border-l-4 border-primary">
-            <div class="flex items-start justify-between gap-3 mb-3"><div><h3 class="font-bold text-text-primary">心理健康照护档案</h3><p class="text-xs text-text-muted mt-1">用于就医沟通，不构成诊断或用药建议</p></div><button onclick="showMentalHealthProfileEditor()" class="px-3 py-2 rounded-lg bg-primary-light/40 text-primary text-sm">${mental.updatedAt ? '编辑' : '建立档案'}</button></div>
+            <div class="flex items-start justify-between gap-3 mb-3"><div><h3 class="font-bold text-text-primary">心理健康照护档案</h3><p class="text-xs text-text-muted mt-1">用于就医沟通，不构成诊断或用药建议</p></div><button data-ui-call="showMentalHealthProfileEditor" class="px-3 py-2 rounded-lg bg-primary-light/40 text-primary text-sm">${mental.updatedAt ? '编辑' : '建立档案'}</button></div>
             ${mental.updatedAt ? `<div class="grid sm:grid-cols-2 gap-2 text-sm"><div><span class="text-text-muted">评估状态：</span>${mental.status || '未填写'}</div><div><span class="text-text-muted">睡眠基线：</span>${mental.sleep || '未填写'}</div><div><span class="text-text-muted">专业人员：</span>${mental.clinician || '未填写'}</div><div><span class="text-text-muted">首选机构：</span>${mental.hospital || '未填写'}</div></div><p class="text-xs text-text-muted mt-3">家庭填写 · 更新于 ${new Date(mental.updatedAt).toLocaleString('zh-CN')} · 未经专业复核</p>` : '<p class="text-sm text-text-secondary">建议在专业人员指导下记录睡眠基线、预警表现、就诊联系人及医嘱摘要。</p>'}
           </div>
 
@@ -6117,7 +6117,7 @@
               <h3 class="font-bold text-text-primary flex items-center gap-2">
                 <span>🎯</span>干预目标
               </h3>
-              <button onclick="showNewGoal()" class="text-xs text-primary">+ 添加</button>
+              <button data-ui-call="showNewGoal" class="text-xs text-primary">+ 添加</button>
             </div>
             <div class="space-y-3">
               ${profile.goals.map(g => `
@@ -6368,7 +6368,7 @@
               <label class="block text-sm text-text-secondary mb-1">截止日期</label>
               <input type="date" id="goal-deadline" class="w-full px-4 py-2.5 rounded-xl border border-border">
             </div>
-            <button onclick="saveGoal()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
+            <button data-ui-call="saveGoal" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
           </div>
         </div>
       `;
@@ -6454,7 +6454,7 @@
               `).join('')}
             </div>
           </div>
-          <button onclick="showNewMilestone()" class="w-full mt-4 py-3 rounded-xl border-2 border-dashed border-border text-text-secondary hover:border-primary hover:text-primary transition-colors">
+          <button data-ui-call="showNewMilestone" class="w-full mt-4 py-3 rounded-xl border-2 border-dashed border-border text-text-secondary hover:border-primary hover:text-primary transition-colors">
             + 添加里程碑
           </button>
         </div>
@@ -6503,7 +6503,7 @@
               </div>
             `).join('')}
           </div>
-          <button onclick="showNewCareerGoal()" class="w-full mt-4 py-3 rounded-xl border-2 border-dashed border-border text-text-secondary hover:border-primary hover:text-primary transition-colors">
+          <button data-ui-call="showNewCareerGoal" class="w-full mt-4 py-3 rounded-xl border-2 border-dashed border-border text-text-secondary hover:border-primary hover:text-primary transition-colors">
             + 添加目标
           </button>
         </div>
@@ -6555,7 +6555,7 @@
             <p class="text-sm text-text-secondary mb-4">
               不要依据诊断标签预设职业。请从孩子当前兴趣、沟通方式、感官需要、日常参与和本人意愿出发，同时准备不同支持强度下的教育、生活、健康、决策支持和职业探索方案。
             </p>
-            <button onclick="runCareerSimulation()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">
+            <button data-ui-call="runCareerSimulation" class="w-full py-3 rounded-xl bg-primary text-white font-medium">
               重新模拟
             </button>
           </div>
@@ -6623,7 +6623,7 @@
               <label class="block text-sm text-text-secondary mb-1">描述</label>
               <textarea id="milestone-description" placeholder="描述这个里程碑..." class="w-full px-4 py-3 rounded-xl border border-border" rows="3"></textarea>
             </div>
-            <button onclick="saveMilestone()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
+            <button data-ui-call="saveMilestone" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
           </div>
         </div>
       `;
@@ -6692,7 +6692,7 @@
               <label class="block text-sm text-text-secondary mb-1">截止日期</label>
               <input type="date" id="career-goal-deadline" class="w-full px-4 py-2.5 rounded-xl border border-border">
             </div>
-            <button onclick="saveCareerGoal()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
+            <button data-ui-call="saveCareerGoal" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
           </div>
         </div>
       `;
@@ -6868,7 +6868,7 @@
               </div>
             `).join('')}
           </div>
-          <button onclick="showNewExpense()" class="w-full mt-4 py-3 rounded-xl border-2 border-dashed border-border text-text-secondary hover:border-primary hover:text-primary transition-colors">
+          <button data-ui-call="showNewExpense" class="w-full mt-4 py-3 rounded-xl border-2 border-dashed border-border text-text-secondary hover:border-primary hover:text-primary transition-colors">
             + 添加记录
           </button>
         </div>
@@ -6954,7 +6954,7 @@
           <div class="bg-white rounded-xl p-4 card-shadow mt-4">
             <h4 class="font-medium text-text-primary mb-3">举报诈骗</h4>
             <textarea id="fraud-report-content" placeholder="不要填写身份证号、银行卡号、验证码或完整联系方式" maxlength="1000" class="w-full px-4 py-3 rounded-xl border border-border mb-3" rows="3"></textarea>
-            <button onclick="submitFraudReport()" class="w-full py-3 rounded-xl bg-danger text-white font-medium">提交举报</button>
+            <button data-ui-call="submitFraudReport" class="w-full py-3 rounded-xl bg-danger text-white font-medium">提交举报</button>
           </div>
         </div>
       `;
@@ -7033,7 +7033,7 @@
               <label class="block text-sm text-text-secondary mb-1">备注</label>
               <input type="text" id="expense-note" placeholder="不填写身份证号、银行卡号或完整票据号码" maxlength="300" class="w-full px-4 py-2.5 rounded-xl border border-border">
             </div>
-            <button onclick="saveExpense()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
+            <button data-ui-call="saveExpense" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
           </div>
         </div>
       `;
@@ -7125,13 +7125,17 @@
     // === 初始化 ===
     document.addEventListener('DOMContentLoaded', () => {
       document.addEventListener('click', event => {
-        const trigger = event.target.closest('[data-ui-action],[data-nav]');
+        const trigger = event.target.closest('[data-ui-action],[data-ui-call],[data-nav]');
         if (!trigger) return;
         const action = trigger.dataset.uiAction;
         if (action === 'close-top-modal') closeTopModal();
         else if (action === 'remove-overlay') trigger.closest('.fixed')?.remove();
         else if (action === 'print') window.print();
         else if (action === 'close-and-navigate') { closeTopModal(); navigateTo(trigger.dataset.nav); }
+        else if (trigger.dataset.uiCall) {
+          const calls={acceptCaregiverInvitation,addEmergencyContact,askKnowledge,changePassword,checkIn,clearCache,clearKnowledge,clearProfessionalBrief,closeStoryReader,confirmClearCache,confirmExportFromModal,copyProfessionalBrief,createCaregiverInvitation,createPost,createStory,exportData,finishStrategyNavigator,generateProfessionalBrief,generateReport,handleLogout,handleRegister,hideRegister,markAllRead,runAIAnalysis,runCareerSimulation,runSecurityAlertScan,runWeeklyReportJobs,saveCareerGoal,saveChild,saveExpense,saveGoal,saveGratitude,saveManualProfessionalPlan,saveMentalHealthProfile,saveMilestone,saveProfile,saveRecord,saveSafetyPlan,saveWanderingPlan,sendPeerMessage,showAbout,showAuthorizationCenter,showCaregiverAccessCenter,showChangePassword,showDataDeletionCenter,showDataDeletionRequestForm,showEditProfile,showEmergencyContactManager,showFeedback,showImmediateDangerHelp,showLonelinessAssessModal,showManualProfessionalPlanEditor,showMentalHealthProfileEditor,showMentalHealthTriage,showMoreStrategies,showMyCommunityReports,showNewCareerGoal,showNewChild,showNewExpense,showNewGoal,showNewGratitude,showNewMilestone,showNewPost,showNewRecord,showNewReport,showNewStory,showPrivacyPolicy,showProfessionalIntake,showRegister,showSafetyPlan,showSafetyProfile,showSafetySkills,showSecurityOperations,showStrategyNavigator,showWanderingPlan,startMissingChildMode,storyNextParagraph,storyPrevParagraph,submitDataDeletionRequest,submitFeedback,submitFraudReport,toggleVoiceRecording};
+          calls[trigger.dataset.uiCall]?.();
+        }
         else if (trigger.dataset.nav) navigateTo(trigger.dataset.nav);
       });
       // 恢复全局应用状态
@@ -7248,7 +7252,7 @@
           <div>
             <h3 class="font-bold text-text-primary mb-3">账号管理</h3>
             <div class="bg-white rounded-xl card-shadow overflow-hidden">
-              <button onclick="showEditProfile()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border">
+              <button data-ui-call="showEditProfile" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border">
                 <div class="w-10 h-10 bg-primary-light/50 rounded-xl flex items-center justify-center">
                   <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -7263,7 +7267,7 @@
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
-              <button onclick="showChangePassword()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border">
+              <button data-ui-call="showChangePassword" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border">
                 <div class="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
                   <svg class="w-5 h-5 text-yellow-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -7278,7 +7282,7 @@
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
-              <button onclick="exportData()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+              <button data-ui-call="exportData" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
                 <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
                   <svg class="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -7311,7 +7315,7 @@
                   <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 </label>
               </div>
-              <button onclick="showPrivacyPolicy()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border">
+              <button data-ui-call="showPrivacyPolicy" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border">
                 <div class="flex-1 text-left">
                   <div class="font-medium text-text-primary">隐私政策</div>
                   <div class="text-xs text-text-muted">了解我们如何保护您的数据</div>
@@ -7320,22 +7324,22 @@
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
-              <button onclick="showAuthorizationCenter()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border">
+              <button data-ui-call="showAuthorizationCenter" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border">
                 <div class="flex-1 text-left">
                   <div class="font-medium text-text-primary">授权与访问记录</div>
                   <div class="text-xs text-text-muted">查看分享、有效期、撤销状态和访问审计</div>
                 </div>
                 <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
               </button>
-              ${currentUser?.role==='admin'?`<button onclick="showSecurityOperations()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border"><div class="flex-1 text-left"><div class="font-medium text-text-primary">安全运营台</div><div class="text-xs text-text-muted">仅管理员：删除工单、安全告警与处理记录</div></div><svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>`:''}
-              <button onclick="showDataDeletionCenter()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border">
+              ${currentUser?.role==='admin'?`<button data-ui-call="showSecurityOperations" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border"><div class="flex-1 text-left"><div class="font-medium text-text-primary">安全运营台</div><div class="text-xs text-text-muted">仅管理员：删除工单、安全告警与处理记录</div></div><svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>`:''}
+              <button data-ui-call="showDataDeletionCenter" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border">
                 <div class="flex-1 text-left">
                   <div class="font-medium text-red-700">数据删除申请</div>
                   <div class="text-xs text-text-muted">申请删除某个孩子或整个账号数据，并查看处理状态</div>
                 </div>
                 <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
               </button>
-              <button onclick="clearCache()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+              <button data-ui-call="clearCache" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
                 <div class="flex-1 text-left">
                   <div class="font-medium text-text-primary">清除缓存</div>
                   <div class="text-xs text-text-muted">清除本地缓存数据</div>
@@ -7353,7 +7357,7 @@
                 <div class="font-medium text-text-primary">版本号</div>
                 <span class="text-sm text-text-muted">4.0.0 受监督测试版</span>
               </div>
-              <button onclick="showAbout()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border">
+              <button data-ui-call="showAbout" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border">
                 <div class="flex-1 text-left">
                   <div class="font-medium text-text-primary">关于星伴</div>
                 </div>
@@ -7361,7 +7365,7 @@
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
-              <button onclick="showFeedback()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+              <button data-ui-call="showFeedback" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
                 <div class="flex-1 text-left">
                   <div class="font-medium text-text-primary">意见反馈</div>
                 </div>
@@ -7394,11 +7398,11 @@
     }
     function renderDataDeletionCenter(modal,requests){
       const cards=requests.length?requests.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>${item.scope==='account'?'整个账号':'儿童档案 #'+Number(item.child_id)}</strong><span class="text-primary">${escapeText(deletionStatusLabel(item.status))}</span></div><div class="text-xs text-text-muted mt-1">工单：${escapeText(item.id)} · 申请于 ${formatDate(item.created_at)}</div><div class="text-xs text-text-muted mt-1">目标处理日期：${formatDate(item.due_at)}</div>${item.resolution_note?`<div class="mt-2">处理说明：${escapeText(item.resolution_note)}</div>`:''}${item.status==='pending'?`<button onclick="cancelDataDeletionRequest('${escapeText(item.id)}')" class="mt-2 px-3 py-1.5 rounded-lg border border-border">撤销申请</button>`:''}</div>`).join(''):'<div class="py-6 text-center text-text-muted">暂无删除申请</div>';
-      modal.firstElementChild.innerHTML=`<div class="flex justify-between gap-3"><div><h2 class="text-lg font-bold">数据删除申请</h2><p class="text-xs text-text-muted mt-1">处理前可撤销；申请创建后现有分享会立即撤销</p></div><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="mt-4 space-y-3 max-h-[48vh] overflow-y-auto">${cards}</div><button onclick="showDataDeletionRequestForm()" class="w-full mt-4 py-3 rounded-xl bg-red-700 text-white font-bold">新建删除申请</button>`;
+      modal.firstElementChild.innerHTML=`<div class="flex justify-between gap-3"><div><h2 class="text-lg font-bold">数据删除申请</h2><p class="text-xs text-text-muted mt-1">处理前可撤销；申请创建后现有分享会立即撤销</p></div><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="mt-4 space-y-3 max-h-[48vh] overflow-y-auto">${cards}</div><button data-ui-call="showDataDeletionRequestForm" class="w-full mt-4 py-3 rounded-xl bg-red-700 text-white font-bold">新建删除申请</button>`;
     }
     function showDataDeletionRequestForm(){
       const options=MOCK_DATA.children.map(child=>`<option value="${Number(child.id)}">${escapeText(child.name||child.nickname||'未命名儿童')}</option>`).join('');
-      const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[80] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML=`<div class="modal-content max-w-lg p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">新建删除申请</h2><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="mt-4 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-900"><strong>删除完成后不能恢复。</strong>账号级删除会移除账号及其儿童、记录和业务数据；为防止继续扩散，提交申请后现有分享会立即撤销。</div><label class="block mt-4 text-sm font-medium">删除范围<select id="deletion-scope" onchange="toggleDeletionChildField(this.value)" class="mt-1 w-full p-3 rounded-xl border border-border bg-white"><option value="child">某个儿童及关联数据</option><option value="account">整个账号及全部数据</option></select></label><label id="deletion-child-field" class="block mt-3 text-sm font-medium">选择儿童<select id="deletion-child" class="mt-1 w-full p-3 rounded-xl border border-border bg-white">${options}</select></label><label class="block mt-3 text-sm font-medium">原因（可选）<textarea id="deletion-reason" maxlength="500" rows="2" class="mt-1 w-full p-3 rounded-xl border border-border" placeholder="帮助处理人员确认范围，不要重复填写隐私详情"></textarea></label><label class="block mt-3 text-sm font-medium">输入 DELETE 确认<input id="deletion-confirmation" autocomplete="off" class="mt-1 w-full p-3 rounded-xl border border-red-300"></label><button onclick="submitDataDeletionRequest()" class="w-full mt-4 py-3 rounded-xl bg-red-700 text-white font-bold">提交删除申请</button></div>`;document.body.appendChild(modal);
+      const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[80] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML=`<div class="modal-content max-w-lg p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">新建删除申请</h2><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="mt-4 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-900"><strong>删除完成后不能恢复。</strong>账号级删除会移除账号及其儿童、记录和业务数据；为防止继续扩散，提交申请后现有分享会立即撤销。</div><label class="block mt-4 text-sm font-medium">删除范围<select id="deletion-scope" onchange="toggleDeletionChildField(this.value)" class="mt-1 w-full p-3 rounded-xl border border-border bg-white"><option value="child">某个儿童及关联数据</option><option value="account">整个账号及全部数据</option></select></label><label id="deletion-child-field" class="block mt-3 text-sm font-medium">选择儿童<select id="deletion-child" class="mt-1 w-full p-3 rounded-xl border border-border bg-white">${options}</select></label><label class="block mt-3 text-sm font-medium">原因（可选）<textarea id="deletion-reason" maxlength="500" rows="2" class="mt-1 w-full p-3 rounded-xl border border-border" placeholder="帮助处理人员确认范围，不要重复填写隐私详情"></textarea></label><label class="block mt-3 text-sm font-medium">输入 DELETE 确认<input id="deletion-confirmation" autocomplete="off" class="mt-1 w-full p-3 rounded-xl border border-red-300"></label><button data-ui-call="submitDataDeletionRequest" class="w-full mt-4 py-3 rounded-xl bg-red-700 text-white font-bold">提交删除申请</button></div>`;document.body.appendChild(modal);
     }
     function toggleDeletionChildField(scope){document.getElementById('deletion-child-field')?.classList.toggle('hidden',scope==='account')}
     async function submitDataDeletionRequest(){
@@ -7421,7 +7425,7 @@
       const deletionCards=deletions.length?deletions.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>${item.scope==='account'?'账号级':'儿童级'}删除 · 用户 #${Number(item.requester_user_id)}</strong><span>${escapeText(deletionStatusLabel(item.status))}</span></div><div class="text-xs text-text-muted mt-1">${escapeText(item.id)} · 截止 ${formatDate(item.due_at)}</div><div class="flex flex-wrap gap-2 mt-2">${item.status==='pending'?`<button onclick="showAdminResolution('deletion','${escapeText(item.id)}','processing')" class="px-3 py-1.5 rounded-lg bg-primary text-white">开始处理</button>`:`<button onclick="showAdminResolution('deletion','${escapeText(item.id)}','completed')" class="px-3 py-1.5 rounded-lg bg-success text-white">确认完成删除</button>`}<button onclick="showAdminResolution('deletion','${escapeText(item.id)}','rejected')" class="px-3 py-1.5 rounded-lg border border-border">拒绝并说明</button></div></div>`).join(''):'<div class="py-5 text-center text-text-muted">没有待处理删除工单</div>';
       const alertCards=alerts.length?alerts.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>${escapeText(item.summary)}</strong><span class="${item.severity==='critical'?'text-red-700':'text-amber-700'}">${escapeText(item.severity)} · ${Number(item.occurrence_count)}次</span></div><div class="text-xs text-text-muted mt-1">${escapeText(item.rule)} · 最后 ${formatDate(item.last_seen_at)}</div><div class="flex gap-2 mt-2">${item.status==='open'?`<button onclick="showAdminResolution('alert','${escapeText(item.id)}','acknowledged')" class="px-3 py-1.5 rounded-lg bg-primary text-white">确认接手</button>`:''}<button onclick="showAdminResolution('alert','${escapeText(item.id)}','resolved')" class="px-3 py-1.5 rounded-lg border border-border">标记解决</button></div></div>`).join(''):'<div class="py-5 text-center text-text-muted">没有未解决安全告警</div>';
       const weeklyCards=weeklyJobs.length?weeklyJobs.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>儿童 #${Number(item.child_id)} · ${escapeText(String(item.week_start).slice(0,10))}</strong><span class="text-red-700">失败 ${Number(item.attempt_count)} 次</span></div><div class="text-xs text-text-muted mt-1">通知：${escapeText(item.notification_status)} · ${escapeText(item.last_error||'未记录错误')}</div><button onclick="retryWeeklyReportJob(${Number(item.id)})" class="mt-2 px-3 py-1.5 rounded-lg border border-border">重新排队</button></div>`).join(''):'<div class="py-5 text-center text-text-muted">没有失败的周报任务</div>';
-      modal.firstElementChild.innerHTML=`<div class="flex justify-between gap-3"><div><h2 class="text-lg font-bold">安全运营台</h2><p class="text-xs text-text-muted mt-1">操作均记录管理员账号、时间和说明</p></div><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="mt-4 flex flex-wrap gap-2"><button onclick="runSecurityAlertScan()" class="px-4 py-2 rounded-xl border border-border bg-white text-sm font-medium">扫描安全告警</button><button onclick="runWeeklyReportJobs()" class="px-4 py-2 rounded-xl border border-border bg-white text-sm font-medium">执行周报任务</button></div><section class="mt-5"><h3 class="font-bold">数据删除工单（${deletions.length}）</h3><div class="mt-2 space-y-2">${deletionCards}</div></section><section class="mt-5"><h3 class="font-bold">安全告警（${alerts.length}）</h3><div class="mt-2 space-y-2">${alertCards}</div></section><section class="mt-5"><h3 class="font-bold">周报失败任务（${weeklyJobs.length}）</h3><div class="mt-2 space-y-2">${weeklyCards}</div></section>`;
+      modal.firstElementChild.innerHTML=`<div class="flex justify-between gap-3"><div><h2 class="text-lg font-bold">安全运营台</h2><p class="text-xs text-text-muted mt-1">操作均记录管理员账号、时间和说明</p></div><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="mt-4 flex flex-wrap gap-2"><button data-ui-call="runSecurityAlertScan" class="px-4 py-2 rounded-xl border border-border bg-white text-sm font-medium">扫描安全告警</button><button data-ui-call="runWeeklyReportJobs" class="px-4 py-2 rounded-xl border border-border bg-white text-sm font-medium">执行周报任务</button></div><section class="mt-5"><h3 class="font-bold">数据删除工单（${deletions.length}）</h3><div class="mt-2 space-y-2">${deletionCards}</div></section><section class="mt-5"><h3 class="font-bold">安全告警（${alerts.length}）</h3><div class="mt-2 space-y-2">${alertCards}</div></section><section class="mt-5"><h3 class="font-bold">周报失败任务（${weeklyJobs.length}）</h3><div class="mt-2 space-y-2">${weeklyCards}</div></section>`;
     }
     async function runSecurityAlertScan(){try{const result=await apiRequest('/sensitive/admin/security-alerts/scan','POST',{window_minutes:15});if(!result.success)throw new Error(result.error||'扫描失败');closeTopModal();showToast(`扫描完成，命中${Number(result.matched_rules||0)}条规则`);showSecurityOperations()}catch(error){showToast(error.message||'扫描失败')}}
     async function runWeeklyReportJobs(){try{const result=await apiRequest('/report/admin/jobs/run','POST',{});if(!result.success)throw new Error(result.error||'执行失败');closeTopModal();showToast(`周报任务完成：尝试${Number(result.attempted||0)}，成功${Number(result.succeeded||0)}`);showSecurityOperations()}catch(error){showToast(error.message||'执行失败')}}
@@ -7448,7 +7452,7 @@
               <input type="tel" id="edit-phone" value="${escapeText(currentUser?.phone || '')}" class="w-full px-4 py-2.5 rounded-xl border border-border bg-gray-50" readonly>
               <p class="text-xs text-text-muted mt-1">手机号不可修改</p>
             </div>
-            <button onclick="saveProfile()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
+            <button data-ui-call="saveProfile" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
           </div>
         </div>
       `;
@@ -7489,7 +7493,7 @@
               <label class="block text-sm text-text-secondary mb-1">确认新密码</label>
               <input type="password" id="confirm-password" autocomplete="new-password" placeholder="请再次输入新密码" class="w-full px-4 py-2.5 rounded-xl border border-border">
             </div>
-            <button onclick="changePassword()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">确认修改</button>
+            <button data-ui-call="changePassword" class="w-full py-3 rounded-xl bg-primary text-white font-medium">确认修改</button>
           </div>
         </div>
       `;
@@ -7515,7 +7519,7 @@
     function exportData() {
       const modal = document.createElement('div');
       modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
-      modal.innerHTML = `<div class="bg-white w-full max-w-sm rounded-2xl p-6"><h3 class="text-lg font-bold">导出前确认</h3><p class="text-sm text-text-secondary leading-6 mt-2">文件是未加密的 JSON，可能包含儿童昵称、观察记录、安全计划、家庭状态和账号资料。只保存到受控设备，不要通过公共群聊或不明网盘传输。</p><label class="flex items-start gap-2 mt-4 text-sm"><input id="export-risk-confirm" type="checkbox" class="mt-1"><span>我了解这是明文体验数据，并会自行保护导出文件</span></label><div class="flex gap-2 mt-4"><button data-ui-action="close-top-modal" class="flex-1 py-2.5 border border-border rounded-xl">取消</button><button onclick="confirmExportFromModal()" class="flex-1 py-2.5 bg-primary text-white rounded-xl">确认导出</button></div></div>`;
+      modal.innerHTML = `<div class="bg-white w-full max-w-sm rounded-2xl p-6"><h3 class="text-lg font-bold">导出前确认</h3><p class="text-sm text-text-secondary leading-6 mt-2">文件是未加密的 JSON，可能包含儿童昵称、观察记录、安全计划、家庭状态和账号资料。只保存到受控设备，不要通过公共群聊或不明网盘传输。</p><label class="flex items-start gap-2 mt-4 text-sm"><input id="export-risk-confirm" type="checkbox" class="mt-1"><span>我了解这是明文体验数据，并会自行保护导出文件</span></label><div class="flex gap-2 mt-4"><button data-ui-action="close-top-modal" class="flex-1 py-2.5 border border-border rounded-xl">取消</button><button data-ui-call="confirmExportFromModal" class="flex-1 py-2.5 bg-primary text-white rounded-xl">确认导出</button></div></div>`;
       document.body.appendChild(modal);
     }
 
@@ -7581,7 +7585,7 @@
           <p class="text-sm text-text-secondary mb-4">确定要清除所有本地缓存数据吗？登录状态不会受影响。</p>
           <div class="flex gap-3">
             <button data-ui-action="remove-overlay" class="flex-1 py-2.5 rounded-xl border border-border text-text-secondary">取消</button>
-            <button onclick="confirmClearCache()" class="flex-1 py-2.5 rounded-xl bg-primary text-white">确认</button>
+            <button data-ui-call="confirmClearCache" class="flex-1 py-2.5 rounded-xl bg-primary text-white">确认</button>
           </div>
         </div>
       `;
@@ -7693,7 +7697,7 @@
               <label class="block text-sm text-text-secondary mb-1">详细描述</label>
               <textarea id="feedback-content" placeholder="请详细描述您的反馈..." class="w-full px-4 py-3 rounded-xl border border-border" rows="4"></textarea>
             </div>
-            <button onclick="submitFeedback()" class="w-full py-3 rounded-xl bg-primary text-white font-medium">提交反馈</button>
+            <button data-ui-call="submitFeedback" class="w-full py-3 rounded-xl bg-primary text-white font-medium">提交反馈</button>
           </div>
         </div>
       `;

@@ -7,6 +7,7 @@ source=source
  .replace(/onclick="closeTopModal\(\)"/g,'data-ui-action="close-top-modal"')
  .replace(/onclick="this\.closest\('\.fixed'\)\.remove\(\)"/g,'data-ui-action="remove-overlay"')
  .replace(/onclick="window\.print\(\)"/g,'data-ui-action="print"')
+ .replace(/onclick="([A-Za-z_$][\w$]*)\(\)"/g,'data-ui-call="$1"')
  .replace(/onclick="navigateTo\('([a-z-]+)'\)"/g,'data-nav="$1"');
  fs.writeFileSync(file,source,'utf8');const after=(source.match(/on(?:click|change|input|submit|keydown|error)="/g)||[]).length;totalAfter+=after;console.log(`${path.basename(file)}: ${before} -> ${after}`)}
 console.log(`inline handlers total: ${totalBefore} -> ${totalAfter}`);
