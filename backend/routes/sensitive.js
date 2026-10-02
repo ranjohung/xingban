@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const { encryptJson, decryptJson, randomPublicId, randomToken, hashToken } = require('../services/sensitiveData');
 const { writeAudit } = require('../services/audit');
 const { requireRole } = require('../middleware/roles');
+const { scanAuditAnomalies } = require('../services/auditMonitor');
 
 const KINDS = new Set(['safety_plan', 'mental_health_profile', 'wandering_plan', 'medical_event']);
 const SCOPES = new Set(['summary', 'risk', 'medical', 'safety']);
@@ -231,6 +232,57 @@ router.patch('/admin/deletion-requests/:requestId', requireRole('admin'), async 
     writeAudit(req, 'deletion_completed', completed.scope, req.params.requestId, 'success', { note_present: !!note });
     res.json({ success: true, status: 'completed', scope: completed.scope });
   } catch (error) { next(error); }
+});
+
+const alertView = row => {
+  let evidence = {};
+  try { evidence = typeof row.evidence === 'string' ? JSON.parse(row.evidence) : (row.evidence || {}); } catch (_) {}
+  return {
+    id: row.public_id,
+    rule: row.rule_key,
+    subject_user_id: row.subject_user_id === null ? null : Number(row.subject_user_id),
+    severity: row.severity,
+    status: row.status,
+    occurrence_count: Number(row.occurrence_count),
+    window_started_at: row.window_started_at,
+    last_seen_at: row.last_seen_at,
+    summary: row.summary,
+    evidence,
+    handled_at: row.handled_at,
+    resolution_note: row.resolution_note || '',
+    created_at: row.created_at
+  };
+};
+
+router.post('/admin/security-alerts/scan', requireRole('admin'), async (req, res, next) => {
+  try {
+    const result = await scanAuditAnomalies(req.body?.window_minutes);
+    writeAudit(req, 'security_alert_scan', 'security_alert', 'batch', 'success', result);
+    res.json({ success: true, ...result });
+  } catch (error) { next(error); }
+});
+
+router.get('/admin/security-alerts', requireRole('admin'), (req, res) => {
+  const status = String(req.query.status || 'open');
+  if (!['open','acknowledged','resolved'].includes(status)) return res.status(400).json({ error: '告警状态无效' });
+  db.query('SELECT public_id,rule_key,subject_user_id,severity,status,occurrence_count,window_started_at,last_seen_at,summary,evidence,handled_at,resolution_note,created_at FROM security_alerts WHERE status=? ORDER BY FIELD(severity,\'critical\',\'high\',\'medium\'),last_seen_at DESC LIMIT 200', [status], (error, rows) => {
+    if (error) return res.status(500).json({ error: '读取安全告警失败' });
+    res.json({ success: true, alerts: rows.map(alertView) });
+  });
+});
+
+router.patch('/admin/security-alerts/:alertId', requireRole('admin'), (req, res) => {
+  const status = String(req.body?.status || '');
+  const note = String(req.body?.resolution_note || '').trim().slice(0, 1000);
+  if (!['acknowledged','resolved'].includes(status)) return res.status(400).json({ error: '告警处理状态无效' });
+  if (note.length < 5) return res.status(400).json({ error: '请填写至少5字的核查或解决说明' });
+  const activeKeySql = status === 'resolved' ? ',active_key=NULL' : '';
+  db.query(`UPDATE security_alerts SET status=?,handled_by_user_id=?,handled_at=CURRENT_TIMESTAMP,resolution_note=?${activeKeySql} WHERE public_id=? AND status IN ('open','acknowledged')`, [status, req.user.id, note, req.params.alertId], (error, result) => {
+    if (error) return res.status(500).json({ error: '更新安全告警失败' });
+    if (!result.affectedRows) return res.status(409).json({ error: '告警不存在或已经解决' });
+    writeAudit(req, `security_alert_${status}`, 'security_alert', req.params.alertId, 'success', { note_present: true });
+    res.json({ success: true, status });
+  });
 });
 
 module.exports = router;

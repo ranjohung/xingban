@@ -5,6 +5,7 @@ const db = require('./config/db');
 const cache = require('./services/cache');
 const { securityHeaders, authRateLimit } = require('./middleware/security');
 const { csrfProtection } = require('./middleware/session');
+const { scanAuditAnomalies } = require('./services/auditMonitor');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -29,6 +30,12 @@ db.connect((err) => {
 cache.connect().then((cacheState) => {
   console.log(`✅ 限流缓存已就绪（${cacheState.mode}）`);
 });
+const alertScanSeconds = Number(process.env.AUDIT_ALERT_SCAN_INTERVAL_SECONDS || 0);
+if (Number.isFinite(alertScanSeconds) && alertScanSeconds >= 60) {
+  const timer = setInterval(() => scanAuditAnomalies(Number(process.env.AUDIT_ALERT_WINDOW_MINUTES || 15))
+    .catch(() => console.error('安全告警扫描失败')), alertScanSeconds * 1000);
+  timer.unref();
+}
 
 app.use('/api/auth', authRateLimit, require('./routes/auth'));
 app.use('/api/child', require('./routes/child'));
