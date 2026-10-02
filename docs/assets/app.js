@@ -7349,7 +7349,7 @@
                 </div>
                 <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
               </button>
-              ${currentUser?.role==='admin'?`<button data-ui-call="showSecurityOperations" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border"><div class="flex-1 text-left"><div class="font-medium text-text-primary">安全运营台</div><div class="text-xs text-text-muted">仅管理员：删除工单、安全告警与处理记录</div></div><svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>`:''}
+              ${currentUser?.role==='admin'?`<button data-ui-call="showSecurityOperations" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border"><div class="flex-1 text-left"><div class="font-medium text-text-primary">安全与服务运营台</div><div class="text-xs text-text-muted">仅管理员：社区、专业资质、删除、告警与周报任务</div></div><svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>`:''}
               <button data-ui-call="showDataDeletionCenter" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border">
                 <div class="flex-1 text-left">
                   <div class="font-medium text-red-700">数据删除申请</div>
