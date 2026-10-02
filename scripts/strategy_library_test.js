@@ -1,6 +1,6 @@
 const fs = require('fs');
 const assert = require('assert');
-const html = fs.readFileSync(require('path').resolve(__dirname, '..', 'index.html'), 'utf8');
+const html = fs.readFileSync(require('path').resolve(__dirname, '..', 'index.html'), 'utf8') + fs.readFileSync(require('path').resolve(__dirname, '..', 'assets', 'app.js'), 'utf8');
 const markers = [
   '先选行为，不需要先知道策略名称', 'STRATEGY_BEHAVIOR_GROUPS', 'STRATEGY_CONTEXT',
   '情绪爆发降载流程', '攻击与扔物安全处置', '自伤行为安全响应', '跑开与走失即时方案',

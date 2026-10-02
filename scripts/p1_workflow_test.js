@@ -2,7 +2,7 @@ const fs = require('fs');
 const assert = require('assert');
 const root = require('path').resolve(__dirname, '..');
 const read = file => fs.readFileSync(require('path').join(root, file), 'utf8');
-const html = read('index.html');
+const html = read('index.html') + read('assets/app.js');
 const behavior = read('backend/routes/behavior.js');
 const strategy = read('backend/routes/strategy.js');
 const report = read('backend/routes/report.js');

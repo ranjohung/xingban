@@ -40,6 +40,8 @@ async function main() {
   if (!ready) throw new Error(`生产认证测试服务未就绪：${logs.slice(-1000)}`);
 
   const login = await call('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: '13800138000', password: '123456' }) });
+  if (login.response.headers.get('content-security-policy') !== "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'") throw new Error('生产API缺少预期CSP响应头');
+  if (!login.response.headers.get('strict-transport-security')?.includes('max-age=31536000')) throw new Error('生产API缺少HSTS响应头');
   if (!login.response.ok || login.body.token) throw new Error('生产登录不得在JSON正文返回Bearer令牌');
   const jar = cookieJar(login.response);
   const sessionLine = jar.lines.find(line => line.startsWith('xingban_session=')) || '';
@@ -59,7 +61,7 @@ async function main() {
   if (!logout.response.ok) throw new Error(`退出失败：${JSON.stringify(logout.body)}`);
   const replay = await call('/auth/me', { headers: { Cookie: jar.header } });
   if (replay.response.status !== 401) throw new Error('退出后的会话Cookie仍可重放');
-  console.log('PASS production auth: HttpOnly Secure SameSite cookie, CSRF, bearer rejection, logout revocation');
+  console.log('PASS production auth: security headers, HttpOnly Secure SameSite cookie, CSRF, bearer rejection, logout revocation');
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => server.kill());

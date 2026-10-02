@@ -1,5 +1,5 @@
 const fs=require('fs');
-const html=fs.readFileSync('index.html','utf8');
+const html=fs.readFileSync('index.html','utf8')+fs.readFileSync('assets/app.js','utf8');
 const assert=(ok,msg)=>{if(!ok)throw new Error(msg)};
 assert(html.includes('<span class="text-xs">快记</span>'),'mobile quick label');
 assert(html.includes('<span>快速记录</span>'),'desktop quick label');

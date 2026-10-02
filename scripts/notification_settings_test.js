@@ -1,5 +1,5 @@
 const fs = require('fs');
-const html = fs.readFileSync('index.html', 'utf8');
+const html = fs.readFileSync('index.html', 'utf8') + fs.readFileSync('assets/app.js', 'utf8');
 const route = fs.readFileSync('backend/routes/notification.js', 'utf8');
 const checks = [
   ['notification output minimized', route.includes('SELECT id, title, content, type, is_read, created_at')],

@@ -1,5 +1,5 @@
 const fs = require('fs');
-const html = fs.readFileSync('index.html', 'utf8');
+const html = fs.readFileSync('index.html', 'utf8') + fs.readFileSync('assets/app.js', 'utf8');
 const checks = [
   ['single item boundary', html.includes('单题主观记录，不是量表、诊断或风险评估')],
   ['demo community warning', html.includes('群组、动态和活动均为演示数据，没有真实成员、报名或实时值守')],

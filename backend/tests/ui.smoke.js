@@ -8,7 +8,9 @@ const fs = require('fs');
 const path = require('path');
 
 const HTML = path.resolve(__dirname, '..', '..', '星伴体验版.html');
-const src = fs.readFileSync(HTML, 'utf8');
+const src = fs.readFileSync(HTML, 'utf8')
+  + fs.readFileSync(path.resolve(__dirname, '..', '..', 'assets', 'app.js'), 'utf8')
+  + fs.readFileSync(path.resolve(__dirname, '..', '..', 'assets', 'app-inline.css'), 'utf8');
 
 function grab(name) {
   const start = src.indexOf(`function ${name}(`);

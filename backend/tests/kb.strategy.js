@@ -25,7 +25,7 @@ function grabBlock(src, name) {
 }
 
 (async () => {
-  const src = fs.readFileSync(HTML, 'utf8');
+  const src = fs.readFileSync(HTML, 'utf8') + fs.readFileSync(path.resolve(__dirname, '..', '..', 'assets', 'app.js'), 'utf8');
   const { STRATEGY_CONTEXT, STRATEGY_KB_SCENE, RECORD_KB_SCENE, RECORD_KB_KEYWORDS } = new Function(
     `${grabBlock(src, 'STRATEGY_CONTEXT')}\n${grabBlock(src, 'STRATEGY_KB_SCENE')}\n${grabBlock(src, 'RECORD_KB_SCENE')}\n${grabBlock(src, 'RECORD_KB_KEYWORDS')}\nreturn { STRATEGY_CONTEXT, STRATEGY_KB_SCENE, RECORD_KB_SCENE, RECORD_KB_KEYWORDS };`,
   )();

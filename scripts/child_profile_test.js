@@ -1,5 +1,5 @@
 const fs = require('fs');
-const html = fs.readFileSync('index.html', 'utf8');
+const html = fs.readFileSync('index.html', 'utf8') + fs.readFileSync('assets/app.js', 'utf8');
 const child = fs.readFileSync('backend/routes/child.js', 'utf8');
 const assert = (ok, msg) => { if (!ok) throw new Error(msg); };
 [

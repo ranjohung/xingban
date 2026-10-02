@@ -1,4 +1,4 @@
-const fs=require('fs');const assert=require('assert');const path=require('path');const html=fs.readFileSync(path.resolve(__dirname,'..','index.html'),'utf8');
+const fs=require('fs');const assert=require('assert');const path=require('path');const html=fs.readFileSync(path.resolve(__dirname,'..','index.html'),'utf8')+fs.readFileSync(path.resolve(__dirname,'..','assets','app.js'),'utf8');
 [
   "textContent = '专业协作'", 'AI会前问题整理', 'AI不诊断、不决定治疗、不修改药物',
   'getProfessionalRoute', 'generateProfessionalBrief', 'copyProfessionalBrief', 'clearProfessionalBrief',

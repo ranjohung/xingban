@@ -19,6 +19,11 @@ function securityHeaders(req, res, next) {
   res.set('X-Frame-Options', 'DENY');
   res.set('Referrer-Policy', 'no-referrer');
   res.set('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()');
+  res.set('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
+  res.set('Cross-Origin-Opener-Policy', 'same-origin');
+  if (process.env.NODE_ENV === 'production') {
+    res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
   res.set('Cache-Control', req.path.startsWith('/api/') ? 'no-store' : 'no-cache');
   next();
 }

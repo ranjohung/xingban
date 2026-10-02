@@ -1,5 +1,5 @@
 const fs=require('fs');const assert=require('assert');const path=require('path');
-const html=fs.readFileSync(path.resolve(__dirname,'..','index.html'),'utf8');
+const html=fs.readFileSync(path.resolve(__dirname,'..','index.html'),'utf8')+fs.readFileSync(path.resolve(__dirname,'..','assets','app.js'),'utf8');
 [
   "['攻击行为','自伤行为','跑开/走失','异常兴奋/活动骤增','绝望/谈论死亡','幻觉/妄想/意识异常']",
   "if (value === '3') showMentalHealthTriage()",

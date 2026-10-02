@@ -1,5 +1,5 @@
 const fs=require('fs');const assert=require('assert');const path=require('path');
-const html=fs.readFileSync(path.resolve(__dirname,'..','index.html'),'utf8');
+const html=fs.readFileSync(path.resolve(__dirname,'..','index.html'),'utf8')+fs.readFileSync(path.resolve(__dirname,'..','assets','app.js'),'utf8');
 const career=fs.readFileSync(path.resolve(__dirname,'..','backend','routes','career.js'),'utf8');
 const finance=fs.readFileSync(path.resolve(__dirname,'..','backend','routes','finance.js'),'utf8');
 ['未来支持方案','不预测孩子结局','不要依据诊断标签预设职业','不是法律意见','category: type','target_date: deadline',"progress: status === 'completed' ? 100 : 0",'补贴信息核验','未按您的地区核验','description: note'].forEach(marker=>assert(html.includes(marker),'生涯/财务前端缺少: '+marker));

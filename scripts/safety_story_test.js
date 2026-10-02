@@ -1,5 +1,5 @@
 const fs=require('fs');const assert=require('assert');const path=require('path');
-const html=fs.readFileSync(path.resolve(__dirname,'..','index.html'),'utf8');
+const html=fs.readFileSync(path.resolve(__dirname,'..','index.html'),'utf8')+fs.readFileSync(path.resolve(__dirname,'..','assets','app.js'),'utf8');
 const story=fs.readFileSync(path.resolve(__dirname,'..','backend','routes','story.js'),'utf8');
 const safety=fs.readFileSync(path.resolve(__dirname,'..','backend','routes','safety.js'),'utf8');
 ['记录完成一次真实练习','成人陪同、真实完成练习后记录','sessionStorage.setItem(\'xingban_safety_skill_progress\'','activeStoryForReader','不是服从脚本','maxlength="3000"','$'+'{escapeText(story.title)}','$'+'{escapeText(s.trim())}'].forEach(marker=>assert(html.includes(marker),'安全/故事前端缺少: '+marker));

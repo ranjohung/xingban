@@ -1,5 +1,5 @@
 const fs=require('fs');const assert=require('assert');const path=require('path');
-const html=fs.readFileSync(path.resolve(__dirname,'..','index.html'),'utf8');
+const html=fs.readFileSync(path.resolve(__dirname,'..','index.html'),'utf8')+fs.readFileSync(path.resolve(__dirname,'..','assets','app.js'),'utf8');
 const community=fs.readFileSync(path.resolve(__dirname,'..','backend','routes','community.js'),'utf8');
 [
  '未提供标准化能力分数','不能据此证明因果','标签分布不代表诊断或情绪趋势',

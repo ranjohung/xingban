@@ -1,6 +1,6 @@
 const fs = require('fs');
 const assert = require('assert');
-const html = fs.readFileSync('index.html', 'utf8');
+const html = fs.readFileSync('index.html', 'utf8') + fs.readFileSync('assets/app.js', 'utf8');
 
 assert(html.includes('id="nav-children"'), '移动底栏应包含孩子入口');
 assert(!html.includes('id="nav-community"'), '移动底栏不应保留低频社区入口');

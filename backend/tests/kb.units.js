@@ -289,7 +289,7 @@ console.log('\n[3b] 急症/意外伤害就医指引（第三十二轮）');
 /* ---------------- [4] 前端接线的不变量 ---------------- */
 console.log('\n[4] 前端接线');
 {
-  const src = fs.readFileSync(HTML, 'utf8');
+  const src = fs.readFileSync(HTML, 'utf8') + fs.readFileSync(path.join(ROOT, 'assets', 'app.js'), 'utf8');
   // 危机热线不能只在后端有，前端紧急支持页也要能看到
   say(src.includes('12356') && src.includes('12355'), '前端也能看到 12356 / 12355');
   // 本项目硬性约定：星伴体验版.html 里不要用 IIFE（会被写盘工具吞行）

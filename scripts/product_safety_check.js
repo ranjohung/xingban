@@ -2,6 +2,8 @@ const fs = require('fs');
 const vm = require('vm');
 
 const pages = ['index.html', '星伴体验版.html', 'docs/index.html'];
+const appScript = fs.readFileSync('assets/app.js', 'utf8');
+new vm.Script(appScript, { filename: 'assets/app.js' });
 const required = [
   'showMentalHealthTriage', 'showImmediateDangerHelp', 'showSafetyPlan',
   '心理健康照护档案', '不用于精神科紧急情况', '证据状态</span> <strong>待专业复核，需个体化调整',
@@ -11,17 +13,19 @@ const required = [
 
 for (const page of pages) {
   const html = fs.readFileSync(page, 'utf8');
+  const source = html + appScript;
+  if (!html.includes('<script src="assets/app.js"></script>')) throw new Error(`${page} 未引用受控外部脚本`);
   for (const marker of required) {
-    if (!html.includes(marker)) throw new Error(`${page} 缺少安全标记: ${marker}`);
+    if (!source.includes(marker)) throw new Error(`${page} 缺少安全标记: ${marker}`);
   }
   [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].forEach((match, index) => {
     if (match[1].trim()) new vm.Script(match[1], { filename: `${page}:script-${index}` });
   });
-  if (html.includes("document.querySelectorAll('.fixed').forEach(el => el.remove())")) {
+  if (source.includes("document.querySelectorAll('.fixed').forEach(el => el.remove())")) {
     throw new Error(`${page} 仍存在无差别删除 fixed 元素的逻辑`);
   }
   const clickCalls = [...html.matchAll(/onclick="([A-Za-z_$][\w$]*)\s*\(/g)].map(match => match[1]);
-  const functionDefs = new Set([...html.matchAll(/(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/g)].map(match => match[1]));
+  const functionDefs = new Set([...source.matchAll(/(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/g)].map(match => match[1]));
   const missingHandlers = [...new Set(clickCalls.filter(name => !functionDefs.has(name)))];
   if (missingHandlers.length) throw new Error(`${page} 存在未定义点击处理函数: ${missingHandlers.join(', ')}`);
 }
