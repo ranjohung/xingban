@@ -11,6 +11,7 @@
     "test:mysql": "node tests/mysql.integration.js",
     "test:deletion": "node tests/deletion.integration.js",
     "test:alerts": "node tests/security_alerts.integration.js",
+    "test:weekly-jobs": "node tests/weekly_report_jobs.integration.js",
     "test:auth": "node tests/auth.session.js",
     "test:xss": "node ../scripts/xss_csp_test.js",
     "db:migrate": "node tools/apply_migration.js",

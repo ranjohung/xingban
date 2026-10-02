@@ -2,7 +2,10 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
+const { requireRole } = require('../middleware/roles');
 const { parseDbJson } = require('../utils/json');
+const { runWeeklyReportCycle } = require('../services/weeklyReportScheduler');
+const { writeAudit } = require('../services/audit');
 
 router.param('childId', (req, res, next, childId) => {
   const id = Number.parseInt(childId, 10);
@@ -24,6 +27,36 @@ router.post('/share/:token/comment', (req, res) => {
 
 // 其余周报接口全部要求登录，确保 router.param 能拿到 req.user 做儿童归属核验。
 router.use(auth);
+
+router.get('/admin/jobs', requireRole('admin'), (req, res) => {
+  const status = String(req.query.status || 'failed');
+  if (!['pending','processing','retry','succeeded','failed'].includes(status)) return res.status(400).json({ error: '任务状态无效' });
+  db.query(`SELECT j.id,j.child_id,j.user_id,j.week_start,j.week_end,j.status,j.attempt_count,j.next_attempt_at,
+    j.report_id,j.notification_status,j.last_error,j.started_at,j.completed_at,j.updated_at
+    FROM weekly_report_jobs j WHERE j.status=? ORDER BY j.updated_at DESC LIMIT 200`, [status], (error, rows) => error
+      ? res.status(500).json({ error: '读取周报任务失败' })
+      : res.json({ success: true, jobs: rows }));
+});
+
+router.post('/admin/jobs/run', requireRole('admin'), async (req, res, next) => {
+  try {
+    const result = await runWeeklyReportCycle();
+    writeAudit(req, 'weekly_report_jobs_run', 'weekly_report_job', 'batch', 'success', result);
+    res.json({ success: true, ...result });
+  } catch (error) { next(error); }
+});
+
+router.patch('/admin/jobs/:jobId/retry', requireRole('admin'), (req, res) => {
+  const id = Number(req.params.jobId);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: '任务编号无效' });
+  db.query(`UPDATE weekly_report_jobs SET status='retry',next_attempt_at=NOW(),notification_status='pending',last_error=NULL
+    WHERE id=? AND status='failed'`, [id], (error, result) => {
+    if (error) return res.status(500).json({ error: '周报任务重试失败' });
+    if (!result.affectedRows) return res.status(409).json({ error: '任务不存在或当前状态不可重试' });
+    writeAudit(req, 'weekly_report_job_retry', 'weekly_report_job', String(id), 'success', { status: 'retry' });
+    res.json({ success: true, status: 'retry' });
+  });
+});
 
 router.post('/generate/:childId', auth, (req, res) => {
   const { week_start, week_end } = req.body;
@@ -77,7 +110,7 @@ router.post('/generate/:childId', auth, (req, res) => {
           );
           
           db.query(
-            'INSERT INTO weekly_reports (child_id, user_id, week_start, week_end, content) VALUES (?, ?, ?, ?, ?)',
+            'INSERT INTO weekly_reports (child_id, user_id, week_start, week_end, content) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)',
             [req.params.childId, req.user.id, startDate, endDate, JSON.stringify(reportContent)],
             (err, result) => {
               if (err) return res.status(500).json({ error: err.message });

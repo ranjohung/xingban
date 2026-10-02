@@ -6,6 +6,7 @@ const cache = require('./services/cache');
 const { securityHeaders, authRateLimit } = require('./middleware/security');
 const { csrfProtection } = require('./middleware/session');
 const { scanAuditAnomalies } = require('./services/auditMonitor');
+const { runWeeklyReportCycle } = require('./services/weeklyReportScheduler');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -25,6 +26,13 @@ db.connect((err) => {
     console.log('⚠️  服务将在无数据库模式下启动，部分功能受限');
   } else {
     console.log('✅ 数据库连接成功');
+    const reportIntervalMinutes = Number(process.env.WEEKLY_REPORT_SCAN_INTERVAL_MINUTES || 0);
+    if (Number.isFinite(reportIntervalMinutes) && reportIntervalMinutes >= 5) {
+      const run = () => runWeeklyReportCycle().catch(() => console.error('周报调度执行失败'));
+      run();
+      const reportTimer = setInterval(run, reportIntervalMinutes * 60 * 1000);
+      reportTimer.unref();
+    }
   }
 });
 cache.connect().then((cacheState) => {
