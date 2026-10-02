@@ -67,16 +67,16 @@ with sync_playwright() as p:
         page.evaluate("closeTopModal()")
 
         page.evaluate("navigateTo('therapist')")
-        page.locator('button[onclick^="showProfessionalPlanEditor"]:visible').first.click()
+        page.locator('button[data-ui-call="showProfessionalPlanEditor"]:visible').first.click()
         page.locator("#plan-goal").fill("孩子能在情绪升级前表达需要暂停")
         page.locator("#plan-frequency").fill("每天一次，在平静时练习")
         page.locator("#plan-owner").fill("家长")
         page.locator("#plan-stop").fill("孩子明显不适、冲突升级或出现安全风险")
         page.locator("#plan-review").fill("2026-10-15")
         page.locator("#plan-confirmed").check()
-        page.locator('button[onclick^="saveProfessionalAction"]').click()
+        page.locator('button[data-ui-call="saveProfessionalAction"]').click()
         page.wait_for_timeout(150)
-        assert page.locator('button[onclick*="escalated"]').count() == 1, "完整计划未进入执行中状态或缺少升级求助操作"
+        assert page.get_by_role('button', name='情况变化·升级求助').count() == 1, "完整计划未进入执行中状态或缺少升级求助操作"
         page.screenshot(path=str(OUT / "professional-plan-mobile.png"), full_page=True)
 
     page.evaluate("navigateTo('emergency')")
@@ -95,7 +95,7 @@ with sync_playwright() as p:
         page.evaluate("navigateTo('therapist')")
         page.get_by_text("确认本版本", exact=True).click()
         page.locator("#plan-review-note").fill("目标、频率和停止条件清楚，可以由家长决定是否开始。")
-        page.locator('button[onclick^="submitPlanReview"]:visible').click()
+        page.locator('button[data-ui-call="submitPlanReview"]:visible').click()
         page.wait_for_timeout(150)
         assert page.get_by_text("已确认", exact=True).count() >= 1, "专业端确认结果未回写"
 

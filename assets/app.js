@@ -1277,7 +1277,7 @@
               <p class="text-sm text-text-muted">正在查知识库…</p>
             </section>
             <section class="flex flex-wrap items-center gap-4 py-2 text-sm"><div><span class="text-text-muted">证据状态</span> <strong>待专业复核，需个体化调整</strong></div><div><span class="text-text-muted">操作难度</span> <strong>${strategy.difficulty}</strong></div>${strategy.usageCount ? `<div><span class="text-text-muted">体验版使用</span> <strong>${strategy.usageCount} 次（演示）</strong></div>` : ''}</section>
-            ${highRisk ? `<section class="border-t border-border pt-5"><div class="rounded-xl bg-red-50 border border-red-200 p-4"><strong class="text-red-800">这是一条安全分流路径，不评价“是否有效”</strong><p class="text-sm text-red-900 mt-1 leading-6">请记录发生时间、睡眠、用药、伤情和意识变化并交给专业人员判断；不要用完成教程代替求助。</p><button data-ui-action="close-and-navigate" data-nav="emergency" class="w-full mt-3 py-3 rounded-xl bg-red-700 text-white font-bold">进入紧急支持</button></div></section>` : `<section class="border-t border-border pt-5"><p class="text-sm text-text-secondary mb-3">实际尝试后，这个方法对孩子有效吗？</p><textarea id="strategy-feedback-note-${id}" rows="2" maxlength="200" placeholder="选填：使用场景、做到哪一步、孩子的反应" class="w-full mb-3 p-3 rounded-xl border border-border text-sm"></textarea><div class="grid grid-cols-3 gap-2"><button onclick="submitStrategyFeedback(${strategy.id},'positive')" class="py-2.5 rounded-xl bg-success/10 text-success text-sm font-medium">有效</button><button onclick="submitStrategyFeedback(${strategy.id},'neutral')" class="py-2.5 rounded-xl bg-blue-50 text-blue-700 text-sm font-medium">一般</button><button onclick="submitStrategyFeedback(${strategy.id},'negative')" class="py-2.5 rounded-xl bg-danger/10 text-danger text-sm font-medium">无效/不适</button></div></section>`}
+            ${highRisk ? `<section class="border-t border-border pt-5"><div class="rounded-xl bg-red-50 border border-red-200 p-4"><strong class="text-red-800">这是一条安全分流路径，不评价“是否有效”</strong><p class="text-sm text-red-900 mt-1 leading-6">请记录发生时间、睡眠、用药、伤情和意识变化并交给专业人员判断；不要用完成教程代替求助。</p><button data-ui-action="close-and-navigate" data-nav="emergency" class="w-full mt-3 py-3 rounded-xl bg-red-700 text-white font-bold">进入紧急支持</button></div></section>` : `<section class="border-t border-border pt-5"><p class="text-sm text-text-secondary mb-3">实际尝试后，这个方法对孩子有效吗？</p><textarea id="strategy-feedback-note-${id}" rows="2" maxlength="200" placeholder="选填：使用场景、做到哪一步、孩子的反应" class="w-full mb-3 p-3 rounded-xl border border-border text-sm"></textarea><div class="grid grid-cols-3 gap-2"><button data-ui-call="submitStrategyFeedback" data-ui-args="${uiArgsAttr(Number(strategy.id),'positive')}" class="py-2.5 rounded-xl bg-success/10 text-success text-sm font-medium">有效</button><button data-ui-call="submitStrategyFeedback" data-ui-args="${uiArgsAttr(Number(strategy.id),'neutral')}" class="py-2.5 rounded-xl bg-blue-50 text-blue-700 text-sm font-medium">一般</button><button data-ui-call="submitStrategyFeedback" data-ui-args="${uiArgsAttr(Number(strategy.id),'negative')}" class="py-2.5 rounded-xl bg-danger/10 text-danger text-sm font-medium">无效/不适</button></div></section>`}
           </div>
         </div>`;
       document.body.appendChild(modal);
@@ -1326,7 +1326,7 @@
           box.innerHTML = head
             + '<p class="text-sm text-text-muted">教材里暂时没有和这个方案对应的章节。</p>'
             + bridgeHintHtml(strategy, bridgeScenes)
-            + '<button onclick="askKnowledge(\'' + escapeAttr(strategy.name + '：' + (ctx.goal || '')) + '\')" class="mt-2 w-full py-2.5 rounded-xl bg-primary text-white text-sm font-bold">用一句话问知识库</button>';
+            + `<button data-ui-call="askKnowledge" data-ui-args="${uiArgsAttr(strategy.name + '：' + (ctx.goal || ''))}" class="mt-2 w-full py-2.5 rounded-xl bg-primary text-white text-sm font-bold">用一句话问知识库</button>`;
           return;
         }
 
@@ -1338,7 +1338,7 @@
         box.innerHTML = head
           + `<p class="text-xs text-text-muted mb-2">${label}：${caveat}这些章节用于延伸阅读，<strong>不是本方案的出处</strong>（本方案由星伴整理）。</p>`
           + (highRisk ? '<p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">这一条属于安全分流：下面的章节只是背景知识，<strong>不是应急处置步骤</strong>；现场安全与就医优先。</p>' : '')
-          + `<div class="space-y-2">${show.map(r => `<button onclick="openKnowledgeSource('${encodeURIComponent(r.id)}')" class="w-full text-left p-3 rounded-xl bg-background border border-border hover:border-primary">
+          + `<div class="space-y-2">${show.map(r => `<button data-ui-call="openKnowledgeSource" data-ui-args='["${encodeURIComponent(r.id)}"]' class="w-full text-left p-3 rounded-xl bg-background border border-border hover:border-primary">
             <div class="text-sm font-medium text-text-primary flex items-center gap-2 flex-wrap">${escapeText(r.heading)}<span class="text-[10px] px-1.5 py-0.5 rounded bg-white border border-border text-text-muted">原书章节名</span>${r.scanQuality === 'weak' ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800" title="该来源扫描质量欠佳，引用时请对照原书">扫描质量欠佳</span>' : ''}</div>
             <div class="text-xs text-text-muted mt-1">《${escapeText(r.source)}》</div>
             <div class="text-xs text-text-secondary mt-1 leading-5">${escapeText(String(r.text || '').slice(0, 80))}…</div>
@@ -1554,9 +1554,9 @@
             <div>
               <label class="block text-sm text-text-secondary mb-1">输入方式</label>
               <div class="flex gap-2" id="record-type-btn-group">
-                <button onclick="setRecordType('text', this)" class="flex-1 py-2 rounded-lg bg-primary text-white text-sm">文字</button>
-                <button onclick="setRecordType('voice', this)" class="flex-1 py-2 rounded-lg border border-border text-text-secondary text-sm">语音</button>
-                <button onclick="setRecordType('photo', this)" class="flex-1 py-2 rounded-lg border border-border text-text-secondary text-sm">拍照</button>
+                <button data-ui-call="setRecordType" data-ui-args='["text"]' data-ui-pass-this="true" class="flex-1 py-2 rounded-lg bg-primary text-white text-sm">文字</button>
+                <button data-ui-call="setRecordType" data-ui-args='["voice"]' data-ui-pass-this="true" class="flex-1 py-2 rounded-lg border border-border text-text-secondary text-sm">语音</button>
+                <button data-ui-call="setRecordType" data-ui-args='["photo"]' data-ui-pass-this="true" class="flex-1 py-2 rounded-lg border border-border text-text-secondary text-sm">拍照</button>
               </div>
               <input type="hidden" id="record-type" value="text">
             </div>
@@ -1853,7 +1853,7 @@
       } catch (_) {}
       const modal = document.createElement('div');
       modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
-      modal.innerHTML = `<div class="bg-white w-full max-w-lg rounded-2xl p-5 animate-fade-in max-h-[90vh] overflow-y-auto"><div class="flex justify-between gap-3 mb-4"><div><div class="text-xs font-semibold text-primary">记录已保存 · 下一步</div><h3 class="text-lg font-bold mt-1">选择一个现在可尝试的策略</h3><p class="text-sm text-text-secondary mt-1">稍后反馈会自动关联刚才的记录，周报会汇总实际尝试结果。</p></div><button data-ui-action="close-and-navigate" data-nav="records" class="text-text-muted" aria-label="暂不选择">✕</button></div>${consistencyCheck ? '<div class="mb-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">推荐与当前训练目标可能不完全一致，请结合专业人员制定的目标选择。</div>' : ''}<div class="space-y-3">${strategies.map(s => `<button onclick="closeTopModal();showStrategyDetail(${Number(s.id)})" class="w-full text-left border border-border rounded-xl p-4 hover:border-primary"><div class="font-bold text-text-primary">${escapeText(s.name)}</div><div class="text-sm text-text-secondary mt-1">${escapeText(s.description || '查看分步教程与示范话术')}</div><div class="text-xs text-primary mt-2">查看步骤并尝试 →</div></button>`).join('')}</div><div id="record-kb-ref" class="mt-4"></div><button data-ui-action="close-and-navigate" data-nav="records" class="w-full mt-4 py-2.5 rounded-xl border border-border text-text-secondary">现在不适合，稍后再看</button></div>`;
+      modal.innerHTML = `<div class="bg-white w-full max-w-lg rounded-2xl p-5 animate-fade-in max-h-[90vh] overflow-y-auto"><div class="flex justify-between gap-3 mb-4"><div><div class="text-xs font-semibold text-primary">记录已保存 · 下一步</div><h3 class="text-lg font-bold mt-1">选择一个现在可尝试的策略</h3><p class="text-sm text-text-secondary mt-1">稍后反馈会自动关联刚才的记录，周报会汇总实际尝试结果。</p></div><button data-ui-action="close-and-navigate" data-nav="records" class="text-text-muted" aria-label="暂不选择">✕</button></div>${consistencyCheck ? '<div class="mb-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">推荐与当前训练目标可能不完全一致，请结合专业人员制定的目标选择。</div>' : ''}<div class="space-y-3">${strategies.map(s => `<button data-ui-call="closeTopAndShowStrategyDetail" data-ui-args="${uiArgsAttr(Number(s.id))}" class="w-full text-left border border-border rounded-xl p-4 hover:border-primary"><div class="font-bold text-text-primary">${escapeText(s.name)}</div><div class="text-sm text-text-secondary mt-1">${escapeText(s.description || '查看分步教程与示范话术')}</div><div class="text-xs text-primary mt-2">查看步骤并尝试 →</div></button>`).join('')}</div><div id="record-kb-ref" class="mt-4"></div><button data-ui-action="close-and-navigate" data-nav="records" class="w-full mt-4 py-2.5 rounded-xl border border-border text-text-secondary">现在不适合，稍后再看</button></div>`;
       document.body.appendChild(modal);
       loadRecordKbRef(record, category);
     }
@@ -1887,7 +1887,7 @@
 
     /** 知识库章节列表的统一样式（出处、原书章节名、扫描质量都在这里处理一次） */
     function kbRefListHtml(list) {
-      return `<div class="space-y-2">${list.map(r => `<button onclick="openKnowledgeSource('${encodeURIComponent(r.id)}')" class="w-full text-left p-3 rounded-xl bg-background border border-border hover:border-primary">
+      return `<div class="space-y-2">${list.map(r => `<button data-ui-call="openKnowledgeSource" data-ui-args='["${encodeURIComponent(r.id)}"]' class="w-full text-left p-3 rounded-xl bg-background border border-border hover:border-primary">
         <div class="text-sm font-medium text-text-primary flex items-center gap-2 flex-wrap">${escapeText(r.heading)}<span class="text-[10px] px-1.5 py-0.5 rounded bg-white border border-border text-text-muted">原书章节名</span>${r.scanQuality === 'weak' ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800" title="该来源扫描质量欠佳，引用时请对照原书">扫描质量欠佳</span>' : ''}</div>
         <div class="text-xs text-text-muted mt-1">《${escapeText(r.source)}》</div>
         <div class="text-xs text-text-secondary mt-1 leading-5">${escapeText(String(r.text || '').slice(0, 80))}…</div>
@@ -2110,7 +2110,7 @@
         <div class="flex justify-between gap-3"><div><span class="text-xs font-bold text-danger">先判断是否需要立即求助</span><h2 class="text-xl font-bold mt-1">孩子现在有以下情况吗？</h2></div><button aria-label="关闭" data-ui-action="close-top-modal">✕</button></div>
         <p class="text-sm text-text-secondary mt-2">本工具不做诊断。如果拿不准，请按“有或不确定”处理。</p>
         <div class="mt-4 space-y-2 text-sm">${['正在自伤、伤害他人，或说不想活了','提到具体自杀计划、工具或地点','服药过量、严重不良反应或意识异常','出现幻觉、妄想、严重混乱或无法沟通','连续极少睡眠且异常兴奋、冲动或冒险','离家失联或正处于道路、高处、水边等危险地点'].map(t=>`<label class="flex gap-3 p-3 rounded-xl border border-border"><input type="checkbox" class="crisis-risk mt-1 accent-danger"><span>${t}</span></label>`).join('')}</div>
-        <div class="mt-5 grid gap-2"><button data-ui-call="showImmediateDangerHelp" class="w-full py-3 rounded-xl bg-danger text-white font-bold">有或不确定：立即求助</button><button onclick="closeTopModal();startEmergency('red')" class="w-full py-3 rounded-xl border border-border text-text-primary">确认没有即时危险，继续安抚支持</button></div>
+        <div class="mt-5 grid gap-2"><button data-ui-call="showImmediateDangerHelp" class="w-full py-3 rounded-xl bg-danger text-white font-bold">有或不确定：立即求助</button><button data-ui-call="closeTopAndStartEmergency" data-ui-args='["red"]' class="w-full py-3 rounded-xl border border-border text-text-primary">确认没有即时危险，继续安抚支持</button></div>
       </div>`;
       document.body.appendChild(modal);
     }
@@ -2214,7 +2214,7 @@
               </div>
               <div class="grid grid-cols-2 gap-3">
                 ${emergencyContacts.map(c => `
-                  <button onclick="callEmergencyContact('${c.fullPhone}', '${c.name}')" class="flex-1 bg-white border border-[#dfe5e2] rounded-xl p-3 text-center shadow-sm hover:border-primary/50 transition-colors active:scale-[0.96]">
+                  <button data-ui-call="callEmergencyContact" data-ui-args="${uiArgsAttr(c.fullPhone,c.name)}" class="flex-1 bg-white border border-[#dfe5e2] rounded-xl p-3 text-center shadow-sm hover:border-primary/50 transition-colors active:scale-[0.96]">
                     <div class="text-lg mb-1">📞</div>
                     <div class="text-[#25313c] text-xs font-bold">${c.name}</div>
                     <div class="text-[#66727d] text-xs mt-0.5">${c.phone}</div>
@@ -2264,7 +2264,7 @@
                   <div class="font-medium text-text-primary">${c.name}</div>
                   <div class="text-sm text-text-muted">${c.fullPhone}</div>
                 </div>
-                <button onclick="callEmergencyContact('${c.fullPhone}', '${c.name}')" class="px-3 py-1.5 bg-success/10 text-success rounded-lg text-sm">拨打</button>
+                <button data-ui-call="callEmergencyContact" data-ui-args="${uiArgsAttr(c.fullPhone,c.name)}" class="px-3 py-1.5 bg-success/10 text-success rounded-lg text-sm">拨打</button>
                 <button data-ui-call="removeEmergencyContact" data-ui-args="[${Number(c.id)}]" class="px-3 py-1.5 bg-danger/10 text-danger rounded-lg text-sm">删除</button>
               </div>
             `).join('')}
@@ -2342,7 +2342,7 @@
               <p class="text-[#52606d] text-sm font-medium">家长可以先示范，不要强迫孩子</p>
             </div>
 
-            <button onclick="showEmergencyStrategies('${level}')" class="mt-12 w-full py-3.5 rounded-xl bg-primary text-white font-bold shadow-sm hover:bg-primary-dark transition-colors active:scale-[0.98]">
+            <button data-ui-call="showEmergencyStrategies" data-ui-args='["${level}"]' class="mt-12 w-full py-3.5 rounded-xl bg-primary text-white font-bold shadow-sm hover:bg-primary-dark transition-colors active:scale-[0.98]">
               获取应对策略
             </button>
 
@@ -2352,7 +2352,7 @@
             </div>
 
             <button data-nav="emergency" class="mt-4 text-primary-dark text-sm font-bold hover:underline">← 返回选择</button>
-            <button onclick="finishEmergencySession('${level}')" class="mt-3 text-[#52606d] text-sm underline">结束本次支持并记录感受</button>
+            <button data-ui-call="finishEmergencySession" data-ui-args='["${level}"]' class="mt-3 text-[#52606d] text-sm underline">结束本次支持并记录感受</button>
           </div>
         </div>
       `;
@@ -2393,7 +2393,7 @@
             <button data-nav="emergency" class="mt-3 w-full py-3 rounded-xl bg-white text-primary-dark font-bold border-2 border-primary/30 hover:bg-primary-light/20 transition-colors active:scale-[0.98]">
               返回紧急模式
             </button>
-            <button onclick="finishEmergencySession('${level}')" class="mt-3 w-full py-3 text-[#52606d] font-medium">结束并记录结果</button>
+            <button data-ui-call="finishEmergencySession" data-ui-args='["${level}"]' class="mt-3 w-full py-3 text-[#52606d] font-medium">结束并记录结果</button>
           </div>
         </div>
       `;
@@ -2437,7 +2437,7 @@
 
     function finishEmergencySession(level) {
       const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';modal.dataset.modal='true';
-      modal.innerHTML=`<div class="bg-white w-full max-w-md rounded-2xl p-5"><h2 class="text-xl font-bold">刚才很艰难，你已经做得够好了</h2><p class="text-sm text-text-secondary mt-2">只需选择现在的状态，不要求复盘。</p><div class="grid grid-cols-3 gap-2 mt-4">${[['calm','😌','已平静'],['low','😔','仍低落'],['angry','😤','仍激动']].map(([v,e,l])=>`<button onclick="saveEmergencyOutcome('${level}','${v}')" class="p-3 rounded-xl border border-border"><span class="text-2xl block">${e}</span><span class="text-xs">${l}</span></button>`).join('')}</div><button data-ui-action="close-and-navigate" data-nav="home" class="w-full mt-4 py-3 text-text-secondary">暂不记录</button></div>`;document.body.appendChild(modal);
+      modal.innerHTML=`<div class="bg-white w-full max-w-md rounded-2xl p-5"><h2 class="text-xl font-bold">刚才很艰难，你已经做得够好了</h2><p class="text-sm text-text-secondary mt-2">只需选择现在的状态，不要求复盘。</p><div class="grid grid-cols-3 gap-2 mt-4">${[['calm','😌','已平静'],['low','😔','仍低落'],['angry','😤','仍激动']].map(([v,e,l])=>`<button data-ui-call="saveEmergencyOutcome" data-ui-args="${uiArgsAttr(level,v)}" class="p-3 rounded-xl border border-border"><span class="text-2xl block">${e}</span><span class="text-xs">${l}</span></button>`).join('')}</div><button data-ui-action="close-and-navigate" data-nav="home" class="w-full mt-4 py-3 text-text-secondary">暂不记录</button></div>`;document.body.appendChild(modal);
     }
 
     function saveEmergencyOutcome(level, outcome) {
@@ -2495,7 +2495,7 @@
           <section aria-labelledby="strategy-situation-title">
             <div class="flex items-end justify-between gap-3 mb-3"><div><h3 id="strategy-situation-title" class="font-bold text-text-primary">按孩子的表现查找</h3><p class="text-xs text-text-muted mt-1">同一行为可能有不同原因，先选最接近的一项</p></div></div>
             <div class="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0" role="group" aria-label="按行为筛选策略">
-              ${STRATEGY_BEHAVIOR_GROUPS.map(group => `<button onclick="filterStrategiesByCategory('${group.id}')" aria-pressed="${strategiesFilter.category === group.id}" class="min-h-11 shrink-0 px-3 py-2 rounded-xl border text-sm font-medium ${strategiesFilter.category === group.id ? 'bg-primary text-white border-primary' : 'bg-white border-border text-text-secondary'}"><span aria-hidden="true" class="mr-1">${group.icon}</span>${group.label}</button>`).join('')}
+              ${STRATEGY_BEHAVIOR_GROUPS.map(group => `<button data-ui-call="filterStrategiesByCategory" data-ui-args='["${group.id}"]' aria-pressed="${strategiesFilter.category === group.id}" class="min-h-11 shrink-0 px-3 py-2 rounded-xl border text-sm font-medium ${strategiesFilter.category === group.id ? 'bg-primary text-white border-primary' : 'bg-white border-border text-text-secondary'}"><span aria-hidden="true" class="mr-1">${group.icon}</span>${group.label}</button>`).join('')}
             </div>
           </section>
 
@@ -2601,7 +2601,7 @@
             <div class="mt-4">
               <div class="text-xs font-bold text-text-muted mb-2">常见困扰，点一下就问</div>
               <div class="flex flex-wrap gap-2">
-                ${KNOWLEDGE_CHIPS.map(q => `<button onclick="askKnowledge(${JSON.stringify(q).replace(/"/g, '&quot;')})" class="text-xs px-3 py-2 rounded-xl bg-background border border-border text-text-secondary hover:border-primary hover:text-primary">${escapeText(q)}</button>`).join('')}
+                ${KNOWLEDGE_CHIPS.map(q => `<button data-ui-call="askKnowledge" data-ui-args="${uiArgsAttr(q)}" class="text-xs px-3 py-2 rounded-xl bg-background border border-border text-text-secondary hover:border-primary hover:text-primary">${escapeText(q)}</button>`).join('')}
               </div>
             </div>
           </section>
@@ -2610,7 +2610,7 @@
 
           ${st.recent.length ? `<section class="rounded-2xl bg-white border border-border p-4">
             <h3 class="font-bold text-text-primary text-sm">最近问过</h3>
-            <div class="mt-3 space-y-2">${st.recent.map((r, i) => `<button onclick="askKnowledge(${JSON.stringify(r).replace(/"/g, '&quot;')})" class="w-full text-left text-sm p-3 rounded-xl bg-background border border-border hover:border-primary">${escapeText(r)}</button>`).join('')}</div>
+            <div class="mt-3 space-y-2">${st.recent.map((r, i) => `<button data-ui-call="askKnowledge" data-ui-args="${uiArgsAttr(r)}" class="w-full text-left text-sm p-3 rounded-xl bg-background border border-border hover:border-primary">${escapeText(r)}</button>`).join('')}</div>
           </section>` : ''}
 
           <section class="rounded-2xl bg-background border border-border p-4">
@@ -2652,7 +2652,7 @@
           ${res.notice ? `<p class="text-xs text-text-muted mt-3">${escapeText(res.notice)}</p>` : ''}
           ${srcs.length ? `<div class="mt-5 pt-4 border-t border-border">
             <h4 class="text-xs font-bold text-text-muted">出处（点开可看原文）</h4>
-            <div class="mt-2 space-y-2">${srcs.map(s => `<button onclick="openKnowledgeSource('${encodeURIComponent(s.id)}')" class="w-full text-left p-3 rounded-xl bg-background border border-border hover:border-primary">
+            <div class="mt-2 space-y-2">${srcs.map(s => `<button data-ui-call="openKnowledgeSource" data-ui-args='["${encodeURIComponent(s.id)}"]' class="w-full text-left p-3 rounded-xl bg-background border border-border hover:border-primary">
               <div class="text-sm font-medium text-text-primary flex items-center gap-2 flex-wrap">${escapeText(s.title)}<span class="text-[10px] px-1.5 py-0.5 rounded bg-white border border-border text-text-muted shrink-0" title="章节名按原书扫描件原样保留，未做改动，便于与原文对照">原书章节名</span>${s.scanQuality === 'weak' ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 shrink-0" title="这一版扫描件识别质量欠佳，正文已尽力校正，仍有少量错字；引用时建议对照原书">扫描质量欠佳</span>` : ''}</div>
               <div class="text-xs text-text-muted mt-1">《${escapeText(s.source)}》</div>
               ${(s.scenes || []).length ? `<div class="flex flex-wrap gap-1 mt-2">${s.scenes.map(x => `<span class="text-xs px-1.5 py-0.5 rounded bg-white text-text-secondary border border-border">${escapeText(x)}</span>`).join('')}</div>` : ''}
@@ -2660,13 +2660,13 @@
           </div>` : ''}
           ${(res.suggestions || []).length ? `<div class="mt-4">
             <h4 class="text-xs font-bold text-text-muted">接着可以问</h4>
-            <div class="flex flex-wrap gap-2 mt-2">${res.suggestions.map(s => `<button onclick="askKnowledge(${JSON.stringify(s).replace(/"/g, '&quot;')})" class="text-xs px-3 py-2 rounded-xl border border-border text-text-secondary hover:border-primary hover:text-primary">${escapeText(s)}</button>`).join('')}</div>
+            <div class="flex flex-wrap gap-2 mt-2">${res.suggestions.map(s => `<button data-ui-call="askKnowledge" data-ui-args="${uiArgsAttr(s)}" class="text-xs px-3 py-2 rounded-xl border border-border text-text-secondary hover:border-primary hover:text-primary">${escapeText(s)}</button>`).join('')}</div>
           </div>` : ''}
           <div class="mt-4 pt-4 border-t border-border">
             <div id="kb-feedback" class="flex flex-wrap items-center gap-2">
               <span class="text-xs text-text-muted">这条回答对你有帮助吗？</span>
-              <button onclick="sendKbFeedback('helpful', this)" class="text-xs px-3 py-1.5 rounded-lg border border-border text-text-secondary hover:border-primary hover:text-primary">有帮助</button>
-              <button onclick="sendKbFeedback('unhelpful', this)" class="text-xs px-3 py-1.5 rounded-lg border border-border text-text-secondary hover:border-primary hover:text-primary">没帮助</button>
+              <button data-ui-call="sendKbFeedback" data-ui-args='["helpful"]' data-ui-pass-this="true" class="text-xs px-3 py-1.5 rounded-lg border border-border text-text-secondary hover:border-primary hover:text-primary">有帮助</button>
+              <button data-ui-call="sendKbFeedback" data-ui-args='["unhelpful"]' data-ui-pass-this="true" class="text-xs px-3 py-1.5 rounded-lg border border-border text-text-secondary hover:border-primary hover:text-primary">没帮助</button>
               <span id="kb-feedback-note" class="text-xs text-text-muted"></span>
             </div>
             <p class="text-[11px] text-text-muted mt-2">反馈只记「你问了什么 + 捞到几条 + 有没有帮助」，用来定位知识库哪里不够用；不会上传任何内容。</p>
@@ -2808,7 +2808,7 @@
             <p class="text-sm leading-6 text-text-secondary mt-2">全部取自知识库里 9 本 CBT 专著与 14 讲课件中的「工具表单与工作表」章节，共 ${d ? d.total : '…'} 条，按下面的口径筛出 ${d ? d.count : '…'} 条可用清单。正文<strong>逐字保留原书扫描文字</strong>，星伴没有重画表格结构（重画会把推测当内容），所以打印出来是原书原样的清单，个别错字来自扫描识别。</p>
             ${d ? `<p class="text-xs text-text-muted mt-2">入选口径：${escapeText(d.criteria)}（体量过小或过大的、以及整段散文都不收）。</p>` : ''}
             <div class="flex flex-wrap gap-2 mt-3">
-              <button onclick="loadWorksheets(true)" class="px-4 py-2 rounded-xl bg-primary text-white text-sm font-bold">${st.loading ? '正在加载…' : '刷新清单'}</button>
+              <button data-ui-call="loadWorksheets" data-ui-args="[true]" class="px-4 py-2 rounded-xl bg-primary text-white text-sm font-bold">${st.loading ? '正在加载…' : '刷新清单'}</button>
               <span class="text-xs text-text-muted self-center">点任意一条可看全文并打印</span>
             </div>
           </section>
@@ -2816,7 +2816,7 @@
           ${!d && st.loading ? '<section class="rounded-2xl bg-white border border-border p-6 text-center text-sm text-text-muted">正在读取清单…</section>' : ''}
           ${Object.entries(groups).map(([src, list]) => `<section class="rounded-2xl bg-white border border-border p-4">
             <h4 class="font-bold text-text-primary text-sm flex items-center gap-2 flex-wrap">《${escapeText(src)}》<span class="text-xs font-normal text-text-muted">${list.length} 条</span>${list.some(x => x.scanQuality === 'weak') ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800" title="这一版扫描件识别质量欠佳，正文已尽力校正，仍可能有少量错字">扫描质量欠佳</span>' : ''}</h4>
-            <div class="mt-3 space-y-2">${list.map(it => `<button onclick="openWorksheet('${encodeURIComponent(it.id)}')" class="w-full text-left p-3 rounded-xl bg-background border border-border hover:border-primary">
+            <div class="mt-3 space-y-2">${list.map(it => `<button data-ui-call="openWorksheet" data-ui-args='["${encodeURIComponent(it.id)}"]' class="w-full text-left p-3 rounded-xl bg-background border border-border hover:border-primary">
               <div class="text-sm font-medium text-text-primary">${escapeText(it.title)}</div>
               <div class="text-xs text-text-muted mt-1">${escapeText(it.preview)}${it.preview.length >= 60 ? '…' : ''}</div>
               <div class="text-[11px] text-text-muted mt-1">${it.chars} 字 · ${it.lines} 行</div>
@@ -2881,7 +2881,7 @@
             </div>
             ${d ? `<p class="text-xs text-text-muted mt-2">入选口径：${escapeText(d.criteria)}。</p>` : ''}
             <div class="flex flex-wrap gap-2 mt-3">
-              <button onclick="loadDialogues(true)" class="px-4 py-2 rounded-xl bg-primary text-white text-sm font-bold">${st.loading ? '正在加载…' : '刷新'}</button>
+              <button data-ui-call="loadDialogues" data-ui-args="[true]" class="px-4 py-2 rounded-xl bg-primary text-white text-sm font-bold">${st.loading ? '正在加载…' : '刷新'}</button>
               <span class="text-xs text-text-muted self-center">点任意一条可看完整对话与原文对照</span>
             </div>
           </section>
@@ -2890,13 +2890,13 @@
             <h4 class="font-bold text-text-primary text-sm">按主题看</h4>
             <div class="flex flex-wrap gap-2 mt-3">
               <button data-ui-call="filterDialogues" data-ui-args='["all"]' class="px-3 py-1.5 rounded-lg text-xs ${st.group === 'all' ? 'bg-primary text-white' : 'bg-background border border-border text-text-secondary'}">全部 ${all.length}</button>
-              ${d.groups.map(g => `<button onclick="filterDialogues('${escapeText(g.key).replace(/'/g, '')}')" class="px-3 py-1.5 rounded-lg text-xs ${st.group === g.key ? 'bg-primary text-white' : 'bg-background border border-border text-text-secondary'}">${g.kind === 'tech' ? '技术 · ' : (g.kind === 'scene' ? '场景 · ' : '')}${escapeText(g.key)} ${g.count}</button>`).join('')}
+              ${d.groups.map(g => `<button data-ui-call="filterDialogues" data-ui-args="${uiArgsAttr(g.key)}" class="px-3 py-1.5 rounded-lg text-xs ${st.group === g.key ? 'bg-primary text-white' : 'bg-background border border-border text-text-secondary'}">${g.kind === 'tech' ? '技术 · ' : (g.kind === 'scene' ? '场景 · ' : '')}${escapeText(g.key)} ${g.count}</button>`).join('')}
             </div>
           </section>` : ''}
           ${!d && st.loading ? '<section class="rounded-2xl bg-white border border-border p-6 text-center text-sm text-text-muted">正在读取…</section>' : ''}
           ${list.length ? `<section class="rounded-2xl bg-white border border-border p-4">
             <h4 class="font-bold text-text-primary text-sm">${st.group === 'all' ? '全部对话' : escapeText(st.group)}<span class="text-xs font-normal text-text-muted ml-2">${list.length} 条</span></h4>
-            <div class="mt-3 space-y-2">${list.map(it => `<button onclick="openDialogue('${encodeURIComponent(it.id)}')" class="w-full text-left p-3 rounded-xl bg-background border border-border hover:border-primary">
+            <div class="mt-3 space-y-2">${list.map(it => `<button data-ui-call="openDialogue" data-ui-args='["${encodeURIComponent(it.id)}"]' class="w-full text-left p-3 rounded-xl bg-background border border-border hover:border-primary">
               <div class="text-sm font-medium text-text-primary flex items-center gap-2 flex-wrap">${escapeText(it.title)}${it.needsRewrite ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-white border border-border text-text-muted" title="原文是成人治疗室语境，展示版本已把称谓换成家长语境，未新增内容">已改写</span>' : ''}${it.scanQuality === 'weak' ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800" title="该来源扫描质量欠佳，引用时请对照原书">扫描质量欠佳</span>' : ''}</div>
               <div class="text-xs text-text-muted mt-1">《${escapeText(it.source)}》 · ${it.turns} 轮对话${it.scene ? ' · ' + escapeText(it.scene) : (it.tech ? ' · ' + escapeText(it.tech) : '')}</div>
               <div class="text-xs text-text-secondary mt-1 leading-5">${escapeText(it.preview)}…</div>
@@ -3395,8 +3395,8 @@
             </div>
           </div>
           <div class="grid grid-cols-2 gap-2 mb-5">
-            <button onclick="this.closest('.fixed').remove();showNewRecord(${Number(child.id)})" class="py-3 rounded-xl bg-primary text-white font-bold">快速记录</button>
-            <button onclick="this.closest('.fixed').remove();openChildRecords(${Number(child.id)})" class="py-3 rounded-xl border border-primary text-primary font-bold">全部记录</button>
+            <button data-ui-call="removeOverlayThenShowNewRecord" data-ui-args="${uiArgsAttr(Number(child.id))}" data-ui-pass-this="true" class="py-3 rounded-xl bg-primary text-white font-bold">快速记录</button>
+            <button data-ui-call="removeOverlayThenOpenChildRecords" data-ui-args="${uiArgsAttr(Number(child.id))}" data-ui-pass-this="true" class="py-3 rounded-xl border border-primary text-primary font-bold">全部记录</button>
           </div>
           <section class="mb-5">
             <div class="flex items-center justify-between mb-2"><h4 class="font-bold text-text-primary">近期观察</h4><span class="text-xs text-text-muted">${childRecords.length} 条</span></div>
@@ -3488,8 +3488,8 @@
             <div>
               <label class="block text-sm text-text-secondary mb-1">周范围</label>
               <div class="flex gap-2" id="report-week-group">
-                <button onclick="setReportWeek('this_week', this)" class="flex-1 py-2 rounded-lg bg-primary text-white text-sm">本周</button>
-                <button onclick="setReportWeek('last_week', this)" class="flex-1 py-2 rounded-lg border border-border text-text-secondary text-sm">上周</button>
+                <button data-ui-call="setReportWeek" data-ui-args='["this_week"]' data-ui-pass-this="true" class="flex-1 py-2 rounded-lg bg-primary text-white text-sm">本周</button>
+                <button data-ui-call="setReportWeek" data-ui-args='["last_week"]' data-ui-pass-this="true" class="flex-1 py-2 rounded-lg border border-border text-text-secondary text-sm">上周</button>
               </div>
               <input type="hidden" id="report-week" value="this_week">
             </div>
@@ -3613,7 +3613,7 @@
             </div>
             <div id="report-kb-ref" class="rounded-xl bg-white border border-border p-3"></div>
             <div class="flex gap-2 no-print">
-              <button onclick="this.closest('.fixed').remove();showShareToTherapistModal(${report.id})" class="flex-1 py-2 rounded-lg bg-primary text-white text-sm font-medium">分享给专业人员</button>
+              <button data-ui-call="removeOverlayThenShareReport" data-ui-args="${uiArgsAttr(Number(report.id))}" data-ui-pass-this="true" class="flex-1 py-2 rounded-lg bg-primary text-white text-sm font-medium">分享给专业人员</button>
             </div>
             <div class="print-only text-[11px] mt-4 pt-3 border-t border-border leading-5">
               星伴 · 家庭记录汇总 · ${escapeText(report.childName)} · ${escapeText(report.week)}。若当前存在即时危险，请先联系 120/110，不要等待周报。
@@ -3755,6 +3755,10 @@
       return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
     }
 
+    function uiArgsAttr(...values) {
+      return escapeText(JSON.stringify(values));
+    }
+
     function getProfessionalRoute(concern) {
       const routes = {
         behavior:{role:'发育行为儿科 / 行为支持专业人员',reason:'先排查身体、沟通和环境因素，再做功能性行为评估'},
@@ -3808,7 +3812,7 @@
       const suggestion=feedback?.suggestions?.[suggestionIndex];
       if(!suggestion)return;
       const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[70] p-0 sm:p-4';modal.dataset.modal='true';
-      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl p-5 max-h-[92vh] overflow-y-auto"><div class="flex justify-between gap-3"><div><div class="text-xs font-bold text-primary">建议 → 可执行计划</div><h2 class="text-lg font-bold mt-1">先补全，再开始</h2></div><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><p class="mt-3 p-3 rounded-xl bg-background text-sm">${escapeText(suggestion)}</p><div class="grid gap-3 mt-4"><label class="text-sm font-medium">计划标题<input id="plan-title" maxlength="200" value="${escapeText(suggestion)}" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">希望看到的具体变化<textarea id="plan-goal" maxlength="500" rows="2" placeholder="例如：孩子能在情绪升级前用卡片表达暂停" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><label class="text-sm font-medium">频率与使用情境<input id="plan-frequency" maxlength="200" placeholder="例如：每天一次，在平静时练习" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">谁来执行<input id="plan-owner" maxlength="100" placeholder="例如：家长；学校老师确认后参与" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">停止并求助的条件<textarea id="plan-stop" maxlength="500" rows="2" placeholder="例如：孩子明显不适、冲突升级或出现安全风险" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><label class="text-sm font-medium">复核日期<input id="plan-review" type="date" class="mt-1 w-full p-3 rounded-xl border border-border"></label></div><label class="flex gap-2 mt-4 text-sm text-text-secondary"><input id="plan-confirmed" type="checkbox" class="mt-1"><span>这项计划已经与具备相应资质的专业人员确认；未确认时只保存为“待确认”，不自动开始。</span></label><button onclick="saveProfessionalAction(${Number(feedbackId)},${Number(suggestionIndex)})" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">保存计划</button></div>`;
+      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl p-5 max-h-[92vh] overflow-y-auto"><div class="flex justify-between gap-3"><div><div class="text-xs font-bold text-primary">建议 → 可执行计划</div><h2 class="text-lg font-bold mt-1">先补全，再开始</h2></div><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><p class="mt-3 p-3 rounded-xl bg-background text-sm">${escapeText(suggestion)}</p><div class="grid gap-3 mt-4"><label class="text-sm font-medium">计划标题<input id="plan-title" maxlength="200" value="${escapeText(suggestion)}" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">希望看到的具体变化<textarea id="plan-goal" maxlength="500" rows="2" placeholder="例如：孩子能在情绪升级前用卡片表达暂停" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><label class="text-sm font-medium">频率与使用情境<input id="plan-frequency" maxlength="200" placeholder="例如：每天一次，在平静时练习" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">谁来执行<input id="plan-owner" maxlength="100" placeholder="例如：家长；学校老师确认后参与" class="mt-1 w-full p-3 rounded-xl border border-border"></label><label class="text-sm font-medium">停止并求助的条件<textarea id="plan-stop" maxlength="500" rows="2" placeholder="例如：孩子明显不适、冲突升级或出现安全风险" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><label class="text-sm font-medium">复核日期<input id="plan-review" type="date" class="mt-1 w-full p-3 rounded-xl border border-border"></label></div><label class="flex gap-2 mt-4 text-sm text-text-secondary"><input id="plan-confirmed" type="checkbox" class="mt-1"><span>这项计划已经与具备相应资质的专业人员确认；未确认时只保存为“待确认”，不自动开始。</span></label><button data-ui-call="saveProfessionalAction" data-ui-args="${uiArgsAttr(Number(Number(feedbackId)),Number(Number(suggestionIndex)))}" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">保存计划</button></div>`;
       document.body.appendChild(modal);
     }
 
@@ -3841,7 +3845,7 @@
       const plan=professionalActions[index];if(!plan||currentUser?.role!=='therapist')return;
       const returning=decision==='returned';
       const modal=document.createElement('div');modal.className='modal-backdrop';modal.dataset.modal='true';
-      modal.innerHTML=`<div class="modal-content max-w-lg p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">${returning?'退回计划修改':'确认计划内容'}</h2><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="mt-4 p-3 rounded-xl bg-background text-sm"><strong>${escapeText(plan.title)}</strong><div class="mt-2">目标：${escapeText(plan.goal||'未填写')}</div><div>频率：${escapeText(plan.frequency||'未填写')}</div><div>停止条件：${escapeText(plan.stop_conditions||'未填写')}</div></div><label class="block mt-4 text-sm font-medium">${returning?'需要家长修改的具体内容':'专业备注（可选）'}<textarea id="plan-review-note" maxlength="1000" rows="3" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><button onclick="submitPlanReview(${index},'${decision}')" class="w-full mt-4 py-3 rounded-xl ${returning?'bg-amber-600':'bg-success'} text-white font-bold">${returning?'退回家长修改':'确认本版本'}</button><p class="text-xs text-text-muted mt-3">操作会记录账号、角色、时间和备注；确认不等于替家长决定开始，也不能替代医疗处方。</p></div>`;
+      modal.innerHTML=`<div class="modal-content max-w-lg p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">${returning?'退回计划修改':'确认计划内容'}</h2><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="mt-4 p-3 rounded-xl bg-background text-sm"><strong>${escapeText(plan.title)}</strong><div class="mt-2">目标：${escapeText(plan.goal||'未填写')}</div><div>频率：${escapeText(plan.frequency||'未填写')}</div><div>停止条件：${escapeText(plan.stop_conditions||'未填写')}</div></div><label class="block mt-4 text-sm font-medium">${returning?'需要家长修改的具体内容':'专业备注（可选）'}<textarea id="plan-review-note" maxlength="1000" rows="3" class="mt-1 w-full p-3 rounded-xl border border-border"></textarea></label><button data-ui-call="submitPlanReview" data-ui-args="${uiArgsAttr(Number(index),'${decision}')}" class="w-full mt-4 py-3 rounded-xl ${returning?'bg-amber-600':'bg-success'} text-white font-bold">${returning?'退回家长修改':'确认本版本'}</button><p class="text-xs text-text-muted mt-3">操作会记录账号、角色、时间和备注；确认不等于替家长决定开始，也不能替代医疗处方。</p></div>`;
       document.body.appendChild(modal);
     }
 
@@ -3869,12 +3873,12 @@
       const isTherapist=currentUser?.role==='therapist';
       container.innerHTML=`<div class="p-4 sm:p-6 space-y-5 max-w-5xl mx-auto animate-fade-in">
         ${isTherapist?`<section class="rounded-2xl bg-primary-dark text-white p-5 sm:p-6"><p class="text-sm text-white/75">专业账号工作台</p><h2 class="text-2xl font-bold mt-1">核对计划，而不是替家庭做决定</h2><p class="text-sm leading-6 text-white/85 mt-3">只处理明确分配给当前已认证账号的计划。确认本版本后，仍由家长决定是否开始；不适用或信息不足时请具体退回。</p></section>`:`<section class="rounded-2xl bg-primary-dark text-white p-5 sm:p-6"><p class="text-sm text-white/75">不知道该找谁、该怎么说？</p><h2 class="text-2xl font-bold mt-1">AI先帮你整理，专业人员负责判断</h2><p class="text-sm leading-6 text-white/85 mt-3">把变化、时间、诱因、已尝试方法和用药信息整理成一页会前沟通单。AI不诊断、不决定治疗、不修改药物。</p><div class="flex flex-wrap gap-2 mt-4"><button data-ui-call="showProfessionalIntake" class="px-4 py-2.5 rounded-xl bg-white text-primary-dark font-bold">整理一个新问题</button><button data-ui-call="showManualProfessionalPlanEditor" class="px-4 py-2.5 rounded-xl bg-white/10 border border-white/60 text-white font-bold">创建协作计划</button><button data-nav="emergency" class="px-4 py-2.5 rounded-xl border border-white/60 text-white font-bold">现在有危险</button></div></section>`}
-        ${isTherapist?`<section class="rounded-2xl bg-white border border-border p-4"><h3 class="font-bold">分配给我的计划</h3><p class="text-xs text-text-muted mt-1">确认或退回均会写入审计记录并通知家长</p><div class="mt-3 space-y-3">${actions.length?actions.map((plan,index)=>`<article class="p-4 rounded-xl bg-background"><div class="flex justify-between gap-3"><strong>${escapeText(plan.title)}</strong><span class="text-xs font-bold">${({pending:'待确认',confirmed:'已确认',returned:'已退回',not_requested:'未请求'})[plan.confirmation_status]||'待确认'}</span></div><div class="text-sm text-text-secondary mt-2">目标：${escapeText(plan.goal||'未填写')}</div><div class="text-sm text-text-secondary">频率：${escapeText(plan.frequency||'未填写')}</div><div class="text-sm text-text-secondary">停止条件：${escapeText(plan.stop_conditions||'未填写')}</div>${plan.confirmation_status==='pending'?`<div class="grid grid-cols-2 gap-2 mt-3"><button onclick="showPlanReviewModal(${index},'confirmed')" class="py-2 rounded-lg bg-success text-white font-bold">确认本版本</button><button onclick="showPlanReviewModal(${index},'returned')" class="py-2 rounded-lg border border-amber-600 text-amber-700 font-bold">退回修改</button></div>`:`<div class="text-xs text-text-muted mt-2">${plan.professional_note?'备注：'+escapeText(plan.professional_note):'本版本已处理'}</div>`}</article>`).join(''):'<div class="p-4 rounded-xl bg-background text-sm text-text-muted">当前没有分配给您的待审计划。</div>'}</div></section>`:''}
+        ${isTherapist?`<section class="rounded-2xl bg-white border border-border p-4"><h3 class="font-bold">分配给我的计划</h3><p class="text-xs text-text-muted mt-1">确认或退回均会写入审计记录并通知家长</p><div class="mt-3 space-y-3">${actions.length?actions.map((plan,index)=>`<article class="p-4 rounded-xl bg-background"><div class="flex justify-between gap-3"><strong>${escapeText(plan.title)}</strong><span class="text-xs font-bold">${({pending:'待确认',confirmed:'已确认',returned:'已退回',not_requested:'未请求'})[plan.confirmation_status]||'待确认'}</span></div><div class="text-sm text-text-secondary mt-2">目标：${escapeText(plan.goal||'未填写')}</div><div class="text-sm text-text-secondary">频率：${escapeText(plan.frequency||'未填写')}</div><div class="text-sm text-text-secondary">停止条件：${escapeText(plan.stop_conditions||'未填写')}</div>${plan.confirmation_status==='pending'?`<div class="grid grid-cols-2 gap-2 mt-3"><button data-ui-call="showPlanReviewModal" data-ui-args="${uiArgsAttr(Number(index),'confirmed')}" class="py-2 rounded-lg bg-success text-white font-bold">确认本版本</button><button data-ui-call="showPlanReviewModal" data-ui-args="${uiArgsAttr(Number(index),'returned')}" class="py-2 rounded-lg border border-amber-600 text-amber-700 font-bold">退回修改</button></div>`:`<div class="text-xs text-text-muted mt-2">${plan.professional_note?'备注：'+escapeText(plan.professional_note):'本版本已处理'}</div>`}</article>`).join(''):'<div class="p-4 rounded-xl bg-background text-sm text-text-muted">当前没有分配给您的待审计划。</div>'}</div></section>`:''}
         ${brief?`<section class="rounded-2xl bg-white border border-primary/30 p-5"><div class="flex justify-between gap-3"><div><div class="text-xs font-bold text-primary">AI整理 · 请家长核对</div><h3 class="font-bold text-lg mt-1">会前沟通单</h3></div><button data-ui-call="clearProfessionalBrief" class="text-sm text-text-muted">清除</button></div><div class="mt-4 rounded-xl bg-primary-light/20 p-4"><div class="font-bold">建议首先联系：${escapeText(brief.role)}</div><p class="text-sm mt-1">${escapeText(brief.reason)}</p></div><dl class="mt-4 grid gap-3 text-sm"><div><dt class="font-bold">持续与频率</dt><dd class="text-text-secondary">${escapeText(brief.duration)}；${escapeText(brief.frequency)}</dd></div><div><dt class="font-bold">与平时相比</dt><dd class="text-text-secondary">${escapeText(brief.baseline)}</dd></div><div><dt class="font-bold">前后情境</dt><dd class="text-text-secondary whitespace-pre-wrap">${escapeText(brief.context)}</dd></div><div><dt class="font-bold">已经尝试及反应</dt><dd class="text-text-secondary whitespace-pre-wrap">${escapeText(brief.tried)}</dd></div><div><dt class="font-bold">药物与变化</dt><dd class="text-text-secondary whitespace-pre-wrap">${escapeText(brief.meds)}</dd></div><div><dt class="font-bold">本次最重要的问题</dt><dd class="text-text-primary">${escapeText(brief.question)}</dd></div></dl><div class="grid sm:grid-cols-2 gap-2 mt-4"><button data-ui-call="copyProfessionalBrief" class="py-3 rounded-xl bg-primary text-white font-bold">复制沟通单</button>${reports.length?`<button data-ui-call="showShareToTherapistModal" data-ui-args="[${Number(Number(reports[0].id))}]" class="py-3 rounded-xl border border-primary text-primary font-bold">连同周报分享</button>`:''}</div><p class="text-xs text-text-muted mt-3">分享前再次确认接收人、范围和有效期；紧急情况不要等待回复。</p></section>`:''}
         <section><h3 class="font-bold text-text-primary">这个问题通常该找谁</h3><div class="grid sm:grid-cols-2 gap-3 mt-3">${[['behavior','行为反复或突然变化'],['mood','低落、焦虑或异常兴奋'],['communication','理解、表达或AAC'],['sensory','感官与日常参与'],['feeding','进食、营养或吞咽'],['medication','药物或明显不良反应']].map(([key,label])=>{const r=getProfessionalRoute(key);return`<div class="bg-white border border-border rounded-xl p-4"><div class="font-bold">${label}</div><div class="text-sm text-primary mt-1">${r.role}</div><p class="text-xs leading-5 text-text-muted mt-2">${r.reason}</p></div>`}).join('')}</div></section>
         <section><div class="flex items-end justify-between"><div><h3 class="font-bold text-text-primary">协作联系人</h3><p class="text-xs text-text-muted mt-1">${sessionDataMode==='server'?'仅显示后端已标记认证的资料；仍需家长确认实际服务关系':'以下均为虚构体验数据，资质和服务关系尚未核验'}</p></div></div><div class="space-y-3 mt-3">${therapists.length?therapists.map(t=>`<div class="bg-white rounded-xl border border-border p-4 flex gap-3"><div class="w-12 h-12 bg-primary-light/30 rounded-full flex items-center justify-center text-2xl">${escapeText(t.avatar)}</div><div><div class="font-bold">${escapeText(t.name)} <span class="text-xs font-normal ${sessionDataMode==='server'?'text-success bg-success/10':'text-amber-700 bg-amber-50'} px-2 py-1 rounded-lg">${sessionDataMode==='server'?'后台已核验':'演示资料·未核验'}</span></div><div class="text-sm text-text-secondary mt-1">${escapeText(t.title)} · ${escapeText(t.specialty)}</div>${t.years_of_experience?`<div class="text-xs text-text-muted">从业年限：${Number(t.years_of_experience)} 年</div>`:''}</div></div>`).join(''):'<div class="p-4 rounded-xl bg-background text-sm text-text-muted">暂无已认证的协作联系人。请通过当地正规医疗或专业渠道联系，不要等待平台回复。</div>'}</div></section>
-        <section><h3 class="font-bold text-text-primary">收到建议后，不要只收藏</h3><div class="space-y-3 mt-3">${feedback.length?feedback.map(f=>`<article class="bg-white rounded-xl border border-border p-4"><div class="text-xs text-text-muted">${escapeText(f.therapist_name)} · ${formatDate(f.created_at)} · 演示反馈</div><p class="text-sm leading-6 mt-2">${escapeText(f.content)}</p><div class="mt-3 space-y-2">${(f.suggestions||[]).map((s,index)=>`<div class="flex items-center justify-between gap-3 rounded-lg bg-background p-3"><span class="text-sm">${escapeText(s)}</span><button onclick="showProfessionalPlanEditor(${Number(f.id)},${index})" class="shrink-0 text-sm text-primary font-bold">制定计划</button></div>`).join('')}</div></article>`).join(''):'<div class="p-4 rounded-xl bg-background text-sm text-text-muted">真实专业反馈尚未接入当前账号。请先通过已核验渠道沟通，再把确认后的内容整理为协作计划。</div>'}</div></section>
-        ${!isTherapist&&actions.length?`<section class="rounded-2xl bg-white border border-border p-4"><h3 class="font-bold">协作计划</h3><p class="text-xs text-text-muted mt-1">指定专业人员的计划必须由对方账号确认本版本，家长再决定是否开始</p><div class="mt-3 space-y-2">${actions.map((a,index)=>`<div class="p-3 bg-background rounded-xl text-sm"><div><strong>${({active:'执行中',paused:'已暂停',completed:'已完成',escalated:'需升级',pending_confirmation:'待确认'})[a.status]||'待确认'}</strong> · ${escapeText(a.title||a.suggestion)}</div><div class="text-xs mt-1 ${a.confirmation_status==='confirmed'?'text-success':a.confirmation_status==='returned'?'text-amber-700':'text-text-muted'}">专业确认：${({pending:'等待对方确认',confirmed:'已确认当前版本',returned:'已退回修改',not_requested:'未指定专业人员'})[a.confirmation_status]||'未请求'}</div>${a.professional_note?`<div class="text-xs text-text-secondary mt-1">专业备注：${escapeText(a.professional_note)}</div>`:''}${a.goal?`<div class="text-text-secondary mt-1">目标：${escapeText(a.goal)}</div>`:''}${a.review_date?`<div class="text-xs text-text-muted mt-1">复核：${escapeText(a.review_date)}</div>`:''}${a.status==='pending_confirmation'&&a.confirmation_status==='confirmed'?`<button onclick="updateProfessionalPlan(${index},'active')" class="mt-3 px-3 py-1.5 rounded-lg bg-success text-white font-bold">家长确认开始</button>`:''}${a.status==='active'?`<div class="flex flex-wrap gap-2 mt-3"><button onclick="updateProfessionalPlan(${index},'paused')" class="px-3 py-1.5 rounded-lg border border-border">暂停</button><button onclick="updateProfessionalPlan(${index},'completed')" class="px-3 py-1.5 rounded-lg border border-success text-success">完成</button><button onclick="updateProfessionalPlan(${index},'escalated')" class="px-3 py-1.5 rounded-lg border border-danger text-danger">情况变化·升级求助</button></div>`:''}</div>`).join('')}</div></section>`:''}
+        <section><h3 class="font-bold text-text-primary">收到建议后，不要只收藏</h3><div class="space-y-3 mt-3">${feedback.length?feedback.map(f=>`<article class="bg-white rounded-xl border border-border p-4"><div class="text-xs text-text-muted">${escapeText(f.therapist_name)} · ${formatDate(f.created_at)} · 演示反馈</div><p class="text-sm leading-6 mt-2">${escapeText(f.content)}</p><div class="mt-3 space-y-2">${(f.suggestions||[]).map((s,index)=>`<div class="flex items-center justify-between gap-3 rounded-lg bg-background p-3"><span class="text-sm">${escapeText(s)}</span><button data-ui-call="showProfessionalPlanEditor" data-ui-args="${uiArgsAttr(Number(Number(f.id)),Number(index))}" class="shrink-0 text-sm text-primary font-bold">制定计划</button></div>`).join('')}</div></article>`).join(''):'<div class="p-4 rounded-xl bg-background text-sm text-text-muted">真实专业反馈尚未接入当前账号。请先通过已核验渠道沟通，再把确认后的内容整理为协作计划。</div>'}</div></section>
+        ${!isTherapist&&actions.length?`<section class="rounded-2xl bg-white border border-border p-4"><h3 class="font-bold">协作计划</h3><p class="text-xs text-text-muted mt-1">指定专业人员的计划必须由对方账号确认本版本，家长再决定是否开始</p><div class="mt-3 space-y-2">${actions.map((a,index)=>`<div class="p-3 bg-background rounded-xl text-sm"><div><strong>${({active:'执行中',paused:'已暂停',completed:'已完成',escalated:'需升级',pending_confirmation:'待确认'})[a.status]||'待确认'}</strong> · ${escapeText(a.title||a.suggestion)}</div><div class="text-xs mt-1 ${a.confirmation_status==='confirmed'?'text-success':a.confirmation_status==='returned'?'text-amber-700':'text-text-muted'}">专业确认：${({pending:'等待对方确认',confirmed:'已确认当前版本',returned:'已退回修改',not_requested:'未指定专业人员'})[a.confirmation_status]||'未请求'}</div>${a.professional_note?`<div class="text-xs text-text-secondary mt-1">专业备注：${escapeText(a.professional_note)}</div>`:''}${a.goal?`<div class="text-text-secondary mt-1">目标：${escapeText(a.goal)}</div>`:''}${a.review_date?`<div class="text-xs text-text-muted mt-1">复核：${escapeText(a.review_date)}</div>`:''}${a.status==='pending_confirmation'&&a.confirmation_status==='confirmed'?`<button data-ui-call="updateProfessionalPlan" data-ui-args="${uiArgsAttr(Number(index),'active')}" class="mt-3 px-3 py-1.5 rounded-lg bg-success text-white font-bold">家长确认开始</button>`:''}${a.status==='active'?`<div class="flex flex-wrap gap-2 mt-3"><button data-ui-call="updateProfessionalPlan" data-ui-args="${uiArgsAttr(Number(index),'paused')}" class="px-3 py-1.5 rounded-lg border border-border">暂停</button><button data-ui-call="updateProfessionalPlan" data-ui-args="${uiArgsAttr(Number(index),'completed')}" class="px-3 py-1.5 rounded-lg border border-success text-success">完成</button><button data-ui-call="updateProfessionalPlan" data-ui-args="${uiArgsAttr(Number(index),'escalated')}" class="px-3 py-1.5 rounded-lg border border-danger text-danger">情况变化·升级求助</button></div>`:''}</div>`).join('')}</div></section>`:''}
         ${reportShareRecords.length?`<section class="rounded-2xl bg-white border border-border p-4"><h3 class="font-bold">周报授权</h3><p class="text-xs text-text-muted mt-1">只显示当前账号创建的授权，可随时撤销</p><div class="mt-3 space-y-2">${reportShareRecords.map(share=>{const active=!share.revoked_at&&new Date(share.expires_at)>new Date();return`<div class="p-3 bg-background rounded-xl text-sm"><div class="font-medium">${escapeText(share.therapist_name||`专业人员 #${share.therapist_id}`)} · 周报 #${Number(share.report_id)}</div><div class="text-xs text-text-muted mt-1">范围：${(share.scope||[]).map(escapeText).join('、')} · ${active?'有效至 '+new Date(share.expires_at).toLocaleDateString('zh-CN'):share.revoked_at?'已撤销':'已到期'}</div>${active?`<button data-ui-call="revokeReportShare" data-ui-args="[${Number(Number(share.id))}]" class="mt-2 px-3 py-1.5 rounded-lg border border-danger text-danger">撤销授权</button>`:''}</div>`}).join('')}</div></section>`:''}
         <section class="rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-900"><strong>角色边界：</strong>“专业协作”不代表平台已经提供医疗服务。抑郁、躁狂、自伤/自杀、精神病性症状和药物问题应由儿童精神科等具备相应资质的人员处理；紧急时联系120/110，不等待平台回复。</section>
       </div>`;
@@ -3947,9 +3951,9 @@
 
           <!-- Tab切换 -->
           <div class="flex bg-white rounded-xl p-1 card-shadow">
-            <button onclick="renderPeerTab('groups', this)" class="peer-tab flex-1 py-2.5 rounded-lg ${currentPeerTab === 'groups' ? 'bg-primary text-white font-medium' : 'text-text-secondary'}">互助群组</button>
-            <button onclick="renderPeerTab('messages', this)" class="peer-tab flex-1 py-2.5 rounded-lg ${currentPeerTab === 'messages' ? 'bg-primary text-white font-medium' : 'text-text-secondary'}">群内动态</button>
-            <button onclick="renderPeerTab('activities', this)" class="peer-tab flex-1 py-2.5 rounded-lg ${currentPeerTab === 'activities' ? 'bg-primary text-white font-medium' : 'text-text-secondary'}">线下活动</button>
+            <button data-ui-call="renderPeerTab" data-ui-args='["groups"]' data-ui-pass-this="true" class="peer-tab flex-1 py-2.5 rounded-lg ${currentPeerTab === 'groups' ? 'bg-primary text-white font-medium' : 'text-text-secondary'}">互助群组</button>
+            <button data-ui-call="renderPeerTab" data-ui-args='["messages"]' data-ui-pass-this="true" class="peer-tab flex-1 py-2.5 rounded-lg ${currentPeerTab === 'messages' ? 'bg-primary text-white font-medium' : 'text-text-secondary'}">群内动态</button>
+            <button data-ui-call="renderPeerTab" data-ui-args='["activities"]' data-ui-pass-this="true" class="peer-tab flex-1 py-2.5 rounded-lg ${currentPeerTab === 'activities' ? 'bg-primary text-white font-medium' : 'text-text-secondary'}">线下活动</button>
           </div>
 
           <!-- Tab内容区 -->
@@ -4183,7 +4187,7 @@
             `).join('')}</div>`
             : '<div class="text-center py-6 text-text-muted">暂无动态</div>'
           }
-          <button onclick="this.closest('.fixed').remove(); navigateTo('peer'); currentPeerTab='messages'; currentGroupId=${groupId};" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-medium">进入群聊</button>
+          <button data-ui-call="openPeerMessages" data-ui-args="${uiArgsAttr(Number(groupId))}" data-ui-pass-this="true" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-medium">进入群聊</button>
         </div>
       `;
       document.body.appendChild(modal);
@@ -4236,7 +4240,7 @@
               <span class="text-sm text-text-muted">/10</span>
             </div>
           </div>
-          <button onclick="submitLonelinessScore(parseInt(document.getElementById('loneliness-slider').value))" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存记录</button>
+          <button data-ui-call="submitCurrentLonelinessScore" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存记录</button>
         </div>
       `;
       document.body.appendChild(modal);
@@ -4265,8 +4269,8 @@
           <h3 id="peer-safety-title" class="text-lg font-bold text-text-primary">先确认你现在是否安全</h3>
           <p class="text-sm text-text-secondary leading-6 mt-2">这个分数不能判断风险。请直接确认：你现在是否有伤害自己、结束生命、伤害他人的想法，或担心自己马上失控？</p>
           <div class="mt-4 space-y-2">
-            <button onclick="this.closest('.fixed').remove(); navigateTo('emergency')" class="w-full py-3 rounded-xl bg-danger text-white font-bold">有 / 不确定：立即查看紧急支持</button>
-            <button onclick="this.closest('.fixed').remove(); navigateTo('therapist')" class="w-full py-3 rounded-xl border border-primary text-primary font-medium">没有即时危险：联系专业支持</button>
+            <button data-ui-call="removeOverlayThenNavigate" data-ui-args='["emergency"]' data-ui-pass-this="true" class="w-full py-3 rounded-xl bg-danger text-white font-bold">有 / 不确定：立即查看紧急支持</button>
+            <button data-ui-call="removeOverlayThenNavigate" data-ui-args='["therapist"]' data-ui-pass-this="true" class="w-full py-3 rounded-xl border border-primary text-primary font-medium">没有即时危险：联系专业支持</button>
             <button data-ui-action="remove-overlay" class="w-full py-2 text-sm text-text-muted">稍后处理</button>
           </div>
           <p class="text-xs text-text-muted leading-5 mt-3">如危险迫近，不要独处或等待平台/群聊回复：联系身边可信成人，拨打 120/110，或前往最近急诊。</p>
@@ -4289,8 +4293,8 @@
         <div class="p-4 space-y-4 animate-fade-in">
           <div class="rounded-xl bg-danger/5 border border-danger/20 p-4 text-sm"><strong class="text-danger">家庭安全优先：</strong><span class="text-text-secondary">若存在暴力、威胁或人身安全风险，情绪签到和感谢卡不适用；先离开危险环境并联系可信成人，紧急时拨打 110。</span></div>
           <div class="flex bg-white rounded-xl p-1 card-shadow">
-            <button onclick="renderFamilyMood(this)" class="flex-1 py-2 rounded-lg bg-primary text-white font-medium">情绪签到</button>
-            <button onclick="renderFamilyGratitude(this)" class="flex-1 py-2 rounded-lg text-text-secondary">感谢卡</button>
+            <button data-ui-call="renderFamilyMood" data-ui-pass-this="true" class="flex-1 py-2 rounded-lg bg-primary text-white font-medium">情绪签到</button>
+            <button data-ui-call="renderFamilyGratitude" data-ui-pass-this="true" class="flex-1 py-2 rounded-lg text-text-secondary">感谢卡</button>
           </div>
 
           <div id="family-content">
@@ -4315,7 +4319,7 @@
     function renderCaregiverAccessCenter(modal,members,assigned){
       const childOptions=(MOCK_DATA.children||[]).map(c=>`<option value="${Number(c.id)}">${escapeText(c.name||c.nickname||'儿童')}</option>`).join('');
       const memberCards=members.length?members.map(m=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between"><strong>${escapeText(m.nickname||'照护者')} · ${escapeText(m.phone||'')}</strong><span>${escapeText(m.status)}</span></div><div class="text-xs text-text-muted mt-1">范围：${(m.permissions||[]).map(escapeText).join('、')}</div>${m.status==='active'?`<button data-ui-call="revokeCaregiverAccess" data-ui-args="[${Number(Number(m.id))}]" class="mt-2 px-3 py-1.5 rounded-lg border border-red-200 text-red-700">撤销授权</button>`:''}</div>`).join(''):'<p class="text-sm text-text-muted">尚无已接受的共同照护者。</p>';
-      const assignedCards=assigned.length?assigned.map(c=>`<div class="p-3 rounded-xl bg-teal-50 text-sm"><strong>${escapeText(c.nickname)}</strong><div class="text-xs text-teal-800 mt-1">获授权：${(c.permissions||[]).map(escapeText).join('、')}</div><div class="flex flex-wrap gap-2 mt-2">${(c.permissions||[]).filter(p=>p!=='profile_summary').map(p=>`<button onclick="showCaregiverResource(${Number(c.id)},'${escapeText(p)}')" class="px-3 py-1.5 rounded-lg bg-white border">${escapeText({behavior_records:'行为记录',weekly_reports:'周报',safety_plan:'安全预案'}[p]||p)}</button>`).join('')}</div></div>`).join(''):'<p class="text-sm text-text-muted">当前账号没有获授权儿童。</p>';
+      const assignedCards=assigned.length?assigned.map(c=>`<div class="p-3 rounded-xl bg-teal-50 text-sm"><strong>${escapeText(c.nickname)}</strong><div class="text-xs text-teal-800 mt-1">获授权：${(c.permissions||[]).map(escapeText).join('、')}</div><div class="flex flex-wrap gap-2 mt-2">${(c.permissions||[]).filter(p=>p!=='profile_summary').map(p=>`<button data-ui-call="showCaregiverResource" data-ui-args="${uiArgsAttr(Number(Number(c.id)),'${escapeText(p)}')}" class="px-3 py-1.5 rounded-lg bg-white border">${escapeText({behavior_records:'行为记录',weekly_reports:'周报',safety_plan:'安全预案'}[p]||p)}</button>`).join('')}</div></div>`).join(''):'<p class="text-sm text-text-muted">当前账号没有获授权儿童。</p>';
       modal.firstElementChild.innerHTML=`<div class="flex justify-between"><div><h2 class="text-lg font-bold">共同照护授权</h2><p class="text-xs text-text-muted mt-1">不共享密码；每项授权绑定具体儿童</p></div><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><section class="mt-5"><h3 class="font-bold">邀请照护者</h3><select id="caregiver-child" class="mt-2 w-full p-3 rounded-xl border">${childOptions}</select><input id="caregiver-phone" inputmode="tel" maxlength="20" class="mt-2 w-full p-3 rounded-xl border" placeholder="对方登录手机号"><div class="mt-2 grid grid-cols-2 gap-2 text-sm">${[['profile_summary','基本档案摘要'],['behavior_records','行为记录'],['weekly_reports','周报'],['safety_plan','安全预案']].map(([v,l])=>`<label class="p-2 rounded-lg border"><input type="checkbox" name="caregiver-permission" value="${v}" ${v==='profile_summary'?'checked':''}> ${l}</label>`).join('')}</div><button data-ui-call="createCaregiverInvitation" class="mt-3 w-full py-3 rounded-xl bg-primary text-white font-bold">生成7天邀请码</button></section><section class="mt-5"><h3 class="font-bold mb-2">我邀请的照护者</h3><div class="space-y-2">${memberCards}</div></section><section class="mt-5"><h3 class="font-bold">接受邀请码</h3><div class="flex gap-2 mt-2"><input id="caregiver-code" class="flex-1 p-3 rounded-xl border" placeholder="粘贴对方发送的邀请码"><button data-ui-call="acceptCaregiverInvitation" class="px-4 rounded-xl border">接受</button></div></section><section class="mt-5"><h3 class="font-bold mb-2">别人授权给我的儿童</h3><div class="space-y-2">${assignedCards}</div></section>`;
     }
     async function createCaregiverInvitation(){const child_id=Number(document.getElementById('caregiver-child')?.value),phone=document.getElementById('caregiver-phone')?.value.trim(),permissions=[...document.querySelectorAll('input[name="caregiver-permission"]:checked')].map(el=>el.value);try{const r=await apiRequest('/family/caregivers/invitations','POST',{child_id,phone,permissions});if(!r.success)throw new Error(r.error||'邀请失败');window.prompt('请通过可信方式单独发送此邀请码；7天内有效。',r.invitation_code)}catch(e){showToast(e.message||'邀请失败')}}
@@ -4336,7 +4340,7 @@
               { emoji: '😢', mood: '难过', color: 'bg-pink-100' },
               { emoji: '😟', mood: '焦虑', color: 'bg-purple-100' },
             ].map(m => `
-              <button onclick="recordMood('${escapeText(m.mood)}', '${m.emoji}')" class="${m.color} rounded-xl p-2 flex flex-col items-center gap-1">
+              <button data-ui-call="recordMood" data-ui-args="${uiArgsAttr(m.mood,m.emoji)}" class="${m.color} rounded-xl p-2 flex flex-col items-center gap-1">
                 <span class="text-xl">${m.emoji}</span>
                 <span class="text-xs text-text-secondary">${escapeText(m.mood)}</span>
               </button>
@@ -4476,7 +4480,7 @@
       const [title, fields, warning] = configs[type];
       const saved = JSON.parse(sessionStorage.getItem(`xingban_family_${type}`) || '{}');
       const modal = document.createElement('div'); modal.className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'; modal.dataset.modal='true';
-      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[90vh] overflow-y-auto"><div class="flex justify-between mb-4"><h2 class="text-lg font-bold">${escapeText(title)}</h2><button data-ui-action="close-top-modal">✕</button></div><div class="space-y-3">${fields.map(([id,label,ph])=>`<label class="block text-sm font-medium">${escapeText(label)}<textarea id="family-${type}-${id}" rows="2" placeholder="${escapeText(ph)}" class="mt-1 w-full p-3 rounded-xl border border-border">${escapeText(saved[id]||'')}</textarea></label>`).join('')}</div><p class="mt-3 text-xs text-text-muted">${escapeText(warning)}</p><button onclick="saveFamilyTool('${type}',${JSON.stringify(fields.map(f=>f[0])).replace(/"/g,"'")})" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">保存到当前标签页</button></div>`;
+      modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[90vh] overflow-y-auto"><div class="flex justify-between mb-4"><h2 class="text-lg font-bold">${escapeText(title)}</h2><button data-ui-action="close-top-modal">✕</button></div><div class="space-y-3">${fields.map(([id,label,ph])=>`<label class="block text-sm font-medium">${escapeText(label)}<textarea id="family-${type}-${id}" rows="2" placeholder="${escapeText(ph)}" class="mt-1 w-full p-3 rounded-xl border border-border">${escapeText(saved[id]||'')}</textarea></label>`).join('')}</div><p class="mt-3 text-xs text-text-muted">${escapeText(warning)}</p><button data-ui-call="saveFamilyTool" data-ui-args="${uiArgsAttr(type,fields.map(f=>f[0]))}" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">保存到当前标签页</button></div>`;
       document.body.appendChild(modal);
     }
 
@@ -4553,7 +4557,7 @@
                 </div>
                 <div class="flex gap-2 overflow-x-auto scrollbar-hide pb-2 mb-3">
                   ${courseCategories.map((cat, i) => `
-                    <button onclick="filterGrowthCourses('${cat}')" class="whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${i === 0 ? 'bg-primary text-white' : 'bg-white text-text-secondary border border-border'}" id="course-cat-${i}">${cat}</button>
+                    <button data-ui-call="filterGrowthCourses" data-ui-args='["${cat}"]' class="whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${i === 0 ? 'bg-primary text-white' : 'bg-white text-text-secondary border border-border'}" id="course-cat-${i}">${cat}</button>
                   `).join('')}
                 </div>
                 <div id="growth-courses-list" class="space-y-3">
@@ -4763,7 +4767,7 @@
           <!-- 分类筛选 -->
           <div class="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
             ${categories.map(([key, label], i) => `
-              <button onclick="filterAchievements('${key}')" class="whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${i === 0 ? 'bg-primary text-white' : 'bg-white text-text-secondary border border-border'}" id="ach-cat-${i}">${label}</button>
+              <button data-ui-call="filterAchievements" data-ui-args='["${key}"]' class="whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${i === 0 ? 'bg-primary text-white' : 'bg-white text-text-secondary border border-border'}" id="ach-cat-${i}">${label}</button>
             `).join('')}
           </div>
 
@@ -5530,7 +5534,7 @@
           <!-- 分类筛选 -->
           <div class="flex gap-2 overflow-x-auto scrollbar-hide">
             ${categories.map((cat, i) => `
-              <button onclick="filterCommunityByCategory('${categoryValues[i]}')" class="px-3 py-1.5 rounded-lg ${communityFilter.category === categoryValues[i] ? 'bg-primary text-white' : 'bg-white border border-border text-text-secondary'} text-sm whitespace-nowrap">${cat}</button>
+              <button data-ui-call="filterCommunityByCategory" data-ui-args='["${categoryValues[i]}"]' class="px-3 py-1.5 rounded-lg ${communityFilter.category === categoryValues[i] ? 'bg-primary text-white' : 'bg-white border border-border text-text-secondary'} text-sm whitespace-nowrap">${cat}</button>
             `).join('')}
           </div>
 
@@ -6180,7 +6184,7 @@
                     <div class="font-medium text-text-primary text-sm">${r.title}</div>
                     <p class="text-xs text-text-secondary mt-1">${r.description}</p>
                   </div>
-                  <button onclick="navigateTo('${getRecommendationTarget(r.type)}')" class="text-xs text-primary whitespace-nowrap">去执行 →</button>
+                  <button data-ui-call="navigateTo" data-ui-args='["${getRecommendationTarget(r.type)}"]' class="text-xs text-primary whitespace-nowrap">去执行 →</button>
                 </div>
               `).join('')}
             </div>
@@ -6416,9 +6420,9 @@
       container.innerHTML = `
         <div class="p-4 space-y-4 animate-fade-in">
           <div class="flex bg-white rounded-xl p-1 card-shadow">
-            <button onclick="renderCareerTimeline(this)" class="flex-1 py-2 rounded-lg bg-primary text-white font-medium">生涯时间轴</button>
-            <button onclick="renderCareerGoals(this)" class="flex-1 py-2 rounded-lg text-text-secondary">生涯目标</button>
-            <button onclick="renderCareerSimulator(this)" class="flex-1 py-2 rounded-lg text-text-secondary">未来模拟</button>
+            <button data-ui-call="renderCareerTimeline" data-ui-pass-this="true" class="flex-1 py-2 rounded-lg bg-primary text-white font-medium">生涯时间轴</button>
+            <button data-ui-call="renderCareerGoals" data-ui-pass-this="true" class="flex-1 py-2 rounded-lg text-text-secondary">生涯目标</button>
+            <button data-ui-call="renderCareerSimulator" data-ui-pass-this="true" class="flex-1 py-2 rounded-lg text-text-secondary">未来模拟</button>
           </div>
 
           <div id="career-content">
@@ -6497,7 +6501,7 @@
                   <span>截止: ${escapeText(g.deadline)}</span>
                 </div>
                 <div class="flex gap-2 mt-3">
-                  <button onclick="updateGoalStatus(${g.id}, 'completed')" class="flex-1 py-2 bg-success/10 text-success rounded-lg text-xs">标记完成</button>
+                  <button data-ui-call="updateGoalStatus" data-ui-args="${uiArgsAttr(Number(g.id),'completed')}" class="flex-1 py-2 bg-success/10 text-success rounded-lg text-xs">标记完成</button>
                   <button data-ui-call="editCareerGoal" data-ui-args="[${Number(g.id)}]" class="flex-1 py-2 bg-secondary/50 text-text-secondary rounded-lg text-xs">编辑</button>
                 </div>
               </div>
@@ -6825,9 +6829,9 @@
       container.innerHTML = `
         <div class="p-4 space-y-4 animate-fade-in">
           <div class="flex bg-white rounded-xl p-1 card-shadow">
-            <button onclick="renderFinanceRecords(this)" class="flex-1 py-2 rounded-lg bg-primary text-white font-medium">记账记录</button>
-            <button onclick="renderFinanceSubsidies(this)" class="flex-1 py-2 rounded-lg text-text-secondary">补贴核验</button>
-            <button onclick="renderFinanceFraud(this)" class="flex-1 py-2 rounded-lg text-text-secondary">防骗指南</button>
+            <button data-ui-call="renderFinanceRecords" data-ui-pass-this="true" class="flex-1 py-2 rounded-lg bg-primary text-white font-medium">记账记录</button>
+            <button data-ui-call="renderFinanceSubsidies" data-ui-pass-this="true" class="flex-1 py-2 rounded-lg text-text-secondary">补贴核验</button>
+            <button data-ui-call="renderFinanceFraud" data-ui-pass-this="true" class="flex-1 py-2 rounded-lg text-text-secondary">防骗指南</button>
           </div>
 
           <div id="finance-content">
@@ -7009,8 +7013,8 @@
             <div>
               <label class="block text-sm text-text-secondary mb-1">类型</label>
               <div class="flex gap-2" id="expense-type-group">
-                <button onclick="setExpenseType('expense', this)" class="flex-1 py-2 rounded-lg bg-primary text-white text-sm">支出</button>
-                <button onclick="setExpenseType('income', this)" class="flex-1 py-2 rounded-lg border border-border text-text-secondary text-sm">收入</button>
+                <button data-ui-call="setExpenseType" data-ui-args='["expense"]' data-ui-pass-this="true" class="flex-1 py-2 rounded-lg bg-primary text-white text-sm">支出</button>
+                <button data-ui-call="setExpenseType" data-ui-args='["income"]' data-ui-pass-this="true" class="flex-1 py-2 rounded-lg border border-border text-text-secondary text-sm">收入</button>
               </div>
               <input type="hidden" id="expense-type" value="expense">
             </div>
@@ -7122,6 +7126,15 @@
       }
     }
 
+    function closeTopAndShowStrategyDetail(id) { closeTopModal(); showStrategyDetail(id); }
+    function closeTopAndStartEmergency(level) { closeTopModal(); startEmergency(level); }
+    function removeOverlayThenShowNewRecord(id, trigger) { trigger.closest('.fixed')?.remove(); showNewRecord(id); }
+    function removeOverlayThenOpenChildRecords(id, trigger) { trigger.closest('.fixed')?.remove(); openChildRecords(id); }
+    function removeOverlayThenShareReport(id, trigger) { trigger.closest('.fixed')?.remove(); showShareToTherapistModal(id); }
+    function removeOverlayThenNavigate(page, trigger) { trigger.closest('.fixed')?.remove(); navigateTo(page); }
+    function openPeerMessages(groupId, trigger) { trigger.closest('.fixed')?.remove(); currentPeerTab='messages'; currentGroupId=groupId; navigateTo('peer'); }
+    function submitCurrentLonelinessScore() { submitLonelinessScore(Number.parseInt(document.getElementById('loneliness-slider')?.value,10)); }
+
     // === 初始化 ===
     document.addEventListener('DOMContentLoaded', () => {
       document.addEventListener('click', event => {
@@ -7133,9 +7146,9 @@
         else if (action === 'print') window.print();
         else if (action === 'close-and-navigate') { closeTopModal(); navigateTo(trigger.dataset.nav); }
         else if (trigger.dataset.uiCall) {
-          const calls={acceptCaregiverInvitation,addEmergencyContact,askKnowledge,callEmergencyContact,changePassword,checkIn,clearCache,clearKnowledge,clearProfessionalBrief,closeStoryReader,confirmClearCache,confirmExportFromModal,copyProfessionalBrief,createCaregiverInvitation,createPost,createStory,exportData,filterDialogues,filterRecordsByChild,finishEmergencySession,finishStrategyNavigator,generateProfessionalBrief,generateReport,handleLogout,handleRegister,hideRegister,markAllRead,runAIAnalysis,runCareerSimulation,runSecurityAlertScan,runWeeklyReportJobs,saveCareerGoal,saveChild,saveExpense,saveGoal,saveGratitude,saveManualProfessionalPlan,saveMentalHealthProfile,saveMilestone,saveProfile,saveRecord,saveSafetyPlan,saveWanderingPlan,sendPeerMessage,showAbout,showAuthorizationCenter,showCaregiverAccessCenter,showChangePassword,showDataDeletionCenter,showDataDeletionRequestForm,showEditProfile,showEmergencyContactManager,showEmergencyStrategies,showFamilyTool,showFeedback,showImmediateDangerHelp,showLonelinessAssessModal,showManualProfessionalPlanEditor,showMentalHealthProfileEditor,showMentalHealthTriage,showMoreStrategies,showMyCommunityReports,showNewCareerGoal,showNewChild,showNewExpense,showNewGoal,showNewGratitude,showNewMilestone,showNewPost,showNewRecord,showNewReport,showNewStory,showPrivacyPolicy,showProfessionalIntake,showRegister,showSafetyPlan,showSafetyProfile,showSafetySkills,showSecurityOperations,showStrategyNavigator,showWanderingPlan,startEmergency,startMissingChildMode,storyNextParagraph,storyPrevParagraph,submitDataDeletionRequest,submitFeedback,submitFraudReport,switchDialogueTab,toggleVoiceRecording};
-          Object.assign(calls,{addComment,blockCommunityContent,completeSuggestion,confirmDeleteRecord,confirmShareReport,deleteRecord,editCareerGoal,editRecord,filterRecordsByChild,joinGroup,likePeerMessage,likePost,markNotificationRead,openChildRecords,playStory,practiceSkill,registerActivity,removeEmergencyContact,reportCommunityContent,replyPeerMessage,retryWeeklyReportJob,revokeCaregiverAccess,revokeReportShare,saveEditCareerGoal,saveEditRecord,showAchievementDetail,showChildDetail,showCourseDetail,showGroupDetail,showNewRecord,showPostDetail,showRecordDetail,showReportDetail,showShareToTherapistModal,showStoryDetail,showStrategyDetail,speakStrategy,startLearning,submitCommunityReport,switchPeerGroup,toggleStoryAutoPlay,toggleSubsidyFollow});
-          let args=[];try{args=JSON.parse(trigger.dataset.uiArgs||'[]')}catch(_){return}calls[trigger.dataset.uiCall]?.(...args);
+          const calls={acceptCaregiverInvitation,addEmergencyContact,askKnowledge,callEmergencyContact,changePassword,checkIn,clearCache,clearKnowledge,clearProfessionalBrief,closeStoryReader,closeTopAndShowStrategyDetail,closeTopAndStartEmergency,confirmClearCache,confirmExportFromModal,copyProfessionalBrief,createCaregiverInvitation,createPost,createStory,exportData,filterAchievements,filterCommunityByCategory,filterDialogues,filterGrowthCourses,filterRecordsByChild,filterStrategiesByCategory,finishEmergencySession,finishStrategyNavigator,generateProfessionalBrief,generateReport,handleLogout,handleRegister,hideRegister,loadDialogues,loadWorksheets,markAllRead,openPeerMessages,recordMood,removeOverlayThenNavigate,removeOverlayThenOpenChildRecords,removeOverlayThenShareReport,removeOverlayThenShowNewRecord,renderCareerGoals,renderCareerSimulator,renderCareerTimeline,renderFamilyGratitude,renderFamilyMood,renderFinanceFraud,renderFinanceRecords,renderFinanceSubsidies,renderPeerTab,runAIAnalysis,runCareerSimulation,runSecurityAlertScan,runWeeklyReportJobs,saveCareerGoal,saveChild,saveEmergencyOutcome,saveExpense,saveFamilyTool,saveGoal,saveGratitude,saveManualProfessionalPlan,saveMentalHealthProfile,saveMilestone,saveProfile,saveRecord,saveSafetyPlan,saveWanderingPlan,sendKbFeedback,sendPeerMessage,setExpenseType,setRecordType,setReportWeek,showAbout,showAdminResolution,showAuthorizationCenter,showCaregiverAccessCenter,showChangePassword,showDataDeletionCenter,showDataDeletionRequestForm,showEditProfile,showEmergencyContactManager,showEmergencyStrategies,showFamilyTool,showFeedback,showImmediateDangerHelp,showLonelinessAssessModal,showManualProfessionalPlanEditor,showMentalHealthProfileEditor,showMentalHealthTriage,showMoreStrategies,showMyCommunityReports,showNewCareerGoal,showNewChild,showNewExpense,showNewGoal,showNewGratitude,showNewMilestone,showNewPost,showNewRecord,showNewReport,showNewStory,showPrivacyPolicy,showProfessionalIntake,showRegister,showSafetyPlan,showSafetyProfile,showSafetySkills,showSecurityOperations,showStrategyNavigator,showWanderingPlan,startEmergency,startMissingChildMode,storyNextParagraph,storyPrevParagraph,submitAdminResolution,submitCurrentLonelinessScore,submitDataDeletionRequest,submitFeedback,submitFraudReport,submitPlanReview,submitStrategyFeedback,switchDialogueTab,toggleVoiceRecording,updateGoalStatus,updateProfessionalPlan};
+          Object.assign(calls,{addComment,blockCommunityContent,cancelDataDeletionRequest,completeSuggestion,confirmDeleteRecord,confirmShareReport,deleteRecord,editCareerGoal,editRecord,filterRecordsByChild,joinGroup,likePeerMessage,likePost,markNotificationRead,navigateTo,openChildRecords,openDialogue,openKnowledgeSource,openWorksheet,playStory,practiceSkill,registerActivity,removeEmergencyContact,reportCommunityContent,replyPeerMessage,retryWeeklyReportJob,revokeCaregiverAccess,revokeReportShare,saveEditCareerGoal,saveEditRecord,saveProfessionalAction,showAchievementDetail,showCaregiverResource,showChildDetail,showCourseDetail,showGroupDetail,showNewRecord,showPlanReviewModal,showPostDetail,showProfessionalPlanEditor,showRecordDetail,showReportDetail,showShareToTherapistModal,showStoryDetail,showStrategyDetail,speakStrategy,startLearning,submitCommunityReport,switchPeerGroup,toggleStoryAutoPlay,toggleSubsidyFollow});
+          let args=[];try{args=JSON.parse(trigger.dataset.uiArgs||'[]')}catch(_){return}if(trigger.dataset.uiPassThis==='true')args.push(trigger);calls[trigger.dataset.uiCall]?.(...args);
         }
         else if (trigger.dataset.nav) navigateTo(trigger.dataset.nav);
       });
@@ -7402,7 +7415,7 @@
       try{const result=await apiRequest('/sensitive/deletion-requests/mine','GET');if(!result.success)throw new Error(result.error||'读取失败');renderDataDeletionCenter(modal,result.requests||[])}catch(error){modal.firstElementChild.innerHTML=`<div class="p-5 text-center text-text-muted">${escapeText(error.message||'读取失败')}</div><button data-ui-action="close-top-modal" class="w-full py-3 bg-primary text-white">关闭</button>`}
     }
     function renderDataDeletionCenter(modal,requests){
-      const cards=requests.length?requests.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>${item.scope==='account'?'整个账号':'儿童档案 #'+Number(item.child_id)}</strong><span class="text-primary">${escapeText(deletionStatusLabel(item.status))}</span></div><div class="text-xs text-text-muted mt-1">工单：${escapeText(item.id)} · 申请于 ${formatDate(item.created_at)}</div><div class="text-xs text-text-muted mt-1">目标处理日期：${formatDate(item.due_at)}</div>${item.resolution_note?`<div class="mt-2">处理说明：${escapeText(item.resolution_note)}</div>`:''}${item.status==='pending'?`<button onclick="cancelDataDeletionRequest('${escapeText(item.id)}')" class="mt-2 px-3 py-1.5 rounded-lg border border-border">撤销申请</button>`:''}</div>`).join(''):'<div class="py-6 text-center text-text-muted">暂无删除申请</div>';
+      const cards=requests.length?requests.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>${item.scope==='account'?'整个账号':'儿童档案 #'+Number(item.child_id)}</strong><span class="text-primary">${escapeText(deletionStatusLabel(item.status))}</span></div><div class="text-xs text-text-muted mt-1">工单：${escapeText(item.id)} · 申请于 ${formatDate(item.created_at)}</div><div class="text-xs text-text-muted mt-1">目标处理日期：${formatDate(item.due_at)}</div>${item.resolution_note?`<div class="mt-2">处理说明：${escapeText(item.resolution_note)}</div>`:''}${item.status==='pending'?`<button data-ui-call="cancelDataDeletionRequest" data-ui-args='["${escapeText(item.id)}"]' class="mt-2 px-3 py-1.5 rounded-lg border border-border">撤销申请</button>`:''}</div>`).join(''):'<div class="py-6 text-center text-text-muted">暂无删除申请</div>';
       modal.firstElementChild.innerHTML=`<div class="flex justify-between gap-3"><div><h2 class="text-lg font-bold">数据删除申请</h2><p class="text-xs text-text-muted mt-1">处理前可撤销；申请创建后现有分享会立即撤销</p></div><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="mt-4 space-y-3 max-h-[48vh] overflow-y-auto">${cards}</div><button data-ui-call="showDataDeletionRequestForm" class="w-full mt-4 py-3 rounded-xl bg-red-700 text-white font-bold">新建删除申请</button>`;
     }
     function showDataDeletionRequestForm(){
@@ -7427,15 +7440,15 @@
       }catch(error){modal.firstElementChild.innerHTML=`<div class="p-6 text-center text-text-muted">${escapeText(error.message||'读取失败')}</div><button data-ui-action="close-top-modal" class="w-full py-3 bg-primary text-white">关闭</button>`}
     }
     function renderSecurityOperations(modal,deletions,alerts,weeklyJobs){
-      const deletionCards=deletions.length?deletions.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>${item.scope==='account'?'账号级':'儿童级'}删除 · 用户 #${Number(item.requester_user_id)}</strong><span>${escapeText(deletionStatusLabel(item.status))}</span></div><div class="text-xs text-text-muted mt-1">${escapeText(item.id)} · 截止 ${formatDate(item.due_at)}</div><div class="flex flex-wrap gap-2 mt-2">${item.status==='pending'?`<button onclick="showAdminResolution('deletion','${escapeText(item.id)}','processing')" class="px-3 py-1.5 rounded-lg bg-primary text-white">开始处理</button>`:`<button onclick="showAdminResolution('deletion','${escapeText(item.id)}','completed')" class="px-3 py-1.5 rounded-lg bg-success text-white">确认完成删除</button>`}<button onclick="showAdminResolution('deletion','${escapeText(item.id)}','rejected')" class="px-3 py-1.5 rounded-lg border border-border">拒绝并说明</button></div></div>`).join(''):'<div class="py-5 text-center text-text-muted">没有待处理删除工单</div>';
-      const alertCards=alerts.length?alerts.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>${escapeText(item.summary)}</strong><span class="${item.severity==='critical'?'text-red-700':'text-amber-700'}">${escapeText(item.severity)} · ${Number(item.occurrence_count)}次</span></div><div class="text-xs text-text-muted mt-1">${escapeText(item.rule)} · 最后 ${formatDate(item.last_seen_at)}</div><div class="flex gap-2 mt-2">${item.status==='open'?`<button onclick="showAdminResolution('alert','${escapeText(item.id)}','acknowledged')" class="px-3 py-1.5 rounded-lg bg-primary text-white">确认接手</button>`:''}<button onclick="showAdminResolution('alert','${escapeText(item.id)}','resolved')" class="px-3 py-1.5 rounded-lg border border-border">标记解决</button></div></div>`).join(''):'<div class="py-5 text-center text-text-muted">没有未解决安全告警</div>';
+      const deletionCards=deletions.length?deletions.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>${item.scope==='account'?'账号级':'儿童级'}删除 · 用户 #${Number(item.requester_user_id)}</strong><span>${escapeText(deletionStatusLabel(item.status))}</span></div><div class="text-xs text-text-muted mt-1">${escapeText(item.id)} · 截止 ${formatDate(item.due_at)}</div><div class="flex flex-wrap gap-2 mt-2">${item.status==='pending'?`<button data-ui-call="showAdminResolution" data-ui-args="${uiArgsAttr('deletion',item.id,'processing')}" class="px-3 py-1.5 rounded-lg bg-primary text-white">开始处理</button>`:`<button data-ui-call="showAdminResolution" data-ui-args="${uiArgsAttr('deletion',item.id,'completed')}" class="px-3 py-1.5 rounded-lg bg-success text-white">确认完成删除</button>`}<button data-ui-call="showAdminResolution" data-ui-args="${uiArgsAttr('deletion',item.id,'rejected')}" class="px-3 py-1.5 rounded-lg border border-border">拒绝并说明</button></div></div>`).join(''):'<div class="py-5 text-center text-text-muted">没有待处理删除工单</div>';
+      const alertCards=alerts.length?alerts.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>${escapeText(item.summary)}</strong><span class="${item.severity==='critical'?'text-red-700':'text-amber-700'}">${escapeText(item.severity)} · ${Number(item.occurrence_count)}次</span></div><div class="text-xs text-text-muted mt-1">${escapeText(item.rule)} · 最后 ${formatDate(item.last_seen_at)}</div><div class="flex gap-2 mt-2">${item.status==='open'?`<button data-ui-call="showAdminResolution" data-ui-args="${uiArgsAttr('alert',item.id,'acknowledged')}" class="px-3 py-1.5 rounded-lg bg-primary text-white">确认接手</button>`:''}<button data-ui-call="showAdminResolution" data-ui-args="${uiArgsAttr('alert',item.id,'resolved')}" class="px-3 py-1.5 rounded-lg border border-border">标记解决</button></div></div>`).join(''):'<div class="py-5 text-center text-text-muted">没有未解决安全告警</div>';
       const weeklyCards=weeklyJobs.length?weeklyJobs.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>儿童 #${Number(item.child_id)} · ${escapeText(String(item.week_start).slice(0,10))}</strong><span class="text-red-700">失败 ${Number(item.attempt_count)} 次</span></div><div class="text-xs text-text-muted mt-1">通知：${escapeText(item.notification_status)} · ${escapeText(item.last_error||'未记录错误')}</div><button data-ui-call="retryWeeklyReportJob" data-ui-args="[${Number(Number(item.id))}]" class="mt-2 px-3 py-1.5 rounded-lg border border-border">重新排队</button></div>`).join(''):'<div class="py-5 text-center text-text-muted">没有失败的周报任务</div>';
       modal.firstElementChild.innerHTML=`<div class="flex justify-between gap-3"><div><h2 class="text-lg font-bold">安全运营台</h2><p class="text-xs text-text-muted mt-1">操作均记录管理员账号、时间和说明</p></div><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><div class="mt-4 flex flex-wrap gap-2"><button data-ui-call="runSecurityAlertScan" class="px-4 py-2 rounded-xl border border-border bg-white text-sm font-medium">扫描安全告警</button><button data-ui-call="runWeeklyReportJobs" class="px-4 py-2 rounded-xl border border-border bg-white text-sm font-medium">执行周报任务</button></div><section class="mt-5"><h3 class="font-bold">数据删除工单（${deletions.length}）</h3><div class="mt-2 space-y-2">${deletionCards}</div></section><section class="mt-5"><h3 class="font-bold">安全告警（${alerts.length}）</h3><div class="mt-2 space-y-2">${alertCards}</div></section><section class="mt-5"><h3 class="font-bold">周报失败任务（${weeklyJobs.length}）</h3><div class="mt-2 space-y-2">${weeklyCards}</div></section>`;
     }
     async function runSecurityAlertScan(){try{const result=await apiRequest('/sensitive/admin/security-alerts/scan','POST',{window_minutes:15});if(!result.success)throw new Error(result.error||'扫描失败');closeTopModal();showToast(`扫描完成，命中${Number(result.matched_rules||0)}条规则`);showSecurityOperations()}catch(error){showToast(error.message||'扫描失败')}}
     async function runWeeklyReportJobs(){try{const result=await apiRequest('/report/admin/jobs/run','POST',{});if(!result.success)throw new Error(result.error||'执行失败');closeTopModal();showToast(`周报任务完成：尝试${Number(result.attempted||0)}，成功${Number(result.succeeded||0)}`);showSecurityOperations()}catch(error){showToast(error.message||'执行失败')}}
     async function retryWeeklyReportJob(id){try{const result=await apiRequest(`/report/admin/jobs/${encodeURIComponent(id)}/retry`,'PATCH',{});if(!result.success)throw new Error(result.error||'重试失败');closeTopModal();showToast('周报任务已重新排队');showSecurityOperations()}catch(error){showToast(error.message||'重试失败')}}
-    function showAdminResolution(kind,id,status){const labels={processing:'开始处理',completed:'确认完成删除',rejected:'拒绝申请',acknowledged:'确认接手',resolved:'标记解决'};const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[90] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML=`<div class="modal-content max-w-lg p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">${escapeText(labels[status]||'处理')}</h2><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><label class="block mt-4 text-sm font-medium">核查或处理说明<textarea id="admin-resolution-note" maxlength="1000" rows="3" class="mt-1 w-full p-3 rounded-xl border border-border" placeholder="至少5个字，不粘贴不必要的儿童隐私"></textarea></label><button onclick="submitAdminResolution('${kind}','${escapeText(id)}','${status}')" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">确认提交</button></div>`;document.body.appendChild(modal)}
+    function showAdminResolution(kind,id,status){const labels={processing:'开始处理',completed:'确认完成删除',rejected:'拒绝申请',acknowledged:'确认接手',resolved:'标记解决'};const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[90] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML=`<div class="modal-content max-w-lg p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">${escapeText(labels[status]||'处理')}</h2><button data-ui-action="close-top-modal" aria-label="关闭">✕</button></div><label class="block mt-4 text-sm font-medium">核查或处理说明<textarea id="admin-resolution-note" maxlength="1000" rows="3" class="mt-1 w-full p-3 rounded-xl border border-border" placeholder="至少5个字，不粘贴不必要的儿童隐私"></textarea></label><button data-ui-call="submitAdminResolution" data-ui-args="${uiArgsAttr(kind,id,status)}" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-bold">确认提交</button></div>`;document.body.appendChild(modal)}
     async function submitAdminResolution(kind,id,status){const note=document.getElementById('admin-resolution-note')?.value.trim()||'';if(note.length<5){showToast('请填写至少5字处理说明');return}const path=kind==='alert'?`/sensitive/admin/security-alerts/${encodeURIComponent(id)}`:`/sensitive/admin/deletion-requests/${encodeURIComponent(id)}`;try{const result=await apiRequest(path,'PATCH',{status,resolution_note:note});if(!result.success)throw new Error(result.error||'处理失败');closeTopModal();closeTopModal();showToast('处理状态已更新并记录审计');showSecurityOperations()}catch(error){showToast(error.message||'处理失败')}}
 
     function showEditProfile() {

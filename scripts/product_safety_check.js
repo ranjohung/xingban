@@ -24,10 +24,15 @@ for (const page of pages) {
   if (source.includes("document.querySelectorAll('.fixed').forEach(el => el.remove())")) {
     throw new Error(`${page} 仍存在无差别删除 fixed 元素的逻辑`);
   }
-  const clickCalls = [...html.matchAll(/onclick="([A-Za-z_$][\w$]*)\s*\(/g)].map(match => match[1]);
+  const clickCalls = [...source.matchAll(/data-ui-call="([A-Za-z_$][\w$]*)"/g)].map(match => match[1]);
   const functionDefs = new Set([...source.matchAll(/(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/g)].map(match => match[1]));
   const missingHandlers = [...new Set(clickCalls.filter(name => !functionDefs.has(name)))];
   if (missingHandlers.length) throw new Error(`${page} 存在未定义点击处理函数: ${missingHandlers.join(', ')}`);
+  if (/on(?:click|change|input|submit|keydown|error)="/i.test(source)) throw new Error(`${page} 仍存在内联事件属性`);
+  const whitelistSource = (appScript.match(/const calls=\{([^}]*)\}/) || [,''])[1] + ',' + (appScript.match(/Object\.assign\(calls,\{([^}]*)\}\)/) || [,''])[1];
+  const allowedHandlers = new Set(whitelistSource.split(',').map(value => value.trim()).filter(Boolean));
+  const unlistedHandlers = [...new Set(clickCalls.filter(name => !allowedHandlers.has(name)))];
+  if (unlistedHandlers.length) throw new Error(`${page} 存在未加入显式白名单的点击处理函数: ${unlistedHandlers.join(', ')}`);
 }
 
 const hashes = pages.map(page => fs.readFileSync(page).toString('base64'));
