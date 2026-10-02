@@ -2,13 +2,21 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
-const { randomPublicId, randomToken, hashToken } = require('../services/sensitiveData');
+const { randomPublicId, randomToken, hashToken, decryptJson } = require('../services/sensitiveData');
 const { writeAudit } = require('../services/audit');
 const { parseDbJson } = require('../utils/json');
 
 const PERMISSIONS = new Set(['profile_summary','behavior_records','weekly_reports','safety_plan']);
 const cleanPhone = value => String(value || '').replace(/\D/g, '').slice(0, 20);
 const validPermissions = value => Array.isArray(value) ? [...new Set(value.filter(item => PERMISSIONS.has(item)))] : [];
+const requireCaregiverPermission = (permission, handler) => (req, res) => {
+  const childId=Number(req.params.childId); if(!Number.isInteger(childId)||childId<=0)return res.status(400).json({error:'儿童编号无效'});
+  db.query("SELECT permissions FROM child_caregivers WHERE child_id=? AND caregiver_user_id=? AND status='active'",[childId,req.user.id],(error,rows)=>{
+    if(error)return res.status(500).json({error:'授权校验失败'});const permissions=parseDbJson(rows[0]?.permissions,[]);
+    if(!rows.length||!permissions.includes(permission)){writeAudit(req,'caregiver_access_denied','child',String(childId),'denied',{permission});return res.status(403).json({error:'没有该儿童数据的有效授权'});}
+    handler(req,res,childId);
+  });
+};
 
 router.use(auth);
 
@@ -67,6 +75,22 @@ router.get('/caregivers/children', (req, res) => {
       ? res.status(500).json({ error: '读取获授权儿童失败' })
       : res.json({ success: true, children: rows.map(row => { const permissions=parseDbJson(row.permissions,[]); return { id:row.id,nickname:row.nickname,birth_date:row.birth_date,diagnosis_type:permissions.includes('profile_summary')?row.diagnosis_type:null,permissions }; }) }));
 });
+
+router.get('/caregivers/children/:childId/records', requireCaregiverPermission('behavior_records',(req,res,childId)=>{
+  db.query(`SELECT id,content,behavior_category,behavior_subtype,emotion_state,trigger_factor,behavior_function,intensity_level,location,duration,created_at
+    FROM behavior_records WHERE child_id=? ORDER BY created_at DESC LIMIT 100`,[childId],(error,rows)=>error?res.status(500).json({error:'读取行为记录失败'}):res.json({success:true,records:rows}));
+}));
+
+router.get('/caregivers/children/:childId/reports', requireCaregiverPermission('weekly_reports',(req,res,childId)=>{
+  db.query('SELECT id,week_start,week_end,content,generated_at FROM weekly_reports WHERE child_id=? ORDER BY week_start DESC LIMIT 52',[childId],(error,rows)=>error?res.status(500).json({error:'读取周报失败'}):res.json({success:true,reports:rows.map(row=>({...row,content:parseDbJson(row.content,{})}))}));
+}));
+
+router.get('/caregivers/children/:childId/safety-plan', requireCaregiverPermission('safety_plan',(req,res,childId)=>{
+  db.query("SELECT public_id,ciphertext,iv,auth_tag,version,updated_at FROM sensitive_records WHERE child_id=? AND kind='safety_plan' ORDER BY updated_at DESC LIMIT 1",[childId],(error,rows)=>{
+    if(error)return res.status(500).json({error:'读取安全预案失败'});if(!rows.length)return res.status(404).json({error:'安全预案不存在'});
+    try{const row=rows[0];const data=decryptJson({ciphertext:row.ciphertext,iv:row.iv,tag:row.auth_tag});writeAudit(req,'caregiver_safety_plan_read','sensitive_record',row.public_id,'success',{child_id:childId});res.json({success:true,plan:{id:row.public_id,data,version:row.version,updated_at:row.updated_at}})}catch(_){writeAudit(req,'caregiver_safety_plan_read','sensitive_record',rows[0].public_id,'decrypt_failure',{child_id:childId});res.status(500).json({error:'安全预案暂时无法解密'});}
+  });
+}));
 
 router.post('/mood', auth, (req, res) => {
   const { mood, emoji, note } = req.body;
