@@ -4,6 +4,7 @@ const db = require('../config/db');
 const auth = require('../middleware/auth');
 const { encryptJson, decryptJson, randomPublicId, randomToken, hashToken } = require('../services/sensitiveData');
 const { writeAudit } = require('../services/audit');
+const { requireRole } = require('../middleware/roles');
 
 const KINDS = new Set(['safety_plan', 'mental_health_profile', 'wandering_plan', 'medical_event']);
 const SCOPES = new Set(['summary', 'risk', 'medical', 'safety']);
@@ -113,6 +114,123 @@ router.get('/audit/mine', (req, res) => {
     if (err) return res.status(500).json({ error: '读取审计记录失败' });
     res.json({ success: true, audit_logs: rows });
   });
+});
+
+const deletionRequestView = (row, includeRequester = false) => ({
+  id: row.public_id,
+  ...(includeRequester ? { requester_user_id: row.requester_user_id === null ? null : Number(row.requester_user_id) } : {}),
+  scope: row.scope,
+  child_id: row.child_id === null ? null : Number(row.child_id),
+  reason: row.reason || '',
+  status: row.status,
+  due_at: row.due_at,
+  processed_at: row.processed_at,
+  resolution_note: row.resolution_note || '',
+  created_at: row.created_at,
+  updated_at: row.updated_at
+});
+
+router.post('/deletion-requests', (req, res) => {
+  const scope = String(req.body?.scope || '');
+  const childId = req.body?.child_id === undefined || req.body?.child_id === null ? null : Number(req.body.child_id);
+  const reason = String(req.body?.reason || '').trim().slice(0, 500);
+  if (!['child', 'account'].includes(scope) || req.body?.confirmation !== 'DELETE') return res.status(400).json({ error: '请明确选择删除范围并输入 DELETE 确认' });
+  if (scope === 'child' && !validId(childId)) return res.status(400).json({ error: '儿童档案编号无效' });
+  if (scope === 'account' && childId !== null) return res.status(400).json({ error: '账号级删除不接受儿童编号' });
+
+  const create = () => {
+    const duplicateSql = `SELECT public_id FROM data_deletion_requests
+      WHERE requester_user_id=? AND scope=? AND (child_id <=> ?) AND status IN ('pending','processing') LIMIT 1`;
+    db.query(duplicateSql, [req.user.id, scope, childId], (duplicateError, existing) => {
+      if (duplicateError) return res.status(500).json({ error: '暂时无法创建删除申请' });
+      if (existing.length) return res.status(409).json({ error: '相同范围已有待处理申请', request_id: existing[0].public_id });
+      const publicId = randomPublicId();
+      const days = Math.min(90, Math.max(1, Number(process.env.DATA_DELETION_SLA_DAYS || 30)));
+      const dueAt = new Date(Date.now() + days * 86400000);
+      db.query('INSERT INTO data_deletion_requests (public_id,requester_user_id,scope,child_id,reason,due_at) VALUES (?,?,?,?,?,?)', [publicId, req.user.id, scope, childId, reason || null, dueAt], insertError => {
+        if (insertError) return res.status(500).json({ error: '暂时无法创建删除申请' });
+        const run = (sql, params) => new Promise((resolve, reject) => db.query(sql, params, (error, result) => error ? reject(error) : resolve(result)));
+        Promise.all([
+          run('UPDATE data_shares SET revoked_at=COALESCE(revoked_at,CURRENT_TIMESTAMP) WHERE owner_user_id=?', [req.user.id]),
+          run('UPDATE report_shares SET revoked_at=COALESCE(revoked_at,CURRENT_TIMESTAMP) WHERE owner_user_id=?', [req.user.id])
+        ]).then(() => {
+          writeAudit(req, 'deletion_requested', scope, publicId, 'success', { child_id: childId, due_at: dueAt.toISOString() });
+          res.status(201).json({ success: true, request: { id: publicId, scope, child_id: childId, status: 'pending', due_at: dueAt.toISOString(), created_at: new Date().toISOString() }, shares_revoked: true });
+        }).catch(() => {
+          writeAudit(req, 'deletion_requested', scope, publicId, 'share_revoke_failed', { child_id: childId });
+          res.status(503).json({ error: '删除申请已创建，但分享撤销失败，请立即联系管理员', request_id: publicId, shares_revoked: false });
+        });
+      });
+    });
+  };
+  if (scope === 'child') {
+    return verifyChildOwner(req.user.id, childId, (error, allowed) => {
+      if (error) return res.status(500).json({ error: '暂时无法核验儿童档案' });
+      if (!allowed) return res.status(404).json({ error: '儿童档案不存在' });
+      create();
+    });
+  }
+  create();
+});
+
+router.get('/deletion-requests/mine', (req, res) => {
+  db.query('SELECT public_id,scope,child_id,reason,status,due_at,processed_at,resolution_note,created_at,updated_at FROM data_deletion_requests WHERE requester_user_id=? ORDER BY created_at DESC LIMIT 100', [req.user.id], (error, rows) => {
+    if (error) return res.status(500).json({ error: '读取删除申请失败' });
+    res.json({ success: true, requests: rows.map(deletionRequestView) });
+  });
+});
+
+router.delete('/deletion-requests/:requestId', (req, res) => {
+  db.query("UPDATE data_deletion_requests SET status='cancelled',processed_at=CURRENT_TIMESTAMP WHERE public_id=? AND requester_user_id=? AND status='pending'", [req.params.requestId, req.user.id], (error, result) => {
+    if (error) return res.status(500).json({ error: '撤销删除申请失败' });
+    if (!result.affectedRows) return res.status(409).json({ error: '申请不存在、已开始处理或已结束' });
+    writeAudit(req, 'deletion_cancelled', 'deletion_request', req.params.requestId);
+    res.json({ success: true, status: 'cancelled' });
+  });
+});
+
+router.get('/admin/deletion-requests', requireRole('admin'), (req, res) => {
+  const status = String(req.query.status || 'pending');
+  if (!['pending','processing','completed','rejected','cancelled'].includes(status)) return res.status(400).json({ error: '状态参数无效' });
+  db.query('SELECT public_id,requester_user_id,scope,child_id,reason,status,due_at,processed_at,resolution_note,created_at,updated_at FROM data_deletion_requests WHERE status=? ORDER BY due_at ASC,created_at ASC LIMIT 200', [status], (error, rows) => {
+    if (error) return res.status(500).json({ error: '读取删除申请队列失败' });
+    res.json({ success: true, requests: rows.map(row => deletionRequestView(row, true)) });
+  });
+});
+
+router.patch('/admin/deletion-requests/:requestId', requireRole('admin'), async (req, res, next) => {
+  const status = String(req.body?.status || '');
+  const note = String(req.body?.resolution_note || '').trim().slice(0, 1000);
+  if (!['processing','completed','rejected'].includes(status)) return res.status(400).json({ error: '处理状态无效' });
+  if (status === 'rejected' && note.length < 5) return res.status(400).json({ error: '拒绝申请必须说明具体原因' });
+  try {
+    if (status !== 'completed') {
+      const result = await new Promise((resolve, reject) => db.query(
+        `UPDATE data_deletion_requests SET status=?,processed_by_user_id=?,processed_at=${status === 'rejected' ? 'CURRENT_TIMESTAMP' : 'NULL'},resolution_note=? WHERE public_id=? AND status IN ('pending','processing')`,
+        [status, req.user.id, note || null, req.params.requestId],
+        (error, value) => error ? reject(error) : resolve(value)
+      ));
+      if (!result.affectedRows) return res.status(409).json({ error: '申请不存在或已结束' });
+      writeAudit(req, `deletion_${status}`, 'deletion_request', req.params.requestId, 'success', { note_present: !!note });
+      return res.json({ success: true, status });
+    }
+    const completed = await db.withTransaction(async tx => {
+      const rows = await tx.query('SELECT requester_user_id,scope,child_id,status FROM data_deletion_requests WHERE public_id=? FOR UPDATE', [req.params.requestId]);
+      const item = rows[0];
+      if (!item || !['pending','processing'].includes(item.status)) return { conflict: true };
+      if (!item.requester_user_id) return { conflict: true };
+      if (item.scope === 'child') {
+        await tx.query('DELETE FROM children WHERE id=? AND user_id=?', [item.child_id, item.requester_user_id]);
+      } else {
+        await tx.query('DELETE FROM users WHERE id=?', [item.requester_user_id]);
+      }
+      await tx.query("UPDATE data_deletion_requests SET status='completed',processed_by_user_id=?,processed_at=CURRENT_TIMESTAMP,resolution_note=? WHERE public_id=?", [req.user.id, note || null, req.params.requestId]);
+      return { conflict: false, scope: item.scope };
+    });
+    if (completed.conflict) return res.status(409).json({ error: '申请不存在或已结束' });
+    writeAudit(req, 'deletion_completed', completed.scope, req.params.requestId, 'success', { note_present: !!note });
+    res.json({ success: true, status: 'completed', scope: completed.scope });
+  } catch (error) { next(error); }
 });
 
 module.exports = router;

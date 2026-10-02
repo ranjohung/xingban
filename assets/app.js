@@ -7300,6 +7300,13 @@
                 </div>
                 <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
               </button>
+              <button onclick="showDataDeletionCenter()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-border">
+                <div class="flex-1 text-left">
+                  <div class="font-medium text-red-700">数据删除申请</div>
+                  <div class="text-xs text-text-muted">申请删除某个孩子或整个账号数据，并查看处理状态</div>
+                </div>
+                <svg class="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
               <button onclick="clearCache()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
                 <div class="flex-1 text-left">
                   <div class="font-medium text-text-primary">清除缓存</div>
@@ -7349,6 +7356,29 @@
       if (key === 'gamification') document.body.classList.toggle('no-gamification', !value);
       showToast(value ? '已开启' : '已关闭');
     }
+
+    const deletionStatusLabel = value => ({pending:'待处理',processing:'处理中',completed:'已完成',rejected:'未批准',cancelled:'已撤销'}[value] || value);
+    async function showDataDeletionCenter() {
+      const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[70] p-0 sm:p-4';modal.dataset.modal='true';
+      if(useMockMode){modal.innerHTML='<div class="modal-content max-w-lg p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">数据删除申请</h2><button onclick="closeTopModal()" aria-label="关闭">✕</button></div><div class="mt-4 rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-900">公开体验版没有真实云端账号数据，因此不会生成虚假的删除工单。连接正式后端后，可申请删除某个孩子或整个账号数据。</div><button onclick="closeTopModal()" class="w-full mt-4 py-3 rounded-xl bg-primary text-white">知道了</button></div>';document.body.appendChild(modal);return;}
+      modal.innerHTML='<div class="modal-content max-w-xl p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">数据删除申请</h2><button onclick="closeTopModal()" aria-label="关闭">✕</button></div><div class="py-10 text-center text-text-muted">正在读取申请记录…</div></div>';document.body.appendChild(modal);
+      try{const result=await apiRequest('/sensitive/deletion-requests/mine','GET');if(!result.success)throw new Error(result.error||'读取失败');renderDataDeletionCenter(modal,result.requests||[])}catch(error){modal.firstElementChild.innerHTML=`<div class="p-5 text-center text-text-muted">${escapeText(error.message||'读取失败')}</div><button onclick="closeTopModal()" class="w-full py-3 bg-primary text-white">关闭</button>`}
+    }
+    function renderDataDeletionCenter(modal,requests){
+      const cards=requests.length?requests.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>${item.scope==='account'?'整个账号':'儿童档案 #'+Number(item.child_id)}</strong><span class="text-primary">${escapeText(deletionStatusLabel(item.status))}</span></div><div class="text-xs text-text-muted mt-1">工单：${escapeText(item.id)} · 申请于 ${formatDate(item.created_at)}</div><div class="text-xs text-text-muted mt-1">目标处理日期：${formatDate(item.due_at)}</div>${item.resolution_note?`<div class="mt-2">处理说明：${escapeText(item.resolution_note)}</div>`:''}${item.status==='pending'?`<button onclick="cancelDataDeletionRequest('${escapeText(item.id)}')" class="mt-2 px-3 py-1.5 rounded-lg border border-border">撤销申请</button>`:''}</div>`).join(''):'<div class="py-6 text-center text-text-muted">暂无删除申请</div>';
+      modal.firstElementChild.innerHTML=`<div class="flex justify-between gap-3"><div><h2 class="text-lg font-bold">数据删除申请</h2><p class="text-xs text-text-muted mt-1">处理前可撤销；申请创建后现有分享会立即撤销</p></div><button onclick="closeTopModal()" aria-label="关闭">✕</button></div><div class="mt-4 space-y-3 max-h-[48vh] overflow-y-auto">${cards}</div><button onclick="showDataDeletionRequestForm()" class="w-full mt-4 py-3 rounded-xl bg-red-700 text-white font-bold">新建删除申请</button>`;
+    }
+    function showDataDeletionRequestForm(){
+      const options=MOCK_DATA.children.map(child=>`<option value="${Number(child.id)}">${escapeText(child.name||child.nickname||'未命名儿童')}</option>`).join('');
+      const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[80] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML=`<div class="modal-content max-w-lg p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">新建删除申请</h2><button onclick="closeTopModal()" aria-label="关闭">✕</button></div><div class="mt-4 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-900"><strong>删除完成后不能恢复。</strong>账号级删除会移除账号及其儿童、记录和业务数据；为防止继续扩散，提交申请后现有分享会立即撤销。</div><label class="block mt-4 text-sm font-medium">删除范围<select id="deletion-scope" onchange="toggleDeletionChildField(this.value)" class="mt-1 w-full p-3 rounded-xl border border-border bg-white"><option value="child">某个儿童及关联数据</option><option value="account">整个账号及全部数据</option></select></label><label id="deletion-child-field" class="block mt-3 text-sm font-medium">选择儿童<select id="deletion-child" class="mt-1 w-full p-3 rounded-xl border border-border bg-white">${options}</select></label><label class="block mt-3 text-sm font-medium">原因（可选）<textarea id="deletion-reason" maxlength="500" rows="2" class="mt-1 w-full p-3 rounded-xl border border-border" placeholder="帮助处理人员确认范围，不要重复填写隐私详情"></textarea></label><label class="block mt-3 text-sm font-medium">输入 DELETE 确认<input id="deletion-confirmation" autocomplete="off" class="mt-1 w-full p-3 rounded-xl border border-red-300"></label><button onclick="submitDataDeletionRequest()" class="w-full mt-4 py-3 rounded-xl bg-red-700 text-white font-bold">提交删除申请</button></div>`;document.body.appendChild(modal);
+    }
+    function toggleDeletionChildField(scope){document.getElementById('deletion-child-field')?.classList.toggle('hidden',scope==='account')}
+    async function submitDataDeletionRequest(){
+      const scope=document.getElementById('deletion-scope')?.value;const confirmation=document.getElementById('deletion-confirmation')?.value.trim();const reason=document.getElementById('deletion-reason')?.value.trim()||'';const childId=Number(document.getElementById('deletion-child')?.value);
+      if(confirmation!=='DELETE'){showToast('请输入大写 DELETE 确认');return} if(scope==='child'&&!childId){showToast('请选择要删除的儿童档案');return}
+      try{const result=await apiRequest('/sensitive/deletion-requests','POST',{scope,child_id:scope==='child'?childId:null,reason,confirmation});if(!result.success)throw new Error(result.error||'提交失败');closeTopModal();closeTopModal();showToast('删除申请已提交，现有分享已撤销');showDataDeletionCenter()}catch(error){showToast(error.message||'提交失败')}
+    }
+    async function cancelDataDeletionRequest(id){try{const result=await apiRequest(`/sensitive/deletion-requests/${encodeURIComponent(id)}`,'DELETE');if(!result.success)throw new Error(result.error||'撤销失败');closeTopModal();showToast('删除申请已撤销');showDataDeletionCenter()}catch(error){showToast(error.message||'撤销失败')}}
 
     function showEditProfile() {
       const modal = document.createElement('div');

@@ -56,8 +56,31 @@ function status() {
   return { ready: connectionStarted, mode: 'mysql' };
 }
 
+function withTransaction(work) {
+  if (isUsingMock || lastError || !connectionStarted) return Promise.reject(new Error('事务数据库不可用'));
+  return new Promise((resolve, reject) => {
+    mysqlConnection.beginTransaction(beginError => {
+      if (beginError) return reject(beginError);
+      const tx = {
+        query(sql, params = []) {
+          return new Promise((queryResolve, queryReject) => {
+            mysqlConnection.query(sql, params, (error, result) => error ? queryReject(error) : queryResolve(result));
+          });
+        }
+      };
+      Promise.resolve().then(() => work(tx)).then(result => {
+        mysqlConnection.commit(commitError => {
+          if (!commitError) return resolve(result);
+          mysqlConnection.rollback(() => reject(commitError));
+        });
+      }).catch(error => mysqlConnection.rollback(() => reject(error)));
+    });
+  });
+}
+
 module.exports = {
   connect,
   query: query,
+  withTransaction,
   status
 };

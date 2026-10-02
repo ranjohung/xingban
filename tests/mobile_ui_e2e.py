@@ -61,6 +61,11 @@ with sync_playwright() as p:
         assert unnamed == 0, f"{route} 页面存在 {unnamed} 个无可访问名称的按钮"
 
     if not EXPECT_SERVER:
+        page.evaluate("navigateTo('settings')")
+        page.get_by_text("数据删除申请", exact=True).click()
+        assert page.get_by_text("公开体验版没有真实云端账号数据", exact=False).count() == 1, "演示版删除入口未如实说明无云端工单"
+        page.evaluate("closeTopModal()")
+
         page.evaluate("navigateTo('therapist')")
         page.locator('button[onclick^="showProfessionalPlanEditor"]:visible').first.click()
         page.locator("#plan-goal").fill("孩子能在情绪升级前表达需要暂停")

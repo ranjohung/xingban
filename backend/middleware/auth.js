@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const cache = require('../services/cache');
+const db = require('../config/db');
 const { SESSION_COOKIE, parseCookies } = require('./session');
 
 const auth = async (req, res, next) => {
@@ -18,9 +19,13 @@ const auth = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
     if (!Number.isInteger(Number(decoded.id)) || !decoded.jti || !['parent','therapist','admin'].includes(decoded.role)) throw new Error('invalid claims');
     if (await cache.isSessionRevoked(decoded.jti)) throw new Error('revoked session');
-    req.user = decoded;
-    req.authMode = cookieToken ? 'cookie' : 'bearer';
-    next();
+    db.query('SELECT id, role FROM users WHERE id = ? LIMIT 1', [Number(decoded.id)], (dbError, rows) => {
+      if (dbError) return res.status(503).json({ error: '认证服务暂时不可用' });
+      if (!rows?.length || rows[0].role !== decoded.role) return res.status(401).json({ error: '账号已失效，请重新登录' });
+      req.user = { ...decoded, id: Number(rows[0].id), role: rows[0].role };
+      req.authMode = cookieToken ? 'cookie' : 'bearer';
+      next();
+    });
   } catch (error) {
     return res.status(401).json({ error: '无效的token，请重新登录' });
   }

@@ -129,6 +129,9 @@ function query(sql, params, callback) {
       };
       users.push(user);
       callback(null, { insertId: user.id });
+    } else if (sql.includes('SELECT id, role FROM users WHERE id')) {
+      const id = Number(params[0]);
+      callback(null, users.filter(u => u.id === id).map(u => ({ id: u.id, role: u.role })));
     } else if (sql.includes('SELECT * FROM users WHERE id')) {
       const id = params[0];
       const results = users.filter(u => u.id === id);
