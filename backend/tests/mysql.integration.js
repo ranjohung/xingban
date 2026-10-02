@@ -14,6 +14,7 @@ const password = 'Xingban-Test-2026!';
 let userId = null;
 let therapistUserId = null;
 let therapistId = null;
+let adminUserId = null;
 
 const server = spawn(process.execPath, ['server.js'], {
   cwd: path.resolve(__dirname, '..'),
@@ -48,6 +49,7 @@ async function main() {
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${registered.body.token}` };
 
   const therapistPhone = `17${suffix}2`.slice(0, 11);
+  const adminPhone = `16${suffix}3`.slice(0, 11);
   const setupConnection = await mysql.createConnection({ host: process.env.DB_HOST, port: Number(process.env.DB_PORT || 3306), user: process.env.DB_USER, password: process.env.DB_PASSWORD, database: process.env.DB_NAME });
   try {
     const passwordHash = await bcrypt.hash(password, 10);
@@ -55,10 +57,15 @@ async function main() {
     therapistUserId = userResult.insertId;
     const [therapistResult] = await setupConnection.execute("INSERT INTO therapists (user_id, name, phone, professional_title, specialty, is_certified) VALUES (?, ?, ?, ?, ?, TRUE)", [therapistUserId, '集成测试专业人员', therapistPhone, '临床心理专业人员', '儿童家庭支持']);
     therapistId = therapistResult.insertId;
+    const [adminResult] = await setupConnection.execute("INSERT INTO users (phone, password, nickname, role) VALUES (?, ?, ?, 'admin')", [adminPhone, passwordHash, '集成测试管理员']);
+    adminUserId = adminResult.insertId;
   } finally { await setupConnection.end(); }
   const therapistLogin = await request('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: therapistPhone, password }) });
   if (!therapistLogin.response.ok || !therapistLogin.body.token) throw new Error(`专业账号登录失败：${JSON.stringify(therapistLogin.body)}`);
   const therapistHeaders = { 'Content-Type': 'application/json', Authorization: `Bearer ${therapistLogin.body.token}` };
+  const adminLogin = await request('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: adminPhone, password }) });
+  if (!adminLogin.response.ok || !adminLogin.body.token) throw new Error(`管理员登录失败：${JSON.stringify(adminLogin.body)}`);
+  const adminHeaders = { 'Content-Type': 'application/json', Authorization: `Bearer ${adminLogin.body.token}` };
 
   const child = await request('/child', { method: 'POST', headers, body: JSON.stringify({ nickname: '测试儿童', birth_date: '2020-01-02', diagnosis_type: 'UNCONFIRMED' }) });
   if (child.response.status !== 201) throw new Error(`建档失败：${JSON.stringify(child.body)}`);
@@ -85,6 +92,14 @@ async function main() {
   if (!activated.response.ok) throw new Error(`专业确认后仍无法启动计划：${JSON.stringify(activated.body)}`);
   const held = await request('/community/posts', { method: 'POST', headers, body: JSON.stringify({ title: '需要马上帮助', content: '孩子说不想活并准备吞药', category: 'emotion' }) });
   if (held.response.status !== 202 || !held.body.case_ref) throw new Error(`危机审核失败：${JSON.stringify(held.body)}`);
+  const deniedProfiles = await request('/therapist/admin/profiles', { headers });
+  if (deniedProfiles.response.status !== 403) throw new Error('普通家长不应读取专业资质运营清单');
+  const profiles = await request('/therapist/admin/profiles', { headers: adminHeaders });
+  if (!profiles.response.ok || !profiles.body.profiles?.some(item => item.id === therapistId && item.phone.includes('****'))) throw new Error('管理员专业资质清单缺失或联系方式未脱敏');
+  const moderation = await request('/community/moderation/reports?status=open', { headers: adminHeaders });
+  if (!moderation.response.ok || !moderation.body.reports?.some(item => item.case_ref === held.body.case_ref)) throw new Error('管理员未读取到社区危机工单');
+  const resolvedCase = await request(`/community/moderation/reports/${held.body.case_ref}`, { method: 'PATCH', headers: adminHeaders, body: JSON.stringify({ status: 'resolved', resolution_note: '已按安全流程核查并完成升级联系' }) });
+  if (!resolvedCase.response.ok) throw new Error('管理员无法完成社区工单处置');
 
   const [children, records, reports, feedbackList, plans, cases, events, notifications] = await Promise.all([
     request('/child', { headers }), request(`/behavior/${childId}`, { headers }), request(`/report/${childId}/list`, { headers }),
@@ -100,12 +115,13 @@ async function main() {
 }
 
 async function cleanup() {
-  if (!userId && !therapistUserId) return;
+  if (!userId && !therapistUserId && !adminUserId) return;
   const connection = await mysql.createConnection({ host: process.env.DB_HOST, port: Number(process.env.DB_PORT || 3306), user: process.env.DB_USER, password: process.env.DB_PASSWORD, database: process.env.DB_NAME });
   try {
     if (userId) await connection.execute('DELETE FROM users WHERE id=?', [userId]);
     if (therapistId) await connection.execute('DELETE FROM therapists WHERE id=?', [therapistId]);
     if (therapistUserId) await connection.execute('DELETE FROM users WHERE id=?', [therapistUserId]);
+    if (adminUserId) await connection.execute('DELETE FROM users WHERE id=?', [adminUserId]);
   }
   finally { await connection.end(); }
 }

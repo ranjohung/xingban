@@ -115,6 +115,32 @@ router.post('/register', auth, requireRole('admin'), (req, res) => {
   });
 });
 
+// 管理端只返回核验档案清单；联系方式继续脱敏，避免运营台成为敏感通讯录。
+router.get('/admin/profiles', auth, requireRole('admin'), (req, res) => {
+  db.query(
+    `SELECT id, user_id, name, phone, email, professional_title, specialty,
+            years_of_experience, is_certified, created_at
+     FROM therapists ORDER BY created_at DESC LIMIT 200`,
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: '专业资质档案暂时无法读取' });
+      const profiles = rows.map(row => ({
+        id: row.id,
+        user_id: row.user_id,
+        name: row.name,
+        phone: String(row.phone || '').replace(/^(\d{3})\d+(\d{4})$/, '$1****$2'),
+        email: row.email ? String(row.email).replace(/^(.{1,2}).*(@.*)$/, '$1***$2') : null,
+        professional_title: row.professional_title,
+        specialty: row.specialty,
+        years_of_experience: Number(row.years_of_experience || 0),
+        is_certified: Boolean(row.is_certified),
+        created_at: row.created_at,
+      }));
+      res.json({ success: true, profiles });
+    }
+  );
+});
+
 // 公开目录只展示已核验人员，并且永不返回手机号、邮箱、绑定账号等字段。
 router.get('/', (req, res) => {
   const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
