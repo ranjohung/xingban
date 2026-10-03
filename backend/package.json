@@ -14,6 +14,7 @@
     "test:weekly-jobs": "node tests/weekly_report_jobs.integration.js",
     "test:caregivers": "node tests/caregivers.integration.js",
     "test:auth": "node tests/auth.session.js",
+    "test:migrations": "node tests/migration_upgrade.integration.js",
     "test:xss": "node ../scripts/xss_csp_test.js",
     "db:migrate": "node tools/apply_migration.js",
     "kb:selftest": "node tests/kb.selftest.js",

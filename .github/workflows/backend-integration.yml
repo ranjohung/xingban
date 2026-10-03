@@ -18,6 +18,46 @@ permissions:
   contents: read
 
 jobs:
+  historical-upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root-test-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot-test-password"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: xingban_api
+      DB_MIGRATION_USER: root
+      DB_MIGRATION_PASSWORD: root-test-password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install dependencies
+        run: npm ci --prefix backend
+      - name: Restore historical database and apply migrations
+        run: |
+          mysql -h127.0.0.1 -uroot -proot-test-password < backend/config/test_baselines/20261001_pre_migrations.sql
+          for migration in backend/config/migrations/*.sql; do
+            echo "Applying ${migration}"
+            mysql -h127.0.0.1 -uroot -proot-test-password < "${migration}"
+          done
+      - name: Verify upgraded schema and preserved data
+        run: npm --prefix backend run test:migrations
+
   mysql-integration:
     runs-on: ubuntu-latest
     timeout-minutes: 20
