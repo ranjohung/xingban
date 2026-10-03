@@ -135,34 +135,38 @@ router.post('/deletion-requests', (req, res) => {
   const scope = String(req.body?.scope || '');
   const childId = req.body?.child_id === undefined || req.body?.child_id === null ? null : Number(req.body.child_id);
   const reason = String(req.body?.reason || '').trim().slice(0, 500);
+  const clientRequestId = String(req.body?.client_request_id || '').trim();
   if (!['child', 'account'].includes(scope) || req.body?.confirmation !== 'DELETE') return res.status(400).json({ error: '请明确选择删除范围并输入 DELETE 确认' });
+  if (clientRequestId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientRequestId)) return res.status(400).json({ error: '请求标识无效' });
   if (scope === 'child' && !validId(childId)) return res.status(400).json({ error: '儿童档案编号无效' });
   if (scope === 'account' && childId !== null) return res.status(400).json({ error: '账号级删除不接受儿童编号' });
 
-  const create = () => {
+  const create = async () => {
+    if (clientRequestId) {
+      const replay = await new Promise(resolve => db.query('SELECT public_id,scope,child_id,status,due_at,created_at FROM data_deletion_requests WHERE requester_user_id=? AND client_request_id=?', [req.user.id, clientRequestId], (error, rows) => resolve(error ? null : rows)));
+      if (replay === null) return res.status(500).json({ error: '删除申请状态暂时无法确认，请勿重复提交并稍后重试' });
+      if (replay.length) return res.json({ success: true, replayed: true, request: deletionRequestView(replay[0]), shares_revoked: true });
+    }
     const duplicateSql = `SELECT public_id FROM data_deletion_requests
       WHERE requester_user_id=? AND scope=? AND (child_id <=> ?) AND status IN ('pending','processing') LIMIT 1`;
-    db.query(duplicateSql, [req.user.id, scope, childId], (duplicateError, existing) => {
-      if (duplicateError) return res.status(500).json({ error: '暂时无法创建删除申请' });
-      if (existing.length) return res.status(409).json({ error: '相同范围已有待处理申请', request_id: existing[0].public_id });
-      const publicId = randomPublicId();
-      const days = Math.min(90, Math.max(1, Number(process.env.DATA_DELETION_SLA_DAYS || 30)));
-      const dueAt = new Date(Date.now() + days * 86400000);
-      db.query('INSERT INTO data_deletion_requests (public_id,requester_user_id,scope,child_id,reason,due_at) VALUES (?,?,?,?,?,?)', [publicId, req.user.id, scope, childId, reason || null, dueAt], insertError => {
-        if (insertError) return res.status(500).json({ error: '暂时无法创建删除申请' });
-        const run = (sql, params) => new Promise((resolve, reject) => db.query(sql, params, (error, result) => error ? reject(error) : resolve(result)));
-        Promise.all([
-          run('UPDATE data_shares SET revoked_at=COALESCE(revoked_at,CURRENT_TIMESTAMP) WHERE owner_user_id=?', [req.user.id]),
-          run('UPDATE report_shares SET revoked_at=COALESCE(revoked_at,CURRENT_TIMESTAMP) WHERE owner_user_id=?', [req.user.id])
-        ]).then(() => {
-          writeAudit(req, 'deletion_requested', scope, publicId, 'success', { child_id: childId, due_at: dueAt.toISOString() });
-          res.status(201).json({ success: true, request: { id: publicId, scope, child_id: childId, status: 'pending', due_at: dueAt.toISOString(), created_at: new Date().toISOString() }, shares_revoked: true });
-        }).catch(() => {
-          writeAudit(req, 'deletion_requested', scope, publicId, 'share_revoke_failed', { child_id: childId });
-          res.status(503).json({ error: '删除申请已创建，但分享撤销失败，请立即联系管理员', request_id: publicId, shares_revoked: false });
-        });
+    const existing = await new Promise(resolve => db.query(duplicateSql, [req.user.id, scope, childId], (error, rows) => resolve(error ? null : rows)));
+    if (existing === null) return res.status(500).json({ error: '暂时无法创建删除申请' });
+    if (existing.length) return res.status(409).json({ error: '相同范围已有待处理申请', request_id: existing[0].public_id });
+    const publicId = randomPublicId();
+    const days = Math.min(90, Math.max(1, Number(process.env.DATA_DELETION_SLA_DAYS || 30)));
+    const dueAt = new Date(Date.now() + days * 86400000);
+    try {
+      await db.withTransaction(async tx => {
+        await tx.query('INSERT INTO data_deletion_requests (public_id,requester_user_id,client_request_id,scope,child_id,reason,due_at) VALUES (?,?,?,?,?,?,?)', [publicId,req.user.id,clientRequestId||null,scope,childId,reason||null,dueAt]);
+        await tx.query('UPDATE data_shares SET revoked_at=COALESCE(revoked_at,CURRENT_TIMESTAMP) WHERE owner_user_id=?', [req.user.id]);
+        await tx.query('UPDATE report_shares SET revoked_at=COALESCE(revoked_at,CURRENT_TIMESTAMP) WHERE owner_user_id=?', [req.user.id]);
       });
-    });
+      writeAudit(req, 'deletion_requested', scope, publicId, 'success', { child_id: childId, due_at: dueAt.toISOString() });
+      res.status(201).json({ success:true,replayed:false,request:{id:publicId,scope,child_id:childId,status:'pending',due_at:dueAt.toISOString(),created_at:new Date().toISOString()},shares_revoked:true });
+    } catch (error) {
+      if (error?.code === 'ER_DUP_ENTRY' && clientRequestId) return db.query('SELECT public_id,scope,child_id,status,due_at,created_at FROM data_deletion_requests WHERE requester_user_id=? AND client_request_id=?',[req.user.id,clientRequestId],(readError,rows)=>readError||!rows.length?res.status(500).json({error:'删除申请状态暂时无法确认，请勿重复提交'}):res.json({success:true,replayed:true,request:deletionRequestView(rows[0]),shares_revoked:true}));
+      res.status(503).json({ error:'删除申请与分享撤销未能完整执行，本次操作已回滚，请保留当前页面后重试',shares_revoked:false });
+    }
   };
   if (scope === 'child') {
     return verifyChildOwner(req.user.id, childId, (error, allowed) => {

@@ -5,6 +5,7 @@ const { spawn } = require('child_process');
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 const path = require('path');
+const { randomUUID } = require('crypto');
 
 const PORT = 3298;
 const BASE = `http://127.0.0.1:${PORT}/api`;
@@ -63,9 +64,11 @@ async function main() {
 
   const invalid = await call('/sensitive/deletion-requests', { method: 'POST', headers: headers(parentCancel.token), body: JSON.stringify({ scope: 'child', child_id: child1.body.child.id, confirmation: 'delete' }) });
   if (invalid.response.status !== 400) throw new Error('删除申请未强制大写DELETE确认');
-  const cancellable = await call('/sensitive/deletion-requests', { method: 'POST', headers: headers(parentCancel.token), body: JSON.stringify({ scope: 'child', child_id: child1.body.child.id, reason: '测试撤销', confirmation: 'DELETE' }) });
+  const cancellablePayload={ client_request_id:randomUUID(),scope:'child',child_id:child1.body.child.id,reason:'测试撤销',confirmation:'DELETE' };
+  const cancellable = await call('/sensitive/deletion-requests', { method: 'POST', headers: headers(parentCancel.token), body: JSON.stringify(cancellablePayload) });
   if (cancellable.response.status !== 201) throw new Error(`儿童删除申请失败：${JSON.stringify(cancellable.body)}`);
   ids.requests.push(cancellable.body.request.id);
+  const cancellableReplay=await call('/sensitive/deletion-requests',{method:'POST',headers:headers(parentCancel.token),body:JSON.stringify(cancellablePayload)});if(!cancellableReplay.response.ok||!cancellableReplay.body.replayed||cancellableReplay.body.request.id!==cancellable.body.request.id)throw new Error('删除申请重复提交未返回原工单');
   const duplicate = await call('/sensitive/deletion-requests', { method: 'POST', headers: headers(parentCancel.token), body: JSON.stringify({ scope: 'child', child_id: child1.body.child.id, confirmation: 'DELETE' }) });
   if (duplicate.response.status !== 409) throw new Error('重复活动删除申请未被拒绝');
   const unauthorizedQueue = await call('/sensitive/admin/deletion-requests', { headers: headers(parentCancel.token) });
@@ -77,8 +80,9 @@ async function main() {
   if (!stored.response.ok) throw new Error(`敏感记录写入失败：${JSON.stringify(stored.body)}`);
   const shared = await call('/sensitive/share/create', { method: 'POST', headers: headers(parentDelete.token), body: JSON.stringify({ resource_id: stored.body.id, recipient_user_id: adminId, scopes: ['safety'], expires_days: 7 }) });
   if (shared.response.status !== 201) throw new Error(`测试分享创建失败：${JSON.stringify(shared.body)}`);
-  const accountRequest = await call('/sensitive/deletion-requests', { method: 'POST', headers: headers(parentDelete.token), body: JSON.stringify({ scope: 'account', reason: '完整账号删除集成测试', confirmation: 'DELETE' }) });
+  const accountRequest = await call('/sensitive/deletion-requests', { method: 'POST', headers: headers(parentDelete.token), body: JSON.stringify({ client_request_id:randomUUID(),scope: 'account', reason: '完整账号删除集成测试', confirmation: 'DELETE' }) });
   if (accountRequest.response.status !== 201 || !accountRequest.body.shares_revoked) throw new Error(`账号删除申请失败：${JSON.stringify(accountRequest.body)}`);
+  const revocationCheck=await mysql.createConnection(dbOptions());const[[revokedShare]]=await revocationCheck.execute('SELECT revoked_at FROM data_shares WHERE public_id=?',[shared.body.share.id]);await revocationCheck.end();if(!revokedShare?.revoked_at)throw new Error('删除申请提交后分享未在同一结果中撤销');
   ids.requests.push(accountRequest.body.request.id);
   const mine = await call('/sensitive/deletion-requests/mine', { headers: headers(parentDelete.token) });
   if (!mine.response.ok || mine.body.requests?.[0]?.id !== accountRequest.body.request.id) throw new Error('申请人无法查询自己的删除工单');
@@ -107,7 +111,7 @@ async function main() {
       throw new Error(`删除后数据库状态不一致：${JSON.stringify({ userCount, childCount, keptChild, requestRow, shareCount, auditCount })}`);
     }
   } finally { await verify.end(); }
-  console.log('PASS real MySQL deletion workflow: explicit confirmation, duplicate rejection, revoke, admin isolation, transaction delete, audit');
+  console.log('PASS real MySQL deletion workflow: idempotent request, atomic share revoke, cancellation, admin isolation, transaction delete, audit');
 }
 
 async function cleanup() {
