@@ -99,10 +99,11 @@ router.patch('/admin/jobs/:jobId/retry', requireRole('admin'), (req, res) => {
 });
 
 router.post('/generate/:childId', auth, (req, res) => {
-  const { week_start, week_end } = req.body;
-  
-  const startDate = week_start || getWeekStart();
-  const endDate = week_end || getWeekEnd();
+  const weekRange = String(req.body.week_range || 'this_week');
+  if (!['this_week', 'last_week'].includes(weekRange)) {
+    return res.status(400).json({ error: '周范围无效，只能选择本周或上周' });
+  }
+  const { startDate, endDate } = getWeekBounds(weekRange);
   
   db.query(`
     SELECT 
@@ -150,20 +151,20 @@ router.post('/generate/:childId', auth, (req, res) => {
           );
           
           db.query(
-            'INSERT INTO weekly_reports (child_id, user_id, week_start, week_end, content) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)',
+            'INSERT IGNORE INTO weekly_reports (child_id, user_id, week_start, week_end, content) VALUES (?, ?, ?, ?, ?)',
             [req.params.childId, req.user.id, startDate, endDate, JSON.stringify(reportContent)],
             (err, result) => {
               if (err) return res.status(500).json({ error: err.message });
-              
-              res.status(201).json({
-                success: true,
-                message: '周报生成成功',
-                report: {
-                  id: result.insertId,
-                  week_start: startDate,
-                  week_end: endDate,
-                  content: reportContent
-                }
+              const replayed = Number(result.affectedRows || 0) === 0;
+              const respond = (reportId, content = reportContent, persistedEndDate = endDate) => res.status(replayed ? 200 : 201).json({
+                success: true, replayed,
+                message: replayed ? '该周周报此前已生成' : '周报生成成功',
+                report: { id: reportId, week_start: startDate, week_end: persistedEndDate, content }
+              });
+              if (!replayed) return respond(result.insertId);
+              db.query('SELECT id,week_end,content FROM weekly_reports WHERE child_id=? AND week_start=? LIMIT 1', [req.params.childId, startDate], (lookupError, rows) => {
+                if (lookupError || !rows.length) return res.status(500).json({ error: '周报重放恢复失败，请稍后重试' });
+                respond(rows[0].id, parseDbJson(rows[0].content, {}), rows[0].week_end);
               });
             }
           );
@@ -265,31 +266,19 @@ router.post('/:reportId/revoke-share', auth, (req, res) => {
     : res.json({ success: true, message: '该周报的有效授权已全部撤销', revoked: Number(result.affectedRows || 0) }));
 });
 
-function getWeekStart() {
-  const now = new Date();
-  const day = now.getDay();
-  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(now.setDate(diff));
-  monday.setHours(0, 0, 0, 0);
-  return monday.toISOString().split('T')[0];
-}
-
-function getWeekEnd() {
-  const now = new Date();
-  const day = now.getDay();
-  const diff = now.getDate() - day + (day === 0 ? 0 : 7);
-  const sunday = new Date(now.setDate(diff));
-  sunday.setHours(23, 59, 59, 999);
-  return sunday.toISOString().split('T')[0];
+function getWeekBounds(range, today = new Date()) {
+  const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const weekday = monday.getDay() || 7;
+  monday.setDate(monday.getDate() - weekday + 1 - (range === 'last_week' ? 7 : 0));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const format = value => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+  return { startDate: format(monday), endDate: format(sunday) };
 }
 
 function generateReportContent(recordStats, categoryStats, feedbackStats, strategyResults, startDate, endDate) {
-  const effectiveRate = feedbackStats.length > 0 
-    ? feedbackStats.find(f => f.effectiveness === 'effective')?.count || 0
-    : 0;
-  const totalFeedback = feedbackStats.reduce((sum, f) => sum + f.count, 0);
-  
-  const prediction = generatePrediction(categoryStats);
+  const effectiveCount = Number(feedbackStats.find(f => f.effectiveness === 'effective')?.count || 0);
+  const totalFeedback = feedbackStats.reduce((sum, f) => sum + Number(f.count || 0), 0);
   
   return {
     week_start: startDate,
@@ -299,31 +288,31 @@ function generateReportContent(recordStats, categoryStats, feedbackStats, strate
       high_intensity_count: recordStats.high_intensity_count || 0,
       medium_intensity_count: recordStats.medium_intensity_count || 0,
       low_intensity_count: recordStats.low_intensity_count || 0,
-      effective_rate: totalFeedback > 0 ? Math.round((effectiveRate / totalFeedback) * 100) : 0
+      effective_rate: totalFeedback > 0 ? Math.round((effectiveCount / totalFeedback) * 100) : null,
+      feedback_count: totalFeedback
     },
     category_distribution: categoryStats,
     strategy_effectiveness: feedbackStats,
     strategy_rankings: strategyResults.slice(0, 5),
-    ai_comment: generateAIComment(recordStats, categoryStats, effectiveRate),
+    observation_summary: generateObservationSummary(recordStats, categoryStats, effectiveCount, totalFeedback),
     top_questions: generateTopQuestions(categoryStats),
-    next_week_prediction: prediction
+    next_week_planning: generateNextWeekPlanning(categoryStats)
   };
 }
 
-function generateAIComment(recordStats, categoryStats, effectiveRate) {
-  const total = recordStats.total_records || 0;
+function generateObservationSummary(recordStats, categoryStats, effectiveCount, totalFeedback) {
+  const total = Number(recordStats.total_records || 0);
   
   if (total === 0) {
-    return '本周暂无行为记录，继续保持观察。建议每天记录1-2条，以便更好地了解孩子的行为模式。';
+    return '所选周暂无家庭记录，无法据此判断变化或效果。';
   }
   
   const mainCategory = categoryStats[0];
   
-  if (effectiveRate > 0) {
-    return `本周共记录${total}条行为，主要集中在${mainCategory?.behavior_category || '日常行为'}方面。您尝试的策略有效率为${Math.round((effectiveRate / (recordStats.total_records || 1)) * 100)}%，继续保持！`;
+  if (totalFeedback > 0) {
+    return `所选周共记录${total}条家庭观察，记录最多的类别是${mainCategory?.behavior_category || '日常行为'}；${totalFeedback}次策略反馈中${effectiveCount}次由家长标记为有效。该摘要不代表疗效或趋势。`;
   }
-  
-  return `本周共记录${total}条行为，主要集中在${mainCategory?.behavior_category || '日常行为'}方面。建议尝试更多策略，找到最适合孩子的方法。`;
+  return `所选周共记录${total}条家庭观察，记录最多的类别是${mainCategory?.behavior_category || '日常行为'}。尚无策略反馈，不能判断效果。`;
 }
 
 function generateTopQuestions(categoryStats) {
@@ -349,29 +338,27 @@ function generateTopQuestions(categoryStats) {
   return questions.slice(0, 3);
 }
 
-function generatePrediction(categoryStats) {
+function generateNextWeekPlanning(categoryStats) {
   const highRiskCategories = ['情绪爆发', '攻击行为', '自伤行为'];
   const highRisk = categoryStats.filter(c => highRiskCategories.includes(c.behavior_category) && c.count >= 2);
   
   if (highRisk.length > 0) {
     return {
-      confidence: '高',
-      message: `根据本周数据，${highRisk.map(c => c.behavior_category).join('、')}发生频率较高。建议下周重点关注这些行为，提前准备应对策略。`,
+      message: `所选周记录中，${highRisk.map(c => c.behavior_category).join('、')}各出现至少2次。请先核对是否存在即时危险，再与孩子和专业人员讨论支持安排。`,
       suggestions: [
-        '建立情绪预警机制，及时干预',
-        '增加正向强化频率',
-        '回顾有效的安抚策略'
+        '核对发生前后的可观察事实和安全风险',
+        '准备孩子可接受的暂停、拒绝和求助方式',
+        '如风险升高或拿不准，联系既往就诊机构或120/110'
       ]
     };
   }
   
   return {
-    confidence: '中',
-    message: '本周行为记录较为平稳。建议继续保持记录，观察行为模式变化。',
+    message: '所选周记录未触发高关注频次提示；这不代表没有风险，也不能据此判断情况稳定。',
     suggestions: [
-      '保持现有干预策略',
-      '尝试在新场景中应用有效策略',
-      '关注孩子的微小进步'
+      '与孩子核对哪些支持让其更舒适',
+      '只选择一项低风险、可停止的小步骤',
+      '继续记录事实，并在需要时请专业人员复核'
     ]
   };
 }

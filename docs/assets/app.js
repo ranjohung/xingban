@@ -3592,7 +3592,8 @@
               </div>
               <input type="hidden" id="report-week" value="this_week">
             </div>
-            <button data-ui-call="generateReport" class="w-full py-3 rounded-xl bg-primary text-white font-medium">生成周报</button>
+            <p id="report-generate-status" class="text-xs text-text-muted" role="status">周报只汇总家庭记录，不预测孩子情况或判断疗效。</p>
+            <button id="report-generate-button" data-ui-call="generateReport" class="w-full py-3 rounded-xl bg-primary text-white font-medium disabled:opacity-60">生成周报</button>
           </div>
         </div>
       `;
@@ -3607,9 +3608,22 @@
       btn.className = 'flex-1 py-2 rounded-lg bg-primary text-white text-sm';
     }
 
+    let reportGenerateInFlight = false;
     async function generateReport() {
+      if (reportGenerateInFlight) return;
       const child_id = parseInt(document.getElementById('report-child').value);
       const week_range = document.getElementById('report-week').value;
+      const status = document.getElementById('report-generate-status');
+      const button = document.getElementById('report-generate-button');
+      if (!useMockMode && navigator.onLine === false) {
+        status.textContent = '未生成：当前网络已断开；选择仍保留在本页，联网后可重试。';
+        showToast('当前网络已断开，周报尚未生成');
+        return;
+      }
+      reportGenerateInFlight = true;
+      button.disabled = true;
+      button.textContent = '正在生成…';
+      status.textContent = '正在汇总所选周的家庭记录，请勿重复点击。';
 
       try {
         const result = await apiRequest(`/report/generate/${child_id}`, 'POST', { week_range });
@@ -3633,16 +3647,21 @@
             serverContent
           };
           MOCK_DATA.reports = [generated, ...MOCK_DATA.reports.filter(item => item.id !== generated.id)];
-          showToast('周报生成成功！');
+          showToast(result.replayed ? '该周周报此前已生成，已安全恢复' : '周报生成成功');
           closeTopModal();
           navigateTo('reports');
           setTimeout(() => showReportDetail(generated.id), 0);
         } else {
-          showToast(result.error || '生成失败');
+          throw new Error(result.error || '生成失败');
         }
       } catch (error) {
         console.error('生成周报失败:', error);
-        showToast('网络错误');
+        status.textContent = `未确认生成：${error.message || '网络连接中断'}。选择仍保留，可直接重试。`;
+        showToast('周报尚未确认生成');
+      } finally {
+        reportGenerateInFlight = false;
+        const current = document.getElementById('report-generate-button');
+        if (current) { current.disabled = false; current.textContent = '生成周报'; }
       }
     }
 

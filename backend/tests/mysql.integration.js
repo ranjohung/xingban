@@ -160,6 +160,12 @@ async function main() {
   if (!behaviorReplay.response.ok || !behaviorReplay.body.replayed || Number(behaviorReplay.body.record?.id) !== Number(behavior.body.record.id)) throw new Error('行为记录重复提交未返回原记录');
   const report = await request(`/report/generate/${childId}`, { method: 'POST', headers, body: '{}' });
   if (report.response.status !== 201) throw new Error(`周报失败：${JSON.stringify(report.body)}`);
+  const reportReplay = await request(`/report/generate/${childId}`, { method: 'POST', headers, body: JSON.stringify({ week_range: 'this_week' }) });
+  if (!reportReplay.response.ok || !reportReplay.body.replayed || Number(reportReplay.body.report?.id) !== Number(report.body.report.id)) throw new Error('同一周周报重试未返回原周报');
+  const lastWeekReport = await request(`/report/generate/${childId}`, { method: 'POST', headers, body: JSON.stringify({ week_range: 'last_week' }) });
+  if (lastWeekReport.response.status !== 201 || lastWeekReport.body.report?.week_start === report.body.report.week_start) throw new Error('上周周范围未正确生效');
+  const invalidWeekReport = await request(`/report/generate/${childId}`, { method: 'POST', headers, body: JSON.stringify({ week_range: 'arbitrary' }) });
+  if (invalidWeekReport.response.status !== 400) throw new Error('周报接受了任意周范围');
   const sharePayload = { report_id: report.body.report.id, therapist_id: therapistId, client_request_id: randomUUID(), scope: ['summary'], expires_days: 7, note: '供协作复核' };
   const share = await request('/therapist/share', { method: 'POST', headers, body: JSON.stringify(sharePayload) });
   if (share.response.status !== 201) throw new Error(`周报分享失败：${JSON.stringify(share.body)}`);
@@ -222,7 +228,7 @@ async function main() {
     request('/therapist/plans/mine', { headers }), request('/community/reports/mine', { headers }),
     request(`/therapist/plans/${plan.body.plan.id}/events`, { headers }), request('/notification', { headers })
   ]);
-  if (children.body.children?.length !== 1 || records.body.records?.length !== 1 || reports.body.reports?.length !== 1 || feedbackList.body.feedback?.length !== 1 || plans.body.plans?.length !== 1 || cases.body.reports?.length !== 2 || events.body.events?.length < 3 || notifications.body.notifications?.length < 1) {
+  if (children.body.children?.length !== 1 || records.body.records?.length !== 1 || reports.body.reports?.length !== 2 || feedbackList.body.feedback?.length !== 1 || plans.body.plans?.length !== 1 || cases.body.reports?.length !== 2 || events.body.events?.length < 3 || notifications.body.notifications?.length < 1) {
     throw new Error('真实数据库回读数量不一致');
   }
   console.log(JSON.stringify({ database: 'mysql', child_id: childId, behavior_id: behavior.body.record.id, report_id: report.body.report.id, feedback_id: feedback.body.feedback.id, plan_id: plan.body.plan.id, moderation_case: held.body.case_ref }));
