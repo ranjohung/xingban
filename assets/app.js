@@ -573,11 +573,7 @@
           { title: '尝试情绪日记', description: '每天记录自己的情绪状态', icon: '📝', completed: false },
         ]
       },
-      emergencyContacts: [
-        { id: 1, name: '妈妈', phone: '138****8000', fullPhone: '13812348000' },
-        { id: 2, name: '爸爸', phone: '139****9000', fullPhone: '13912349000' },
-        { id: 3, name: '李医生', phone: '137****6000', fullPhone: '13712346000' }
-      ]
+      emergencyContacts: []
     };
 
     const STRATEGY_GUIDES = {
@@ -749,15 +745,45 @@
     }
 
     function mayUsePrototypeStorage() { return ['localhost', '127.0.0.1', ''].includes(location.hostname); }
-    async function persistSensitiveRecord(kind, data, localKey) {
+    function currentChildId() { return Number(selectedChild?.id || MOCK_DATA.children?.[0]?.id || 0); }
+    const sensitiveRecordCache = new Map();
+    function sensitiveRecordKey(kind) { return `${currentChildId()}:${kind}`; }
+    function readPrototypeSensitive(localKey, fallback = {}) {
       try {
-        const result = await apiRequest(`/sensitive/record/${kind}/1`, 'PUT', { data });
+        const scopedKey=`${localKey}:${currentChildId()}`;
+        const current = sessionStorage.getItem(scopedKey);
+        if (current) return JSON.parse(current);
+        const legacy = localStorage.getItem(localKey);
+        if (legacy) { localStorage.removeItem(localKey); sessionStorage.setItem(scopedKey, legacy); return JSON.parse(legacy); }
+      } catch (_) {}
+      return fallback;
+    }
+    async function loadSensitiveRecord(kind, localKey, fallback = {}) {
+      const childId = currentChildId();
+      if (!childId) return { data: fallback, server: false };
+      const key=sensitiveRecordKey(kind);if(sensitiveRecordCache.has(key))return{data:sensitiveRecordCache.get(key),server:!useMockMode};
+      if (!useMockMode) {
+        try { const result = await apiRequest(`/sensitive/record/${kind}/${childId}`, 'GET'); if (result.success && result.resource?.data) { sensitiveRecordCache.set(key,result.resource.data); return { data: result.resource.data, server: true }; } } catch (_) {}
+      }
+      const data=readPrototypeSensitive(localKey, fallback);sensitiveRecordCache.set(key,data);return { data, server: false };
+    }
+    function cachedSensitiveRecord(kind,localKey,fallback={}){return sensitiveRecordCache.get(sensitiveRecordKey(kind))||readPrototypeSensitive(localKey,fallback)}
+    async function persistSensitiveRecord(kind, data, localKey) {
+      const childId = currentChildId();
+      if (!childId) throw new Error('请先建立或选择儿童档案');
+      sensitiveRecordCache.set(sensitiveRecordKey(kind),data);
+      const scopedLocalKey=`${localKey}:${childId}`;
+      if (useMockMode) { sessionStorage.setItem(scopedLocalKey, JSON.stringify(data)); localStorage.removeItem(localKey); return { server: false, demo: true }; }
+      try {
+        const result = await apiRequest(`/sensitive/record/${kind}/${childId}`, 'PUT', { data });
         if (!result.success) throw new Error('secure save failed');
+        sessionStorage.removeItem(scopedLocalKey);
         localStorage.removeItem(localKey);
         return { server: true };
       } catch (error) {
         if (!mayUsePrototypeStorage()) throw error;
-        localStorage.setItem(localKey, JSON.stringify(data));
+        sessionStorage.setItem(scopedLocalKey, JSON.stringify(data));
+        localStorage.removeItem(localKey);
         return { server: false };
       }
     }
@@ -2155,8 +2181,8 @@
       document.body.appendChild(modal);
     }
 
-    function showSafetyPlan() {
-      const saved = JSON.parse(localStorage.getItem('xingban_safety_plan') || '{}');
+    async function showSafetyPlan() {
+      const saved = (await loadSensitiveRecord('safety_plan','xingban_safety_plan',{})).data;
       const modal = document.createElement('div'); modal.className='fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[70]';
       modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl p-5 max-h-[92vh] overflow-y-auto"><div class="flex justify-between"><div><h2 class="text-xl font-bold">家庭安全计划</h2><p class="text-xs text-text-muted mt-1">建议与儿童精神科专业人员共同确认</p></div><button data-ui-action="close-top-modal">✕</button></div>
       <div class="space-y-3 mt-4">${[['warning','孩子的预警信号','如：连续两晚睡眠少于4小时、谈论死亡'],['calming','确认有效的支持方式','孩子接受的陪伴方式；明确禁用方式'],['hospital','首选医院/科室','医院名称、儿童精神科急诊位置'],['clinician','主治专业人员','姓名、机构、联系电话'],['medication','当前药物与重要提醒','仅记录医嘱；不要在此自行调整剂量'],['school','共同监护人/学校联系人','姓名、关系、电话'],['escalation','何时必须升级求助','自伤、自杀计划、伤人、失联、意识异常等']].map(([id,label,ph])=>`<label class="block text-sm font-medium">${escapeText(label)}<textarea id="safety-${id}" rows="2" placeholder="${escapeText(ph)}" class="mt-1 w-full p-3 rounded-xl border border-border text-sm">${escapeText(saved[id]||'')}</textarea></label>`).join('')}</div>
@@ -2169,10 +2195,7 @@
       document.getElementById('page-title').textContent = '紧急模式';
       document.getElementById('page-subtitle').textContent = '安全判断与即时求助';
 
-      const emergencyContacts = MOCK_DATA.emergencyContacts || [
-        { id: 1, name: '妈妈', phone: '138****8000', fullPhone: '13812348000' },
-        { id: 2, name: '爸爸', phone: '139****9000', fullPhone: '13912349000' }
-      ];
+      const emergencyContacts = MOCK_DATA.emergencyContacts || [];
 
       container.innerHTML = `
         <div class="min-h-screen bg-gradient-to-b from-[#fff8f6] via-[#fffdfb] to-[#f4f7f6] p-5 sm:p-6 flex flex-col animate-fade-in">
@@ -2242,8 +2265,8 @@
                 ${emergencyContacts.map(c => `
                   <button data-ui-call="callEmergencyContact" data-ui-args="${uiArgsAttr(c.fullPhone,c.name)}" class="flex-1 bg-white border border-[#dfe5e2] rounded-xl p-3 text-center shadow-sm hover:border-primary/50 transition-colors active:scale-[0.96]">
                     <div class="text-lg mb-1">📞</div>
-                    <div class="text-[#25313c] text-xs font-bold">${c.name}</div>
-                    <div class="text-[#66727d] text-xs mt-0.5">${c.phone}</div>
+                    <div class="text-[#25313c] text-xs font-bold">${escapeText(c.name)}</div>
+                    <div class="text-[#66727d] text-xs mt-0.5">${escapeText(c.phone)}</div>
                   </button>
                 `).join('')}
                 <button data-ui-call="callEmergencyContact" data-ui-args='["110","报警"]' class="flex-1 bg-red-50 border-2 border-red-300 rounded-xl p-3 text-center hover:bg-red-100 transition-colors active:scale-[0.96]">
@@ -2265,15 +2288,17 @@
       `;
     }
 
+    function normalizedPhone(value) { const phone=String(value||'').replace(/[\s()-]/g,''); return /^\+?\d{3,20}$/.test(phone)?phone:''; }
     function callEmergencyContact(phone, name) {
-      showToast(`正在拨打${name}：${phone}`);
+      const safePhone=normalizedPhone(phone);
+      if(!safePhone){showToast('电话号码无效，请在联系人管理中核对');return}
+      const anchor=document.createElement('a');anchor.href=`tel:${safePhone}`;anchor.setAttribute('aria-label',`拨打${String(name||'电话')}`);anchor.style.display='none';document.body.appendChild(anchor);anchor.click();anchor.remove();
     }
 
-    function showEmergencyContactManager() {
-      const contacts = MOCK_DATA.emergencyContacts || [
-        { id: 1, name: '妈妈', phone: '138****8000', fullPhone: '13812348000' },
-        { id: 2, name: '爸爸', phone: '139****9000', fullPhone: '13912349000' }
-      ];
+    async function showEmergencyContactManager() {
+      const loaded=await loadSensitiveRecord('emergency_contacts','xingban_emergency_contacts',{contacts:[]});
+      const contacts=Array.isArray(loaded.data?.contacts)?loaded.data.contacts.filter(item=>item&&normalizedPhone(item.fullPhone)&&String(item.name||'').trim()).slice(0,10):[];
+      MOCK_DATA.emergencyContacts=contacts.map((item,index)=>({id:Number(item.id)||index+1,name:String(item.name).slice(0,30),fullPhone:normalizedPhone(item.fullPhone),phone:normalizedPhone(item.fullPhone).replace(/^(\+?\d{3})\d+(\d{4})$/,'$1****$2')}));
 
       const modal = document.createElement('div');
       modal.className = 'fixed inset-0 bg-black/50 flex items-end justify-center z-50';
@@ -2284,16 +2309,17 @@
             <button data-ui-action="remove-overlay" class="text-text-muted">✕</button>
           </div>
           <div id="emergency-contacts-list" class="space-y-3">
-            ${contacts.map(c => `
+            ${MOCK_DATA.emergencyContacts.map(c => `
               <div class="flex items-center gap-3 p-3 bg-secondary/30 rounded-xl">
                 <div class="flex-1">
-                  <div class="font-medium text-text-primary">${c.name}</div>
-                  <div class="text-sm text-text-muted">${c.fullPhone}</div>
+                  <div class="font-medium text-text-primary">${escapeText(c.name)}</div>
+                  <div class="text-sm text-text-muted">${escapeText(c.phone)}</div>
                 </div>
                 <button data-ui-call="callEmergencyContact" data-ui-args="${uiArgsAttr(c.fullPhone,c.name)}" class="px-3 py-1.5 bg-success/10 text-success rounded-lg text-sm">拨打</button>
                 <button data-ui-call="removeEmergencyContact" data-ui-args="[${Number(c.id)}]" class="px-3 py-1.5 bg-danger/10 text-danger rounded-lg text-sm">删除</button>
               </div>
             `).join('')}
+            ${MOCK_DATA.emergencyContacts.length?'':'<div class="p-4 text-center text-sm text-text-muted bg-background rounded-xl">尚未添加家庭联系人。110和120始终可在紧急支持首页使用。</div>'}
           </div>
           <div class="mt-4 pt-4 border-t border-border">
             <h4 class="text-sm font-medium text-text-primary mb-3">添加联系人</h4>
@@ -2308,28 +2334,25 @@
       document.body.appendChild(modal);
     }
 
-    function addEmergencyContact() {
-      const name = document.getElementById('new-contact-name').value;
-      const phone = document.getElementById('new-contact-phone').value;
-      if (!name || !phone) { showToast('请填写完整信息'); return; }
-      if (!MOCK_DATA.emergencyContacts) {
-        MOCK_DATA.emergencyContacts = [
-          { id: 1, name: '妈妈', phone: '138****8000', fullPhone: '13812348000' },
-          { id: 2, name: '爸爸', phone: '139****9000', fullPhone: '13912349000' }
-        ];
-      }
+    async function addEmergencyContact() {
+      const name = document.getElementById('new-contact-name').value.trim().slice(0,30);
+      const phone = normalizedPhone(document.getElementById('new-contact-phone').value);
+      if (!name || !phone) { showToast('请填写称呼和有效电话号码'); return; }
+      if ((MOCK_DATA.emergencyContacts||[]).length>=10){showToast('最多保留10个紧急联系人');return}
+      if (!MOCK_DATA.emergencyContacts) MOCK_DATA.emergencyContacts=[];
       const newId = Math.max(...MOCK_DATA.emergencyContacts.map(c => c.id), 0) + 1;
       const maskedPhone = phone.length >= 4 ? phone.slice(0, 3) + '****' + phone.slice(-4) : phone;
       MOCK_DATA.emergencyContacts.push({ id: newId, name, phone: maskedPhone, fullPhone: phone });
-      showToast('联系人已添加');
+      try{const saved=await persistSensitiveRecord('emergency_contacts',{contacts:MOCK_DATA.emergencyContacts.map(({id,name,fullPhone})=>({id,name,fullPhone}))},'xingban_emergency_contacts');showToast(saved.server?'联系人已加密保存':'体验联系人仅保留在当前标签页')}catch(error){MOCK_DATA.emergencyContacts=MOCK_DATA.emergencyContacts.filter(c=>c.id!==newId);showToast(error.message||'联系人未保存');return}
       closeTopModal();
       navigateTo('emergency');
     }
 
-    function removeEmergencyContact(id) {
+    async function removeEmergencyContact(id) {
       if (!MOCK_DATA.emergencyContacts) return;
+      const previous=[...MOCK_DATA.emergencyContacts];
       MOCK_DATA.emergencyContacts = MOCK_DATA.emergencyContacts.filter(c => c.id !== id);
-      showToast('联系人已删除');
+      try{const saved=await persistSensitiveRecord('emergency_contacts',{contacts:MOCK_DATA.emergencyContacts.map(({id,name,fullPhone})=>({id,name,fullPhone}))},'xingban_emergency_contacts');showToast(saved.server?'联系人已从加密记录删除':'体验联系人已从当前标签页删除')}catch(error){MOCK_DATA.emergencyContacts=previous;showToast(error.message||'删除未保存');return}
       closeTopModal();
       navigateTo('emergency');
     }
@@ -5114,8 +5137,8 @@
       }
     }
 
-    function showWanderingPlan() {
-      const p = JSON.parse(localStorage.getItem('xingban_wandering_plan') || '{}');
+    async function showWanderingPlan() {
+      const p = (await loadSensitiveRecord('wandering_plan','xingban_wandering_plan',{})).data;
       const modal=document.createElement('div'); modal.className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'; modal.dataset.modal='true';
       const fields=[['photo','近期照片与衣着描述','如：照片保存位置、今日上衣颜色'],['places','孩子常去或偏好的地点','逐行填写'],['communication','沟通与感官注意','姓名回应、是否怕警笛、沟通方式'],['contacts','信任联系人分工','谁报警、谁找常去地点、谁留守'],['meeting','家庭集合点','走散后的固定集合位置']];
       modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[90vh] overflow-y-auto"><div class="flex justify-between"><div><h2 class="text-xl font-bold">防走失预案</h2><p class="text-xs text-text-muted">建议与共同监护人定期演练</p></div><button data-ui-action="close-top-modal">✕</button></div><div class="space-y-3 mt-4">${fields.map(([id,l,ph])=>`<label class="block text-sm font-medium">${escapeText(l)}<textarea id="wander-${id}" rows="2" placeholder="${escapeText(ph)}" class="mt-1 w-full p-3 rounded-xl border border-border">${escapeText(p[id]||'')}</textarea></label>`).join('')}</div><button data-ui-call="saveWanderingPlan" class="w-full mt-4 py-3 bg-primary text-white rounded-xl font-bold">保存预案</button></div>`; document.body.appendChild(modal);
@@ -5123,8 +5146,8 @@
 
     async function saveWanderingPlan(){const ids=['photo','places','communication','contacts','meeting'];const p={updatedAt:new Date().toISOString()};ids.forEach(id=>p[id]=document.getElementById('wander-'+id).value.trim());try{const saved=await persistSensitiveRecord('wandering_plan',p,'xingban_wandering_plan');closeTopModal();showToast(saved.server?'防走失预案已加密保存':'服务不可用，体验数据暂存当前设备');}catch(_){showToast('安全存储不可用，未保存敏感数据');}}
 
-    function startMissingChildMode() {
-      const p=JSON.parse(localStorage.getItem('xingban_wandering_plan')||'{}'); const modal=document.createElement('div');modal.className='fixed inset-0 bg-red-950/90 flex items-center justify-center z-[80] p-3';modal.dataset.modal='true';
+    async function startMissingChildMode() {
+      const p=(await loadSensitiveRecord('wandering_plan','xingban_wandering_plan',{})).data; const modal=document.createElement('div');modal.className='fixed inset-0 bg-red-950/90 flex items-center justify-center z-[80] p-3';modal.dataset.modal='true';
       modal.innerHTML=`<div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[94vh] overflow-y-auto"><div class="text-xs font-bold text-red-700">走失立即行动</div><h2 class="text-2xl font-bold mt-1">不要独自盲目寻找</h2><ol class="mt-4 space-y-3 list-decimal pl-5 text-sm leading-6"><li>立即确认最后出现的时间、地点和衣着，安排一名成人留在原地。</li><li>拨打 110，说明孩子年龄、沟通特点、诊断/特殊需要及可能去向。</li><li>分工检查水边、道路、交通站点、高处和孩子常去地点，不进入危险区域。</li><li>向场所工作人员出示近期照片；不要在公开群发送身份证号或完整住址。</li></ol><div class="mt-4 p-3 bg-background rounded-xl text-sm"><strong>预案摘要：</strong><p class="mt-1">常去地点：${escapeText(p.places||'尚未填写')}</p><p>沟通注意：${escapeText(p.communication||'尚未填写')}</p><p>家庭分工：${escapeText(p.contacts||'尚未填写')}</p></div><div class="grid grid-cols-2 gap-2 mt-4"><button data-ui-call="callEmergencyContact" data-ui-args='["110","报警"]' class="py-3 bg-red-700 text-white rounded-xl font-bold">拨打 110</button><button data-ui-call="showEmergencyContactManager" class="py-3 border border-border rounded-xl font-bold">联系家人</button></div><button data-ui-action="close-top-modal" class="w-full mt-2 py-3 text-text-secondary">取消 / 已找回</button></div>`;document.body.appendChild(modal);
     }
 
@@ -6077,12 +6100,11 @@
     }
 
     function getMentalHealthProfile() {
-      try { return JSON.parse(localStorage.getItem('xingban_mental_health_profile') || '{}'); }
-      catch (_) { return {}; }
+      return cachedSensitiveRecord('mental_health_profile','xingban_mental_health_profile',{});
     }
 
-    function showMentalHealthProfileEditor() {
-      const p = getMentalHealthProfile();
+    async function showMentalHealthProfileEditor() {
+      const p = (await loadSensitiveRecord('mental_health_profile','xingban_mental_health_profile',{})).data;
       const modal = document.createElement('div');
       modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
       modal.dataset.modal = 'true';

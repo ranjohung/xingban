@@ -77,6 +77,14 @@ async function main() {
   const childRead = await request(`/child/${childId}`, { headers });
   if (!childRead.response.ok || childRead.body.child.communication_level !== 'phrase' || childRead.body.child.sensory_visual !== 'sensitive' || childRead.body.child.sensory_hearing !== 'unknown') throw new Error('儿童支持等级或感官字段映射不正确');
 
+  const contactData = { contacts: [{ id: 1, name: '共同监护人', fullPhone: '13800138001' }] };
+  const contactSave = await request(`/sensitive/record/emergency_contacts/${childId}`, { method: 'PUT', headers, body: JSON.stringify({ data: contactData }) });
+  if (!contactSave.response.ok) throw new Error(`紧急联系人加密保存失败：${JSON.stringify(contactSave.body)}`);
+  const contactRead = await request(`/sensitive/record/emergency_contacts/${childId}`, { headers });
+  if (!contactRead.response.ok || contactRead.body.resource?.data?.contacts?.[0]?.fullPhone !== '13800138001') throw new Error('紧急联系人加密回读不一致');
+  const foreignContactRead = await request(`/sensitive/record/emergency_contacts/${childId}`, { headers: therapistHeaders });
+  if (foreignContactRead.response.status !== 404) throw new Error('紧急联系人存在跨账号读取');
+
   const emergencyPayload = { child_id: childId, client_request_id: randomUUID(), level: 'yellow' };
   const emergency = await request('/emergency/start', { method: 'POST', headers, body: JSON.stringify(emergencyPayload) });
   if (emergency.response.status !== 201 || !emergency.body.session?.id) throw new Error(`紧急支持会话启动失败：${JSON.stringify(emergency.body)}`);
