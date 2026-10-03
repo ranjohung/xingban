@@ -175,10 +175,9 @@
                       { name: '转移注意力', description: '用孩子喜欢的活动或物品转移注意力' }
                     ],
                     red: [
-                      { name: '安全防护', description: '首先确保孩子安全，移开危险物品，保护头部' },
-                      { name: '不说话少刺激', description: '保持安静，减少语言和视觉刺激' },
-                      { name: '深压安抚', description: '如孩子接受，用深压拥抱或压力背心提供本体感觉输入' },
-                      { name: '紧急联系', description: '如情况持续超过15分钟，联系康复师或拨打急救电话' }
+                      { name: '立即安全分流', description: '无法保证安全或拿不准时，不让孩子独处，立即联系120/110和既往就诊机构' },
+                      { name: '降低危险物可及性', description: '只在不危及成人安全、不引发对抗时，移开可安全移除的药物、刀具等危险物' },
+                      { name: '保留关键信息', description: '准备发生时间、伤情、用药、睡眠、意识变化和位置信息交给急救人员' }
                     ]
                   };
                   return { success: true, strategies: allStrategies[level] || allStrategies.green };
@@ -736,6 +735,9 @@
     let currentUser = null;
     let currentPage = 'login';
     let selectedChild = null;
+    let activeEmergencySession = null;
+    let emergencyStartInFlight = false;
+    let emergencyEndInFlight = false;
 
     // === 工具函数 ===
     function showToast(message) {
@@ -2333,13 +2335,18 @@
     }
 
     async function startEmergency(level) {
+      if (emergencyStartInFlight) return;
+      const childId = Number(selectedChild?.id || MOCK_DATA.children?.[0]?.id);
+      if (!childId) { showToast('请先建立或选择儿童档案'); return; }
+      const requestId = newClientRequestId();
+      activeEmergencySession = { id: null, childId, level, requestId, recorded: false };
+      emergencyStartInFlight = true;
+      let sessionRequest = null;
       try {
-        const result = await apiRequest('/emergency/start', 'POST', { child_id: 1, level });
-        if (!result.success) {
-          console.warn('紧急模式会话未写入服务端，继续使用本地引导');
-        }
+        if (navigator.onLine === false) throw new Error('当前网络已断开');
+        sessionRequest = apiRequest('/emergency/start', 'POST', { child_id: childId, level, client_request_id: requestId });
       } catch (error) {
-        console.error('紧急模式启动失败:', error);
+        console.error('紧急模式会话记录失败，安全引导继续可用:', error);
       }
 
       const container = document.getElementById('main-content');
@@ -2347,6 +2354,7 @@
         <div class="min-h-screen bg-gradient-to-b from-[#fff8f6] via-white to-[#f4f7f6] p-6 flex flex-col animate-fade-in">
           <div class="flex-1 flex flex-col items-center justify-center max-w-md mx-auto w-full">
             <div class="px-3 py-1 rounded-full bg-primary-light/40 text-primary-dark text-sm font-bold mb-4">已确认没有即时危险</div>
+            <p id="emergency-session-status" class="mb-4 text-xs text-center ${activeEmergencySession.recorded?'text-primary-dark':'text-amber-800'}" role="status">${activeEmergencySession.recorded?'本次支持已建立安全记录。':'引导可继续使用，但本次会话尚未保存；危险时不要等待网络。'}</p>
             <h2 class="text-2xl font-bold text-[#17212b] text-center mb-2">一起慢下来</h2>
             <p class="text-sm text-[#52606d] text-center mb-8">如果孩子不愿跟随，请停止练习，安静陪伴即可</p>
 
@@ -2399,6 +2407,18 @@
           clearInterval(interval);
         }
       }, 4000);
+      if (sessionRequest) {
+        try {
+          const result = await sessionRequest;
+          if (!result.success || !result.session?.id) throw new Error(result.error || '会话未确认保存');
+          activeEmergencySession = { ...activeEmergencySession, id: Number(result.session.id), recorded: true };
+          const status = document.getElementById('emergency-session-status');
+          if (status) { status.className='mb-4 text-xs text-center text-primary-dark'; status.textContent=result.replayed?'本次支持会话此前已建立。':'本次支持已建立安全记录。'; }
+        } catch (error) {
+          console.error('紧急模式会话记录失败，安全引导继续可用:', error);
+        }
+      }
+      emergencyStartInFlight = false;
     }
 
     async function showEmergencyStrategies(level) {
@@ -2461,11 +2481,17 @@
 
     function finishEmergencySession(level) {
       const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';modal.dataset.modal='true';
-      modal.innerHTML=`<div class="bg-white w-full max-w-md rounded-2xl p-5"><h2 class="text-xl font-bold">刚才很艰难，你已经做得够好了</h2><p class="text-sm text-text-secondary mt-2">只需选择现在的状态，不要求复盘。</p><div class="grid grid-cols-3 gap-2 mt-4">${[['calm','😌','已平静'],['low','😔','仍低落'],['angry','😤','仍激动']].map(([v,e,l])=>`<button data-ui-call="saveEmergencyOutcome" data-ui-args="${uiArgsAttr(level,v)}" class="p-3 rounded-xl border border-border"><span class="text-2xl block">${e}</span><span class="text-xs">${l}</span></button>`).join('')}</div><button data-ui-action="close-and-navigate" data-nav="home" class="w-full mt-4 py-3 text-text-secondary">暂不记录</button></div>`;document.body.appendChild(modal);
+      modal.innerHTML=`<div class="bg-white w-full max-w-md rounded-2xl p-5"><h2 class="text-xl font-bold">刚才很艰难，你已经做得够好了</h2><p class="text-sm text-text-secondary mt-2">只需选择现在的状态，不要求复盘。</p><div class="grid grid-cols-3 gap-2 mt-4">${[['calm','😌','已平静'],['low','😔','仍低落'],['angry','😤','仍激动']].map(([v,e,l])=>`<button data-emergency-outcome-button data-ui-call="saveEmergencyOutcome" data-ui-args="${uiArgsAttr(level,v)}" class="p-3 rounded-xl border border-border disabled:opacity-60"><span class="text-2xl block">${e}</span><span class="text-xs">${l}</span></button>`).join('')}</div><p id="emergency-outcome-status" class="mt-3 text-xs text-text-muted" role="status">${activeEmergencySession?.recorded?'选择后会结束当前服务端会话。':'本次会话尚未保存；选择后不会伪称已上传。'}</p><button data-ui-action="close-and-navigate" data-nav="home" class="w-full mt-4 py-3 text-text-secondary">暂不记录</button></div>`;document.body.appendChild(modal);
     }
 
-    function saveEmergencyOutcome(level, outcome) {
-      const records=JSON.parse(localStorage.getItem('xingban_emergency_sessions')||'[]');records.unshift({level,outcome,endedAt:new Date().toISOString()});localStorage.setItem('xingban_emergency_sessions',JSON.stringify(records.slice(0,50)));closeTopModal();showToast('已保存本次状态，不再打扰');navigateTo(outcome==='calm'?'home':'family');
+    async function saveEmergencyOutcome(level, outcome) {
+      if (emergencyEndInFlight) return;
+      const status=document.getElementById('emergency-outcome-status');
+      if (useMockMode) { const records=JSON.parse(sessionStorage.getItem('xingban_emergency_sessions')||'[]');records.unshift({level,outcome,endedAt:new Date().toISOString(),demo:true});sessionStorage.setItem('xingban_emergency_sessions',JSON.stringify(records.slice(0,50)));closeTopModal();showToast('体验记录仅保留在当前标签页');navigateTo(outcome==='calm'?'home':'family');return; }
+      if (!activeEmergencySession?.id) { if(status)status.textContent='未保存：本次会话没有服务端编号。安全引导仍然有效，但请不要把结果视为已上传。';showToast('本次结果尚未保存');return; }
+      if (navigator.onLine === false) { if(status)status.textContent='未保存：当前网络已断开，联网后可重试。';showToast('本次结果尚未保存');return; }
+      emergencyEndInFlight=true;document.querySelectorAll('[data-emergency-outcome-button]').forEach(button=>button.disabled=true);if(status)status.textContent='正在结束会话并保存状态…';
+      try{const result=await apiRequest(`/emergency/end/${activeEmergencySession.id}`,'POST',{outcome,energy_station:true});if(!result.success)throw new Error(result.error||'保存失败');activeEmergencySession=null;closeTopModal();showToast(result.replayed?'本次结果此前已保存':'已保存本次状态');navigateTo(outcome==='calm'?'home':'family')}catch(error){if(status)status.textContent=`未确认保存：${error.message||'网络连接中断'}。可安全重试。`;showToast('本次结果尚未确认保存')}finally{emergencyEndInFlight=false;document.querySelectorAll('[data-emergency-outcome-button]').forEach(button=>button.disabled=false)}
     }
 
     function showStrategyNavigator() {

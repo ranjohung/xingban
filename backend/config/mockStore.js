@@ -256,9 +256,11 @@ function query(sql, params, callback) {
     } else if (sql.includes('INSERT INTO emergency_sessions')) {
       const session = {
         id: Date.now(),
-        child_id: params[0] || 0,
-        level: params[1],
-        start_time: new Date(),
+        client_request_id: params[0],
+        child_id: params[1] || 0,
+        user_id: params[2],
+        level: params[3],
+        started_at: new Date(),
         status: 'active'
       };
       emergencySessions.push(session);

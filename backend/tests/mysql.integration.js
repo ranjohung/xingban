@@ -77,6 +77,20 @@ async function main() {
   const childRead = await request(`/child/${childId}`, { headers });
   if (!childRead.response.ok || childRead.body.child.communication_level !== 'phrase' || childRead.body.child.sensory_visual !== 'sensitive' || childRead.body.child.sensory_hearing !== 'unknown') throw new Error('儿童支持等级或感官字段映射不正确');
 
+  const emergencyPayload = { child_id: childId, client_request_id: randomUUID(), level: 'yellow' };
+  const emergency = await request('/emergency/start', { method: 'POST', headers, body: JSON.stringify(emergencyPayload) });
+  if (emergency.response.status !== 201 || !emergency.body.session?.id) throw new Error(`紧急支持会话启动失败：${JSON.stringify(emergency.body)}`);
+  const emergencyReplay = await request('/emergency/start', { method: 'POST', headers, body: JSON.stringify(emergencyPayload) });
+  if (!emergencyReplay.response.ok || !emergencyReplay.body.replayed || Number(emergencyReplay.body.session?.id) !== Number(emergency.body.session.id)) throw new Error('紧急支持会话重复提交未返回原会话');
+  const foreignEmergencyHistory = await request(`/emergency/${childId}/history`, { headers: therapistHeaders });
+  if (!foreignEmergencyHistory.response.ok || foreignEmergencyHistory.body.sessions?.length !== 0) throw new Error('紧急支持历史存在跨账号读取');
+  const emergencyEnd = await request(`/emergency/end/${emergency.body.session.id}`, { method: 'POST', headers, body: JSON.stringify({ outcome: 'calm', energy_station: true }) });
+  if (!emergencyEnd.response.ok || emergencyEnd.body.replayed) throw new Error(`紧急支持会话结束失败：${JSON.stringify(emergencyEnd.body)}`);
+  const emergencyEndReplay = await request(`/emergency/end/${emergency.body.session.id}`, { method: 'POST', headers, body: JSON.stringify({ outcome: 'angry', energy_station: true }) });
+  if (!emergencyEndReplay.response.ok || !emergencyEndReplay.body.replayed || emergencyEndReplay.body.outcome !== 'calm') throw new Error('紧急支持结果重试未保留原结果');
+  const emergencyHistory = await request(`/emergency/${childId}/history`, { headers });
+  if (!emergencyHistory.response.ok || emergencyHistory.body.sessions?.length !== 1 || emergencyHistory.body.sessions[0].outcome !== 'calm') throw new Error('紧急支持历史回读不一致');
+
   const practicePayload = { child_id: childId, client_request_id: randomUUID(), completed: true };
   const practice = await request('/safety/skills/1/practice', { method: 'POST', headers, body: JSON.stringify(practicePayload) });
   if (!practice.response.ok) throw new Error(`安全技能练习记录失败：${JSON.stringify(practice.body)}`);
@@ -156,7 +170,7 @@ async function main() {
     throw new Error('真实数据库回读数量不一致');
   }
   console.log(JSON.stringify({ database: 'mysql', child_id: childId, behavior_id: behavior.body.record.id, report_id: report.body.report.id, feedback_id: feedback.body.feedback.id, plan_id: plan.body.plan.id, moderation_case: held.body.case_ref }));
-  console.log('PASS real MySQL integration: register, child, behavior, strategy feedback, report, plan, moderation history pagination, readback');
+  console.log('PASS real MySQL integration: register, child, emergency session, behavior, strategy feedback, report, plan, moderation history pagination, readback');
 }
 
 async function cleanup() {

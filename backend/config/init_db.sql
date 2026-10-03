@@ -133,6 +133,7 @@ CREATE TABLE IF NOT EXISTS strategy_feedback (
 
 CREATE TABLE IF NOT EXISTS emergency_sessions (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  client_request_id CHAR(36) NULL,
   child_id INT NOT NULL,
   user_id INT NOT NULL,
   level ENUM('green', 'yellow', 'red') NOT NULL,
@@ -142,6 +143,7 @@ CREATE TABLE IF NOT EXISTS emergency_sessions (
   outcome VARCHAR(200),
   energy_station BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_emergency_session_request (user_id, client_request_id),
   FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
