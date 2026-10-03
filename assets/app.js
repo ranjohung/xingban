@@ -6532,7 +6532,9 @@
               <label class="block text-sm text-text-secondary mb-1">截止日期</label>
               <input type="date" id="goal-deadline" class="w-full px-4 py-2.5 rounded-xl border border-border">
             </div>
-            <button data-ui-call="saveGoal" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
+            <input type="hidden" id="goal-request-id" value="${newClientRequestId()}">
+            <button id="goal-save-button" data-ui-call="saveGoal" class="w-full py-3 rounded-xl bg-primary text-white font-medium disabled:opacity-60">保存</button>
+            <p id="goal-save-status" class="text-xs text-text-muted" role="status">尚未保存</p>
           </div>
         </div>
       `;
@@ -6546,6 +6548,9 @@
       const current_level = parseInt(document.getElementById('goal-current').value);
       const target_level = parseInt(document.getElementById('goal-target-level').value);
       const deadline = document.getElementById('goal-deadline').value;
+      const button = document.getElementById('goal-save-button');
+      const status = document.getElementById('goal-save-status');
+      if (button.disabled) return;
 
       if (!childId) {
         showToast('请先选择儿童档案');
@@ -6555,23 +6560,28 @@
         showToast('请填写完整信息');
         return;
       }
+      if (navigator.onLine === false) { status.textContent = '未保存：当前网络已断开，内容仍保留，可联网后重试。'; return showToast('当前离线，目标尚未保存'); }
 
+      button.disabled = true; button.textContent = '正在保存…'; status.textContent = '正在保存，请勿重复点击。';
       try {
         const result = await apiRequest(`/child/${childId}/goals`, 'POST', {
+          client_request_id: document.getElementById('goal-request-id').value,
           goal_type: category,
           description: target,
           target_date: deadline
         });
 
         if (result.success) {
-          showToast('目标添加成功');
+          showToast(result.replayed ? '目标此前已保存，未重复创建' : '目标添加成功');
           closeTopModal();
           renderChildProfileDetail(document.getElementById('main-content'));
         } else {
           showToast(result.error || '添加失败');
         }
       } catch (error) {
-        showToast('网络错误');
+        status.textContent = '保存状态未确认，内容仍保留；请使用同一页面重试。'; showToast('目标尚未确认保存');
+      } finally {
+        if (document.body.contains(button)) { button.disabled = false; button.textContent = '保存'; }
       }
     }
 
@@ -6787,7 +6797,9 @@
               <label class="block text-sm text-text-secondary mb-1">描述</label>
               <textarea id="milestone-description" placeholder="描述这个里程碑..." class="w-full px-4 py-3 rounded-xl border border-border" rows="3"></textarea>
             </div>
-            <button data-ui-call="saveMilestone" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
+            <input type="hidden" id="milestone-request-id" value="${newClientRequestId()}">
+            <button id="milestone-save-button" data-ui-call="saveMilestone" class="w-full py-3 rounded-xl bg-primary text-white font-medium disabled:opacity-60">保存</button>
+            <p id="milestone-save-status" class="text-xs text-text-muted" role="status">尚未保存</p>
           </div>
         </div>
       `;
@@ -6799,6 +6811,9 @@
       const milestoneId = parseInt(document.getElementById('milestone-stage').value, 10);
       const title = document.getElementById('milestone-title').value;
       const description = document.getElementById('milestone-description').value;
+      const button = document.getElementById('milestone-save-button');
+      const status = document.getElementById('milestone-save-status');
+      if (button.disabled) return;
 
       if (!childId) {
         showToast('请先选择儿童档案');
@@ -6808,23 +6823,28 @@
         showToast('请填写完整信息');
         return;
       }
+      if (navigator.onLine === false) { status.textContent = '未保存：当前网络已断开，内容仍保留。'; return showToast('当前离线，里程碑尚未保存'); }
 
+      button.disabled = true; button.textContent = '正在保存…'; status.textContent = '正在保存，请勿重复点击。';
       try {
         const result = await apiRequest(`/career/milestones/${childId}`, 'POST', {
+          client_request_id: document.getElementById('milestone-request-id').value,
           milestone_id: milestoneId,
           title,
           description
         });
 
         if (result.success) {
-          showToast('里程碑添加成功');
+          showToast(result.replayed ? '里程碑此前已保存，未重复创建' : '里程碑添加成功');
           closeTopModal();
           renderCareerTimelineContent();
         } else {
           showToast(result.error || '添加失败');
         }
       } catch (error) {
-        showToast('网络错误');
+        status.textContent = '保存状态未确认，内容仍保留；可使用同一页面重试。'; showToast('里程碑尚未确认保存');
+      } finally {
+        if (document.body.contains(button)) { button.disabled = false; button.textContent = '保存'; }
       }
     }
 
@@ -6860,7 +6880,9 @@
               <label class="block text-sm text-text-secondary mb-1">截止日期</label>
               <input type="date" id="career-goal-deadline" class="w-full px-4 py-2.5 rounded-xl border border-border">
             </div>
-            <button data-ui-call="saveCareerGoal" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
+            <input type="hidden" id="career-goal-request-id" value="${newClientRequestId()}">
+            <button id="career-goal-save-button" data-ui-call="saveCareerGoal" class="w-full py-3 rounded-xl bg-primary text-white font-medium disabled:opacity-60">保存</button>
+            <p id="career-goal-save-status" class="text-xs text-text-muted" role="status">尚未保存</p>
           </div>
         </div>
       `;
@@ -6873,6 +6895,9 @@
       const type = document.getElementById('career-goal-type').value;
       const description = document.getElementById('career-goal-description').value.trim();
       const deadline = document.getElementById('career-goal-deadline').value;
+      const button = document.getElementById('career-goal-save-button');
+      const status = document.getElementById('career-goal-save-status');
+      if (button.disabled) return;
 
       if (!childId) {
         showToast('请先选择儿童档案');
@@ -6882,9 +6907,12 @@
         showToast('请填写完整信息');
         return;
       }
+      if (navigator.onLine === false) { status.textContent = '未保存：当前网络已断开，内容仍保留。'; return showToast('当前离线，目标尚未保存'); }
 
+      button.disabled = true; button.textContent = '正在保存…'; status.textContent = '正在保存，请勿重复点击。';
       try {
         const result = await apiRequest(`/career/goals/${childId}`, 'POST', {
+          client_request_id: document.getElementById('career-goal-request-id').value,
           title,
           category: type,
           description,
@@ -6892,13 +6920,15 @@
         });
 
         if (result.success) {
-          showToast('目标添加成功');
+          showToast(result.replayed ? '目标此前已保存，未重复创建' : '目标添加成功');
           closeTopModal();
         } else {
           showToast(result.error || '添加失败');
         }
       } catch (error) {
-        showToast('网络错误');
+        status.textContent = '保存状态未确认，内容仍保留；可使用同一页面重试。'; showToast('目标尚未确认保存');
+      } finally {
+        if (document.body.contains(button)) { button.disabled = false; button.textContent = '保存'; }
       }
     }
 
@@ -7250,7 +7280,9 @@
               <label class="block text-sm text-text-secondary mb-1">备注</label>
               <input type="text" id="expense-note" placeholder="不填写身份证号、银行卡号或完整票据号码" maxlength="300" class="w-full px-4 py-2.5 rounded-xl border border-border">
             </div>
-            <button data-ui-call="saveExpense" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
+            <input type="hidden" id="expense-request-id" value="${newClientRequestId()}">
+            <button id="expense-save-button" data-ui-call="saveExpense" class="w-full py-3 rounded-xl bg-primary text-white font-medium disabled:opacity-60">保存</button>
+            <p id="expense-save-status" class="text-xs text-text-muted" role="status">尚未保存</p>
           </div>
         </div>
       `;
@@ -7271,6 +7303,9 @@
       const category = document.getElementById('expense-category').value;
       const amount = parseFloat(document.getElementById('expense-amount').value);
       const note = document.getElementById('expense-note').value;
+      const button = document.getElementById('expense-save-button');
+      const status = document.getElementById('expense-save-status');
+      if (button.disabled) return;
 
       if (!childId) {
         showToast('请先选择儿童档案');
@@ -7280,25 +7315,30 @@
         showToast('请填写金额');
         return;
       }
+      if (navigator.onLine === false) { status.textContent = '未保存：当前网络已断开，金额和备注仍保留。'; return showToast('当前离线，记录尚未保存'); }
 
       const finalAmount = type === 'income' ? -amount : amount;
 
+      button.disabled = true; button.textContent = '正在保存…'; status.textContent = '正在保存，请勿重复点击。';
       try {
         const result = await apiRequest(`/finance/expenses/${childId}`, 'POST', {
+          client_request_id: document.getElementById('expense-request-id').value,
           category,
           amount: finalAmount,
           description: note
         });
 
         if (result.success) {
-          showToast('记录添加成功');
+          showToast(result.replayed ? '该记录此前已保存，未重复记账' : '记录添加成功');
           closeTopModal();
           renderFinanceRecordsContent();
         } else {
           showToast(result.error || '添加失败');
         }
       } catch (error) {
-        showToast('网络错误');
+        status.textContent = '保存状态未确认，金额和备注仍保留；可使用同一页面重试。'; showToast('记账尚未确认保存');
+      } finally {
+        if (document.body.contains(button)) { button.disabled = false; button.textContent = '保存'; }
       }
     }
 

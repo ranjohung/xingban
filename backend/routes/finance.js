@@ -20,6 +20,7 @@ const fraudCases = [
 ];
 
 const FINANCE_CATEGORIES = new Set(['康复训练', '医疗检查', '教育用品', '日常生活', '政府补贴', '其他']);
+const requestId = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim()) ? String(value).trim() : '';
 
 // 参数归属校验依赖 req.user，必须先完成鉴权。
 router.use(auth);
@@ -60,16 +61,19 @@ router.post('/expenses/:childId', auth, (req, res) => {
   const amount = Number(req.body.amount);
   const category = FINANCE_CATEGORIES.has(req.body.category) ? req.body.category : '';
   const description = typeof (req.body.description ?? req.body.note) === 'string' ? (req.body.description ?? req.body.note).trim().slice(0, 300) : '';
+  const clientRequestId = requestId(req.body.client_request_id);
   
-  if (!Number.isFinite(amount) || amount === 0 || Math.abs(amount) > 100000000 || !category) {
+  if (!Number.isFinite(amount) || amount === 0 || Math.abs(amount) > 100000000 || !category || !clientRequestId) {
     return res.status(400).json({ error: '请填写金额和类别' });
   }
   
-  db.query(
-    'INSERT INTO financial_records (user_id, child_id, amount, category, date, description, receipt_url, is_reimbursable, insurance_policy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [req.user.id, req.childId, amount, category, date || new Date(), description || '', receipt_url || null, is_reimbursable || false, insurance_policy || null],
+  const replay = () => db.query('SELECT id,child_id,amount,category,date,description FROM financial_records WHERE user_id=? AND client_request_id=?', [req.user.id, clientRequestId], (readErr, rows) => readErr || !rows.length ? res.status(500).json({ error: '记账状态暂时无法确认，请保留页面后重试' }) : res.json({ success: true, replayed: true, record: rows[0] }));
+  const create = () => db.query(
+    'INSERT INTO financial_records (user_id, child_id, client_request_id, amount, category, date, description, receipt_url, is_reimbursable, insurance_policy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [req.user.id, req.childId, clientRequestId, amount, category, date || new Date(), description || '', receipt_url || null, is_reimbursable || false, insurance_policy || null],
     (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err?.code === 'ER_DUP_ENTRY') return replay();
+      if (err) return res.status(500).json({ error: '记账暂时无法保存' });
       
       res.status(201).json({
         success: true,
@@ -78,6 +82,7 @@ router.post('/expenses/:childId', auth, (req, res) => {
       });
     }
   );
+  db.query('SELECT id FROM financial_records WHERE user_id=? AND client_request_id=?', [req.user.id, clientRequestId], (err, rows) => err ? res.status(500).json({ error: '记账状态暂时无法确认' }) : rows.length ? replay() : create());
 });
 
 router.delete('/expenses/:childId/:recordId', auth, (req, res) => {

@@ -77,6 +77,30 @@ async function main() {
   const childRead = await request(`/child/${childId}`, { headers });
   if (!childRead.response.ok || childRead.body.child.communication_level !== 'phrase' || childRead.body.child.sensory_visual !== 'sensitive' || childRead.body.child.sensory_hearing !== 'unknown') throw new Error('儿童支持等级或感官字段映射不正确');
 
+  const interventionGoalPayload = { client_request_id: randomUUID(), goal_type: '沟通', description: '支持孩子表达暂停与拒绝', target_date: '2026-11-01' };
+  const interventionGoal = await request(`/child/${childId}/goals`, { method: 'POST', headers, body: JSON.stringify(interventionGoalPayload) });
+  if (interventionGoal.response.status !== 201) throw new Error(`干预目标创建失败：${JSON.stringify(interventionGoal.body)}`);
+  const interventionGoalReplay = await request(`/child/${childId}/goals`, { method: 'POST', headers, body: JSON.stringify(interventionGoalPayload) });
+  if (!interventionGoalReplay.response.ok || !interventionGoalReplay.body.replayed || Number(interventionGoalReplay.body.goal?.id) !== Number(interventionGoal.body.goal.id)) throw new Error('干预目标重复提交未返回原记录');
+
+  const milestonePayload = { client_request_id: randomUUID(), milestone_id: 2, title: '找到舒适的活动节奏', description: '孩子能够表达暂停' };
+  const milestone = await request(`/career/milestones/${childId}`, { method: 'POST', headers, body: JSON.stringify(milestonePayload) });
+  if (milestone.response.status !== 201) throw new Error(`成长里程碑创建失败：${JSON.stringify(milestone.body)}`);
+  const milestoneReplay = await request(`/career/milestones/${childId}`, { method: 'POST', headers, body: JSON.stringify(milestonePayload) });
+  if (!milestoneReplay.response.ok || !milestoneReplay.body.replayed || Number(milestoneReplay.body.achievement?.id) !== Number(milestone.body.achievement.id)) throw new Error('成长里程碑重复提交未返回原记录');
+
+  const careerGoalPayload = { client_request_id: randomUUID(), category: 'life', title: '参与选择家庭活动', description: '每周提供两个可拒绝的选择', target_date: '2026-11-15' };
+  const careerGoal = await request(`/career/goals/${childId}`, { method: 'POST', headers, body: JSON.stringify(careerGoalPayload) });
+  if (careerGoal.response.status !== 201) throw new Error(`生涯目标创建失败：${JSON.stringify(careerGoal.body)}`);
+  const careerGoalReplay = await request(`/career/goals/${childId}`, { method: 'POST', headers, body: JSON.stringify(careerGoalPayload) });
+  if (!careerGoalReplay.response.ok || !careerGoalReplay.body.replayed || Number(careerGoalReplay.body.goal?.id) !== Number(careerGoal.body.goal.id)) throw new Error('生涯目标重复提交未返回原记录');
+
+  const financePayload = { client_request_id: randomUUID(), category: '教育用品', amount: 88.5, description: '测试记录' };
+  const finance = await request(`/finance/expenses/${childId}`, { method: 'POST', headers, body: JSON.stringify(financePayload) });
+  if (finance.response.status !== 201) throw new Error(`家庭记账创建失败：${JSON.stringify(finance.body)}`);
+  const financeReplay = await request(`/finance/expenses/${childId}`, { method: 'POST', headers, body: JSON.stringify(financePayload) });
+  if (!financeReplay.response.ok || !financeReplay.body.replayed || Number(financeReplay.body.record?.id) !== Number(finance.body.record.id)) throw new Error('家庭记账重复提交未返回原记录');
+
   const contactData = { contacts: [{ id: 1, name: '共同监护人', fullPhone: '13800138001' }] };
   const contactSave = await request(`/sensitive/record/emergency_contacts/${childId}`, { method: 'PUT', headers, body: JSON.stringify({ data: contactData }) });
   if (!contactSave.response.ok) throw new Error(`紧急联系人加密保存失败：${JSON.stringify(contactSave.body)}`);

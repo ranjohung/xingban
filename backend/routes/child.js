@@ -431,16 +431,18 @@ router.get('/:id/goals', auth, verifyOwnedChild, (req, res) => {
 
 router.post('/:id/goals', auth, verifyOwnedChild, (req, res) => {
   const { goal_type, description, target_date } = req.body;
+  const clientRequestId = String(req.body.client_request_id || '').trim();
   
-  if (!goal_type || !description) {
+  if (!goal_type || !description || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientRequestId)) {
     return res.status(400).json({ error: '请填写目标类型和描述' });
   }
-  
-  db.query(
-    'INSERT INTO intervention_goals (child_id, goal_type, description, target_date) VALUES (?, ?, ?, ?)',
-    [req.params.id, goal_type, description, target_date || null],
+  const replay = () => db.query('SELECT id,goal_type,description,target_date,status,progress FROM intervention_goals WHERE child_id=? AND client_request_id=?', [req.params.id, clientRequestId], (readErr, rows) => readErr || !rows.length ? res.status(500).json({ error: '目标保存状态暂时无法确认，请保留页面后重试' }) : res.json({ success: true, replayed: true, goal: rows[0] }));
+  const create = () => db.query(
+    'INSERT INTO intervention_goals (child_id, client_request_id, goal_type, description, target_date) VALUES (?, ?, ?, ?, ?)',
+    [req.params.id, clientRequestId, String(goal_type).slice(0, 50), String(description).trim().slice(0, 2000), target_date || null],
     (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err?.code === 'ER_DUP_ENTRY') return replay();
+      if (err) return res.status(500).json({ error: '目标暂时无法保存' });
       
       res.status(201).json({
         success: true,
@@ -449,6 +451,7 @@ router.post('/:id/goals', auth, verifyOwnedChild, (req, res) => {
       });
     }
   );
+  db.query('SELECT id FROM intervention_goals WHERE child_id=? AND client_request_id=?', [req.params.id, clientRequestId], (err, rows) => err ? res.status(500).json({ error: '目标保存状态暂时无法确认' }) : rows.length ? replay() : create());
 });
 
 router.put('/:id/goals/:goalId', auth, verifyOwnedChild, (req, res) => {

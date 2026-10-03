@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS child_caregivers (
 CREATE TABLE IF NOT EXISTS intervention_goals (
   id INT AUTO_INCREMENT PRIMARY KEY,
   child_id INT NOT NULL,
+  client_request_id CHAR(36) NULL,
   goal_type VARCHAR(50) NOT NULL,
   description TEXT NOT NULL,
   target_date DATE,
@@ -69,6 +70,7 @@ CREATE TABLE IF NOT EXISTS intervention_goals (
   progress INT DEFAULT 0,
   ai_generated BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_intervention_goal_request (child_id, client_request_id),
   FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE
 );
 
@@ -578,23 +580,23 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 CREATE TABLE IF NOT EXISTS career_milestones (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY, child_id INT NOT NULL, milestone_id INT NOT NULL,
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, child_id INT NOT NULL, client_request_id CHAR(36) NULL, milestone_id INT NOT NULL,
   title VARCHAR(100) NOT NULL, description TEXT, story TEXT, photo_url VARCHAR(500), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_career_milestone_child_time (child_id, created_at), FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE
+  UNIQUE KEY uq_career_milestone_request (child_id, client_request_id), INDEX idx_career_milestone_child_time (child_id, created_at), FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS career_goals (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY, child_id INT NOT NULL, category VARCHAR(30) NOT NULL,
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, child_id INT NOT NULL, client_request_id CHAR(36) NULL, category VARCHAR(30) NOT NULL,
   title VARCHAR(80) NOT NULL, description TEXT, target_date DATE, priority TINYINT NOT NULL DEFAULT 1,
   steps JSON NULL, progress TINYINT NOT NULL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_career_goal_child_priority (child_id, priority), FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE
+  UNIQUE KEY uq_career_goal_request (child_id, client_request_id), INDEX idx_career_goal_child_priority (child_id, priority), FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS financial_records (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, child_id INT NOT NULL,
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, child_id INT NOT NULL, client_request_id CHAR(36) NULL,
   amount DECIMAL(12,2) NOT NULL, category VARCHAR(50) NOT NULL, date DATE NOT NULL, description VARCHAR(300) NOT NULL DEFAULT '',
   receipt_url VARCHAR(500), is_reimbursable BOOLEAN NOT NULL DEFAULT FALSE, insurance_policy VARCHAR(200),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_finance_child_date (child_id, date),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uq_finance_request (user_id, client_request_id), INDEX idx_finance_child_date (child_id, date),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS user_subsidies (

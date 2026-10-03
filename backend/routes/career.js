@@ -25,6 +25,7 @@ const milestoneAchievements = [
 
 const GOAL_CATEGORIES = new Set(['skill', 'social', 'career', 'education', 'life', 'self_care', 'learning']);
 const clean = (value, max) => typeof value === 'string' ? value.trim().slice(0, max) : '';
+const requestId = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim()) ? String(value).trim() : '';
 
 // 参数归属校验依赖 req.user，必须先完成鉴权。
 router.use(auth);
@@ -62,16 +63,19 @@ router.get('/milestones/:childId', auth, (req, res) => {
 
 router.post('/milestones/:childId', auth, (req, res) => {
   const { milestone_id, title, description, story, photo_url } = req.body;
+  const clientRequestId = requestId(req.body.client_request_id);
   
-  if (!milestone_id || !title) {
+  if (!milestone_id || !title || !clientRequestId) {
     return res.status(400).json({ error: '请填写里程碑ID和标题' });
   }
   
-  db.query(
-    'INSERT INTO career_milestones (child_id, milestone_id, title, description, story, photo_url) VALUES (?, ?, ?, ?, ?, ?)',
-    [req.childId, milestone_id, title, description || '', story || '', photo_url || null],
+  const replay = () => db.query('SELECT id,milestone_id,title,description,created_at FROM career_milestones WHERE child_id=? AND client_request_id=?', [req.childId, clientRequestId], (readErr, rows) => readErr || !rows.length ? res.status(500).json({ error: '里程碑保存状态暂时无法确认，请保留页面后重试' }) : res.json({ success: true, replayed: true, achievement: rows[0] }));
+  const create = () => db.query(
+    'INSERT INTO career_milestones (child_id, client_request_id, milestone_id, title, description, story, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [req.childId, clientRequestId, milestone_id, clean(title, 100), clean(description, 2000), clean(story, 5000), photo_url || null],
     (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err?.code === 'ER_DUP_ENTRY') return replay();
+      if (err) return res.status(500).json({ error: '里程碑暂时无法保存' });
       
       res.status(201).json({
         success: true,
@@ -80,6 +84,7 @@ router.post('/milestones/:childId', auth, (req, res) => {
       });
     }
   );
+  db.query('SELECT id FROM career_milestones WHERE child_id=? AND client_request_id=?', [req.childId, clientRequestId], (err, rows) => err ? res.status(500).json({ error: '里程碑保存状态暂时无法确认' }) : rows.length ? replay() : create());
 });
 
 router.delete('/milestones/:childId/:achievementId', auth, (req, res) => {
@@ -109,18 +114,21 @@ router.get('/goals/:childId', auth, (req, res) => {
 
 router.post('/goals/:childId', auth, (req, res) => {
   const { category, title, description, target_date, priority } = req.body;
+  const clientRequestId = requestId(req.body.client_request_id);
   
-  if (!category || !title) {
+  if (!GOAL_CATEGORIES.has(category) || !title || !clientRequestId) {
     return res.status(400).json({ error: '请填写目标类别和标题' });
   }
   
   const steps = generateGoalSteps(category, title);
   
-  db.query(
-    'INSERT INTO career_goals (child_id, category, title, description, target_date, priority, steps) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [req.childId, category, title, description || '', target_date || null, priority || 1, JSON.stringify(steps)],
+  const replay = () => db.query('SELECT id,category,title,description,target_date,priority,steps,progress FROM career_goals WHERE child_id=? AND client_request_id=?', [req.childId, clientRequestId], (readErr, rows) => readErr || !rows.length ? res.status(500).json({ error: '目标保存状态暂时无法确认，请保留页面后重试' }) : res.json({ success: true, replayed: true, goal: rows[0] }));
+  const create = () => db.query(
+    'INSERT INTO career_goals (child_id, client_request_id, category, title, description, target_date, priority, steps) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [req.childId, clientRequestId, category, clean(title, 80), clean(description, 2000), target_date || null, priority || 1, JSON.stringify(steps)],
     (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err?.code === 'ER_DUP_ENTRY') return replay();
+      if (err) return res.status(500).json({ error: '目标暂时无法保存' });
       
       res.status(201).json({
         success: true,
@@ -129,6 +137,7 @@ router.post('/goals/:childId', auth, (req, res) => {
       });
     }
   );
+  db.query('SELECT id FROM career_goals WHERE child_id=? AND client_request_id=?', [req.childId, clientRequestId], (err, rows) => err ? res.status(500).json({ error: '目标保存状态暂时无法确认' }) : rows.length ? replay() : create());
 });
 
 router.put('/goals/:childId/:goalId', auth, (req, res) => {

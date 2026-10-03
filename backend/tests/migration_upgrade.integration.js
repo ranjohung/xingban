@@ -23,6 +23,10 @@ const expectedColumns = {
   strategy_feedback: ['client_request_id'],
   safety_practice_records: ['client_request_id'],
   emergency_sessions: ['client_request_id']
+  ,intervention_goals: ['client_request_id']
+  ,career_milestones: ['client_request_id']
+  ,career_goals: ['client_request_id']
+  ,financial_records: ['client_request_id']
 };
 
 async function main() {

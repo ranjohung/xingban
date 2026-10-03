@@ -8,5 +8,8 @@ const finance=fs.readFileSync(path.resolve(__dirname,'..','backend','routes','fi
 assert(!html.includes('建议重点培养数字技能和编程能力'),'不得按诊断标签预设职业');
 ['能够独立居住生活','实现经济独立','成功考入大学','generateSimulation'].forEach(marker=>assert(!career.includes(marker),'服务端仍含固定结局预测: '+marker));
 ['buildSupportPlan','不预测孩子未来能力','拒绝信号'].forEach(marker=>assert(career.includes(marker),'服务端支持清单缺少: '+marker));
+['goal-request-id','milestone-request-id','career-goal-request-id','expense-request-id','当前网络已断开','此前已保存'].forEach(marker=>assert(html.includes(marker),'前端低频写入可靠性缺少: '+marker));
+['client_request_id','ER_DUP_ENTRY','replayed: true'].forEach(marker=>assert(career.includes(marker),'生涯写入幂等缺少: '+marker));
+['client_request_id','ER_DUP_ENTRY','replayed: true'].forEach(marker=>assert(finance.includes(marker),'记账幂等缺少: '+marker));
 assert(!finance.includes('会在24小时内审核'),'未接审核服务不得承诺时限');
 console.log('生涯与财务回归通过：去预测和刻板印象、字段契约、儿童所有权、政策核验边界与金额校验齐全。');
