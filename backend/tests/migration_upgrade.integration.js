@@ -19,7 +19,8 @@ const expectedColumns = {
   professional_plans: ['client_request_id', 'confirmation_status', 'professional_note', 'reviewed_at', 'reviewed_by_user_id', 'version'],
   caregiver_invitations: ['client_request_id', 'token_ciphertext', 'token_iv', 'token_auth_tag'],
   data_deletion_requests: ['client_request_id'],
-  report_shares: ['client_request_id']
+  report_shares: ['client_request_id'],
+  strategy_feedback: ['client_request_id']
 };
 
 async function main() {

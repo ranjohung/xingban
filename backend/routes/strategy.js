@@ -82,12 +82,29 @@ router.get('/', auth, (req, res) => {
 
 router.post('/feedback', auth, (req, res) => {
   const { child_id, strategy_id, behavior_record_id, effectiveness, note, scene } = req.body;
+  const clientRequestId = String(req.body.client_request_id || '').trim().slice(0, 36);
   const allowedEffects = new Set(['effective', 'neutral', 'ineffective']);
   if (!child_id || !strategy_id || !allowedEffects.has(effectiveness)) return res.status(400).json({ error: '反馈参数无效' });
+  if (clientRequestId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientRequestId)) return res.status(400).json({ error: '请求标识无效' });
   db.query('SELECT id FROM children WHERE id = ? AND user_id = ?', [child_id, req.user.id], (ownerErr, childRows) => {
     if (ownerErr) return res.status(500).json({ error: '反馈服务暂时不可用' });
     if (!childRows.length) return res.status(404).json({ error: '儿童档案不存在' });
-    const insertFeedback = () => db.query(
+    const sendReplay = row => res.json({ success: true, replayed: true, message: '反馈此前已提交', feedback: { id: row.id, effectiveness: row.effectiveness, behavior_record_id: row.behavior_record_id || null } });
+    const insertFeedback = () => {
+      if (db.status().mode === 'mysql') return db.withTransaction(async tx => {
+        const inserted = await tx.query('INSERT INTO strategy_feedback (child_id,strategy_id,user_id,client_request_id,behavior_record_id,effectiveness,note,scene) VALUES (?,?,?,?,?,?,?,?)', [child_id,strategy_id,req.user.id,clientRequestId||null,behavior_record_id||null,effectiveness,String(note||'').slice(0,500)||null,String(scene||'').slice(0,100)||null]);
+        const totals = await tx.query("SELECT SUM(CASE WHEN effectiveness='effective' THEN 1 ELSE 0 END) effective_count,COUNT(*) total_count FROM strategy_feedback WHERE strategy_id=?", [strategy_id]);
+        const total = Number(totals[0]?.total_count || 0), effective = Number(totals[0]?.effective_count || 0);
+        await tx.query('UPDATE strategies SET effectiveness_rate=?,usage_count=? WHERE id=?', [total ? (effective/total)*100 : 0,total,strategy_id]);
+        return inserted.insertId;
+      }).then(id => {
+        if (effectiveness === 'effective') checkSkillGeneralization(child_id, strategy_id, scene);
+        res.status(201).json({ success: true, replayed: false, message: '反馈提交成功', feedback: { id, effectiveness, behavior_record_id: behavior_record_id || null } });
+      }).catch(error => {
+        if (error?.code === 'ER_DUP_ENTRY' && clientRequestId) return db.query('SELECT * FROM strategy_feedback WHERE user_id=? AND client_request_id=?', [req.user.id,clientRequestId], (readError,rows) => readError || !rows.length ? res.status(500).json({ error: '反馈状态暂时无法确认，请保留当前页面后重试' }) : sendReplay(rows[0]));
+        return res.status(500).json({ error: '反馈未确认保存，请保留当前页面后重试' });
+      });
+      db.query(
       'INSERT INTO strategy_feedback (child_id, strategy_id, user_id, behavior_record_id, effectiveness, note, scene) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [child_id, strategy_id, req.user.id, behavior_record_id || null, effectiveness, String(note || '').slice(0, 500) || null, String(scene || '').slice(0, 100) || null],
       (err, result) => {
@@ -97,12 +114,21 @@ router.post('/feedback', auth, (req, res) => {
         res.status(201).json({ success: true, message: '反馈提交成功', feedback: { id: result.insertId, effectiveness, behavior_record_id: behavior_record_id || null } });
       }
     );
+    };
+    const continueInsert = () => {
     if (!behavior_record_id) return insertFeedback();
     db.query('SELECT id FROM behavior_records WHERE id = ? AND child_id = ? AND user_id = ?', [behavior_record_id, child_id, req.user.id], (recordErr, records) => {
       if (recordErr) return res.status(500).json({ error: '反馈服务暂时不可用' });
       if (!records.length) return res.status(400).json({ error: '关联记录不存在或不属于当前家庭' });
       insertFeedback();
     });
+    };
+    if (clientRequestId && db.status().mode === 'mysql') return db.query('SELECT * FROM strategy_feedback WHERE user_id=? AND client_request_id=?', [req.user.id,clientRequestId], (error,rows) => {
+      if (error) return res.status(500).json({ error: '反馈状态暂时无法确认，请保留当前页面后重试' });
+      if (rows.length) return sendReplay(rows[0]);
+      continueInsert();
+    });
+    return continueInsert();
   });
 });
 

@@ -1277,7 +1277,7 @@
               <p class="text-sm text-text-muted">正在查知识库…</p>
             </section>
             <section class="flex flex-wrap items-center gap-4 py-2 text-sm"><div><span class="text-text-muted">证据状态</span> <strong>待专业复核，需个体化调整</strong></div><div><span class="text-text-muted">操作难度</span> <strong>${strategy.difficulty}</strong></div>${strategy.usageCount ? `<div><span class="text-text-muted">体验版使用</span> <strong>${strategy.usageCount} 次（演示）</strong></div>` : ''}</section>
-            ${highRisk ? `<section class="border-t border-border pt-5"><div class="rounded-xl bg-red-50 border border-red-200 p-4"><strong class="text-red-800">这是一条安全分流路径，不评价“是否有效”</strong><p class="text-sm text-red-900 mt-1 leading-6">请记录发生时间、睡眠、用药、伤情和意识变化并交给专业人员判断；不要用完成教程代替求助。</p><button data-ui-action="close-and-navigate" data-nav="emergency" class="w-full mt-3 py-3 rounded-xl bg-red-700 text-white font-bold">进入紧急支持</button></div></section>` : `<section class="border-t border-border pt-5"><p class="text-sm text-text-secondary mb-3">实际尝试后，这个方法对孩子有效吗？</p><textarea id="strategy-feedback-note-${id}" rows="2" maxlength="200" placeholder="选填：使用场景、做到哪一步、孩子的反应" class="w-full mb-3 p-3 rounded-xl border border-border text-sm"></textarea><div class="grid grid-cols-3 gap-2"><button data-ui-call="submitStrategyFeedback" data-ui-args="${uiArgsAttr(Number(strategy.id),'positive')}" class="py-2.5 rounded-xl bg-success/10 text-success text-sm font-medium">有效</button><button data-ui-call="submitStrategyFeedback" data-ui-args="${uiArgsAttr(Number(strategy.id),'neutral')}" class="py-2.5 rounded-xl bg-blue-50 text-blue-700 text-sm font-medium">一般</button><button data-ui-call="submitStrategyFeedback" data-ui-args="${uiArgsAttr(Number(strategy.id),'negative')}" class="py-2.5 rounded-xl bg-danger/10 text-danger text-sm font-medium">无效/不适</button></div></section>`}
+            ${highRisk ? `<section class="border-t border-border pt-5"><div class="rounded-xl bg-red-50 border border-red-200 p-4"><strong class="text-red-800">这是一条安全分流路径，不评价“是否有效”</strong><p class="text-sm text-red-900 mt-1 leading-6">请记录发生时间、睡眠、用药、伤情和意识变化并交给专业人员判断；不要用完成教程代替求助。</p><button data-ui-action="close-and-navigate" data-nav="emergency" class="w-full mt-3 py-3 rounded-xl bg-red-700 text-white font-bold">进入紧急支持</button></div></section>` : `<section class="border-t border-border pt-5"><p class="text-sm text-text-secondary mb-3">实际尝试后，这个方法对孩子有效吗？</p><textarea id="strategy-feedback-note-${id}" rows="2" maxlength="200" placeholder="选填：使用场景、做到哪一步、孩子的反应" class="w-full mb-3 p-3 rounded-xl border border-border text-sm"></textarea><input id="strategy-feedback-request-${id}" type="hidden" value="${newClientRequestId()}"><p id="strategy-feedback-status-${id}" class="text-xs text-text-muted mb-2" role="status">尚未提交；失败时说明会保留。</p><div class="grid grid-cols-3 gap-2"><button data-ui-call="submitStrategyFeedback" data-ui-args="${uiArgsAttr(Number(strategy.id),'positive')}" class="strategy-feedback-button-${id} py-2.5 rounded-xl bg-success/10 text-success text-sm font-medium disabled:opacity-60">有效</button><button data-ui-call="submitStrategyFeedback" data-ui-args="${uiArgsAttr(Number(strategy.id),'neutral')}" class="strategy-feedback-button-${id} py-2.5 rounded-xl bg-blue-50 text-blue-700 text-sm font-medium disabled:opacity-60">一般</button><button data-ui-call="submitStrategyFeedback" data-ui-args="${uiArgsAttr(Number(strategy.id),'negative')}" class="strategy-feedback-button-${id} py-2.5 rounded-xl bg-danger/10 text-danger text-sm font-medium disabled:opacity-60">无效/不适</button></div></section>`}
           </div>
         </div>`;
       document.body.appendChild(modal);
@@ -1368,11 +1368,20 @@
       const res = await apiRequest(`/knowledge/search?${parts.join('&')}`, 'GET');
       return (res && res.success && res.results) || [];
     }
+    const strategyFeedbackInFlight = new Set();
     async function submitStrategyFeedback(strategyId, feedbackType) {
+      if (strategyFeedbackInFlight.has(strategyId)) return;
       const note = document.getElementById(`strategy-feedback-note-${strategyId}`)?.value.trim() || '';
+      const client_request_id = document.getElementById(`strategy-feedback-request-${strategyId}`)?.value;
+      const status = document.getElementById(`strategy-feedback-status-${strategyId}`);
       const context = currentInterventionContext;
+      if (navigator.onLine === false) { status.textContent='未提交：当前网络已断开；说明仍保留在本页，联网后可重试。';showToast('当前网络已断开，策略反馈尚未提交');return; }
+      strategyFeedbackInFlight.add(strategyId);
+      document.querySelectorAll(`.strategy-feedback-button-${strategyId}`).forEach(button=>button.disabled=true);
+      status.textContent='正在保存反馈，请勿重复点击。';
       try {
         const result = await apiRequest('/strategy/feedback', 'POST', {
+          client_request_id,
           child_id: context?.childId || 1,
           strategy_id: strategyId,
           behavior_record_id: context?.behaviorRecordId || null,
@@ -1386,7 +1395,7 @@
           if (mayUsePrototypeStorage() && useMockMode) localStorage.setItem('xingban_strategy_feedback', JSON.stringify(strategyFeedbackHistory));
           addGrowthRecord('完成策略反馈', feedbackType === 'positive' ? 8 : 4, 'strategy');
           currentInterventionContext = null;
-          showToast(feedbackType === 'positive' ? '感谢反馈！已关联到本周周报' : '已记录反馈并关联原始记录');
+          showToast(result.replayed ? '这条反馈此前已经保存' : feedbackType === 'positive' ? '感谢反馈！已关联到本周周报' : '已记录反馈并关联原始记录');
           closeTopModal();
           navigateTo('reports');
         } else {
@@ -1394,7 +1403,11 @@
         }
       } catch (error) {
         console.error('反馈提交失败:', error);
-        showToast('网络错误');
+        status.textContent=`未确认保存：${error.message||'网络连接中断'}。说明仍在本页，可重试。`;
+        showToast('策略反馈尚未确认保存');
+      } finally {
+        strategyFeedbackInFlight.delete(strategyId);
+        document.querySelectorAll(`.strategy-feedback-button-${strategyId}`).forEach(button=>button.disabled=false);
       }
     }
 
