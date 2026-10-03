@@ -117,11 +117,18 @@ router.post('/register', auth, requireRole('admin'), (req, res) => {
 
 // 管理端只返回核验档案清单；联系方式继续脱敏，避免运营台成为敏感通讯录。
 router.get('/admin/profiles', auth, requireRole('admin'), (req, res) => {
+  const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+  const limit = Math.max(1, Math.min(100, Number.parseInt(req.query.limit, 10) || 20));
+  const offset = (page - 1) * limit;
+  const certified = String(req.query.certified || 'all');
+  if (!['all','true','false'].includes(certified)) return res.status(400).json({ error: '核验状态无效' });
+  const where = certified === 'all' ? '' : ' WHERE is_certified=?';
+  const filterParams = certified === 'all' ? [] : [certified === 'true'];
   db.query(
     `SELECT id, user_id, name, phone, email, professional_title, specialty,
             years_of_experience, is_certified, created_at
-     FROM therapists ORDER BY created_at DESC LIMIT 200`,
-    [],
+     FROM therapists${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+    [...filterParams, limit, offset],
     (err, rows) => {
       if (err) return res.status(500).json({ error: '专业资质档案暂时无法读取' });
       const profiles = rows.map(row => ({
@@ -136,7 +143,9 @@ router.get('/admin/profiles', auth, requireRole('admin'), (req, res) => {
         is_certified: Boolean(row.is_certified),
         created_at: row.created_at,
       }));
-      res.json({ success: true, profiles });
+      db.query(`SELECT COUNT(*) total FROM therapists${where}`, filterParams, (countErr, totals) => countErr
+        ? res.status(500).json({ error: '专业资质档案暂时无法读取' })
+        : res.json({ success: true, profiles, total: Number(totals[0]?.total || 0), page, limit }));
     }
   );
 });

@@ -1,6 +1,7 @@
 from playwright.sync_api import sync_playwright
+import os
 
-BASE = "http://127.0.0.1:8001/"
+BASE = os.environ.get("XINGBAN_BASE_URL", "http://127.0.0.1:8001/")
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)

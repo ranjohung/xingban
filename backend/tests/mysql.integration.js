@@ -100,6 +100,10 @@ async function main() {
   if (!moderation.response.ok || !moderation.body.reports?.some(item => item.case_ref === held.body.case_ref)) throw new Error('管理员未读取到社区危机工单');
   const resolvedCase = await request(`/community/moderation/reports/${held.body.case_ref}`, { method: 'PATCH', headers: adminHeaders, body: JSON.stringify({ status: 'resolved', resolution_note: '已按安全流程核查并完成升级联系' }) });
   if (!resolvedCase.response.ok) throw new Error('管理员无法完成社区工单处置');
+  const moderationHistory = await request('/community/moderation/reports?view=history&page=1&limit=1', { headers: adminHeaders });
+  if (!moderationHistory.response.ok || !moderationHistory.body.reports?.some(item => item.case_ref === held.body.case_ref) || Number(moderationHistory.body.total) < 1 || Number(moderationHistory.body.limit) !== 1) throw new Error('社区处理历史或服务端分页不可追踪');
+  const pagedProfiles = await request('/therapist/admin/profiles?page=1&limit=1&certified=true', { headers: adminHeaders });
+  if (!pagedProfiles.response.ok || pagedProfiles.body.profiles?.length !== 1 || Number(pagedProfiles.body.total) < 1 || Number(pagedProfiles.body.limit) !== 1) throw new Error('专业资质档案筛选分页失败');
 
   const [children, records, reports, feedbackList, plans, cases, events, notifications] = await Promise.all([
     request('/child', { headers }), request(`/behavior/${childId}`, { headers }), request(`/report/${childId}/list`, { headers }),
@@ -111,7 +115,7 @@ async function main() {
     throw new Error('真实数据库回读数量不一致');
   }
   console.log(JSON.stringify({ database: 'mysql', child_id: childId, behavior_id: behavior.body.record.id, report_id: report.body.report.id, feedback_id: feedback.body.feedback.id, plan_id: plan.body.plan.id, moderation_case: held.body.case_ref }));
-  console.log('PASS real MySQL integration: register, child, behavior, strategy feedback, report, plan, crisis moderation, readback');
+  console.log('PASS real MySQL integration: register, child, behavior, strategy feedback, report, plan, moderation history pagination, readback');
 }
 
 async function cleanup() {

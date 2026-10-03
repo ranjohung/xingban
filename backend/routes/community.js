@@ -175,11 +175,22 @@ router.get('/reports/mine', auth, (req, res) => {
 });
 
 router.get('/moderation/reports', auth, requireRole('admin'), (req, res) => {
-  const status = REPORT_STATUSES.has(req.query.status) ? req.query.status : 'open';
-  db.query('SELECT case_ref, target_type, target_id, reason, details, risk_level, status, created_at, updated_at FROM community_reports WHERE status=? ORDER BY risk_level DESC, created_at ASC LIMIT 200', [status], (err, rows) => err
-    ? res.status(500).json({ error: '审核队列暂时无法读取' })
-    : res.json({ success: true, reports: rows })
-  );
+  const requestedStatus = String(req.query.status || 'open');
+  const view = String(req.query.view || '');
+  if (view && !['active','history'].includes(view)) return res.status(400).json({ error: '审核视图无效' });
+  if (requestedStatus !== 'all' && !REPORT_STATUSES.has(requestedStatus)) return res.status(400).json({ error: '审核状态无效' });
+  const page = positiveInt(req.query.page, 1, 100000);
+  const limit = positiveInt(req.query.limit, 20, 100);
+  const offset = (page - 1) * limit;
+  const statuses = view === 'active' ? ['open','reviewing'] : view === 'history' ? ['resolved','dismissed'] : requestedStatus === 'all' ? [] : [requestedStatus];
+  const where = statuses.length ? ` WHERE status IN (${statuses.map(() => '?').join(',')})` : '';
+  const params = [...statuses, limit, offset];
+  db.query(`SELECT case_ref,target_type,target_id,reason,details,risk_level,status,moderator_user_id,resolution_note,created_at,updated_at FROM community_reports${where} ORDER BY FIELD(risk_level,'urgent','review'),created_at DESC LIMIT ? OFFSET ?`, params, (err, rows) => {
+    if (err) return res.status(500).json({ error: '审核队列暂时无法读取' });
+    db.query(`SELECT COUNT(*) total FROM community_reports${where}`, statuses, (countErr, totals) => countErr
+      ? res.status(500).json({ error: '审核队列暂时无法读取' })
+      : res.json({ success: true, reports: rows, total: Number(totals[0]?.total || 0), page, limit }));
+  });
 });
 
 router.patch('/moderation/reports/:caseRef', auth, requireRole('admin'), (req, res) => {

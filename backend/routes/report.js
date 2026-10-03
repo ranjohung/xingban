@@ -59,12 +59,23 @@ router.put('/preferences', requireRole('parent', 'admin'), (req, res) => {
 
 router.get('/admin/jobs', requireRole('admin'), (req, res) => {
   const status = String(req.query.status || 'failed');
-  if (!['pending','processing','retry','succeeded','failed'].includes(status)) return res.status(400).json({ error: '任务状态无效' });
+  const view = String(req.query.view || '');
+  if (view && !['active','history'].includes(view)) return res.status(400).json({ error: '任务视图无效' });
+  if (status !== 'all' && !['pending','processing','retry','succeeded','failed'].includes(status)) return res.status(400).json({ error: '任务状态无效' });
+  const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+  const limit = Math.max(1, Math.min(100, Number.parseInt(req.query.limit, 10) || 20));
+  const offset = (page - 1) * limit;
+  const statuses = view === 'active' ? ['pending','processing','retry','failed'] : view === 'history' ? ['succeeded'] : status === 'all' ? [] : [status];
+  const where = statuses.length ? ` WHERE j.status IN (${statuses.map(() => '?').join(',')})` : '';
+  const params = [...statuses, limit, offset];
   db.query(`SELECT j.id,j.child_id,j.user_id,j.week_start,j.week_end,j.status,j.attempt_count,j.next_attempt_at,
     j.report_id,j.notification_status,j.last_error,j.started_at,j.completed_at,j.updated_at
-    FROM weekly_report_jobs j WHERE j.status=? ORDER BY j.updated_at DESC LIMIT 200`, [status], (error, rows) => error
-      ? res.status(500).json({ error: '读取周报任务失败' })
-      : res.json({ success: true, jobs: rows }));
+    FROM weekly_report_jobs j${where} ORDER BY j.updated_at DESC LIMIT ? OFFSET ?`, params, (error, rows) => {
+      if (error) return res.status(500).json({ error: '读取周报任务失败' });
+      db.query(`SELECT COUNT(*) total FROM weekly_report_jobs j${where}`, statuses, (countError, totals) => countError
+        ? res.status(500).json({ error: '读取周报任务失败' })
+        : res.json({ success: true, jobs: rows, total: Number(totals[0]?.total || 0), page, limit }));
+    });
 });
 
 router.post('/admin/jobs/run', requireRole('admin'), async (req, res, next) => {

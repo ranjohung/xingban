@@ -192,10 +192,20 @@ router.delete('/deletion-requests/:requestId', (req, res) => {
 
 router.get('/admin/deletion-requests', requireRole('admin'), (req, res) => {
   const status = String(req.query.status || 'pending');
-  if (!['pending','processing','completed','rejected','cancelled'].includes(status)) return res.status(400).json({ error: '状态参数无效' });
-  db.query('SELECT public_id,requester_user_id,scope,child_id,reason,status,due_at,processed_at,resolution_note,created_at,updated_at FROM data_deletion_requests WHERE status=? ORDER BY due_at ASC,created_at ASC LIMIT 200', [status], (error, rows) => {
+  const view = String(req.query.view || '');
+  if (view && !['active','history'].includes(view)) return res.status(400).json({ error: '队列视图无效' });
+  if (status !== 'all' && !['pending','processing','completed','rejected','cancelled'].includes(status)) return res.status(400).json({ error: '状态参数无效' });
+  const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+  const limit = Math.max(1, Math.min(100, Number.parseInt(req.query.limit, 10) || 20));
+  const offset = (page - 1) * limit;
+  const statuses = view === 'active' ? ['pending','processing'] : view === 'history' ? ['completed','rejected','cancelled'] : status === 'all' ? [] : [status];
+  const where = statuses.length ? ` WHERE status IN (${statuses.map(() => '?').join(',')})` : '';
+  const params = [...statuses, limit, offset];
+  db.query(`SELECT public_id,requester_user_id,scope,child_id,reason,status,due_at,processed_at,resolution_note,created_at,updated_at FROM data_deletion_requests${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`, params, (error, rows) => {
     if (error) return res.status(500).json({ error: '读取删除申请队列失败' });
-    res.json({ success: true, requests: rows.map(row => deletionRequestView(row, true)) });
+    db.query(`SELECT COUNT(*) total FROM data_deletion_requests${where}`, statuses, (countError, totals) => countError
+      ? res.status(500).json({ error: '读取删除申请队列失败' })
+      : res.json({ success: true, requests: rows.map(row => deletionRequestView(row, true)), total: Number(totals[0]?.total || 0), page, limit }));
   });
 });
 
@@ -264,10 +274,20 @@ router.post('/admin/security-alerts/scan', requireRole('admin'), async (req, res
 
 router.get('/admin/security-alerts', requireRole('admin'), (req, res) => {
   const status = String(req.query.status || 'open');
-  if (!['open','acknowledged','resolved'].includes(status)) return res.status(400).json({ error: '告警状态无效' });
-  db.query('SELECT public_id,rule_key,subject_user_id,severity,status,occurrence_count,window_started_at,last_seen_at,summary,evidence,handled_at,resolution_note,created_at FROM security_alerts WHERE status=? ORDER BY FIELD(severity,\'critical\',\'high\',\'medium\'),last_seen_at DESC LIMIT 200', [status], (error, rows) => {
+  const view = String(req.query.view || '');
+  if (view && !['active','history'].includes(view)) return res.status(400).json({ error: '告警视图无效' });
+  if (status !== 'all' && !['open','acknowledged','resolved'].includes(status)) return res.status(400).json({ error: '告警状态无效' });
+  const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+  const limit = Math.max(1, Math.min(100, Number.parseInt(req.query.limit, 10) || 20));
+  const offset = (page - 1) * limit;
+  const statuses = view === 'active' ? ['open','acknowledged'] : view === 'history' ? ['resolved'] : status === 'all' ? [] : [status];
+  const where = statuses.length ? ` WHERE status IN (${statuses.map(() => '?').join(',')})` : '';
+  const params = [...statuses, limit, offset];
+  db.query(`SELECT public_id,rule_key,subject_user_id,severity,status,occurrence_count,window_started_at,last_seen_at,summary,evidence,handled_at,resolution_note,created_at FROM security_alerts${where} ORDER BY FIELD(severity,'critical','high','medium'),last_seen_at DESC LIMIT ? OFFSET ?`, params, (error, rows) => {
     if (error) return res.status(500).json({ error: '读取安全告警失败' });
-    res.json({ success: true, alerts: rows.map(alertView) });
+    db.query(`SELECT COUNT(*) total FROM security_alerts${where}`, statuses, (countError, totals) => countError
+      ? res.status(500).json({ error: '读取安全告警失败' })
+      : res.json({ success: true, alerts: rows.map(alertView), total: Number(totals[0]?.total || 0), page, limit }));
   });
 });
 
