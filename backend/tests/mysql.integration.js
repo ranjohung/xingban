@@ -86,9 +86,12 @@ async function main() {
   if (!shareReplay.response.ok || !shareReplay.body.replayed || Number(shareReplay.body.share?.id) !== Number(share.body.share.id)) throw new Error('周报分享重复提交未返回原授权');
   const feedback = await request('/strategy/feedback', { method: 'POST', headers, body: JSON.stringify({ child_id: childId, strategy_id: 1, behavior_record_id: behavior.body.record.id, effectiveness: 'effective', note: '转换支持有效', scene: '活动转换' }) });
   if (feedback.response.status !== 201) throw new Error(`策略反馈失败：${JSON.stringify(feedback.body)}`);
-  const plan = await request('/therapist/plans', { method: 'POST', headers, body: JSON.stringify({ therapist_id: therapistId, title: '待确认的转换支持计划', goal: '孩子可表达暂停', frequency: '每天一次', responsible_person: '家长', stop_conditions: '孩子不适或风险升级', review_date: '2026-10-20', status: 'pending_confirmation' }) });
+  const planPayload = { client_request_id: randomUUID(), therapist_id: therapistId, title: '待确认的转换支持计划', goal: '孩子可表达暂停', frequency: '每天一次', responsible_person: '家长', stop_conditions: '孩子不适或风险升级', review_date: '2026-10-20', status: 'pending_confirmation' };
+  const plan = await request('/therapist/plans', { method: 'POST', headers, body: JSON.stringify(planPayload) });
   if (plan.response.status !== 201) throw new Error(`计划失败：${JSON.stringify(plan.body)}`);
   if (plan.body.plan.confirmation_status !== 'pending') throw new Error('关联专业人员的计划未进入待专业确认状态');
+  const planReplay = await request('/therapist/plans', { method: 'POST', headers, body: JSON.stringify(planPayload) });
+  if (!planReplay.response.ok || !planReplay.body.replayed || Number(planReplay.body.plan?.id) !== Number(plan.body.plan.id)) throw new Error('协作计划重复提交未返回原计划');
   const premature = await request(`/therapist/plans/${plan.body.plan.id}`, { method: 'PATCH', headers, body: JSON.stringify({ title: '待确认的转换支持计划', goal: '孩子可表达暂停', frequency: '每天一次', responsible_person: '家长', stop_conditions: '孩子不适或风险升级', review_date: '2026-10-20', status: 'active' }) });
   if (premature.response.status !== 409) throw new Error('家长在专业确认前不应启动已指派计划');
   const parentAssigned = await request('/therapist/plans/assigned', { headers });

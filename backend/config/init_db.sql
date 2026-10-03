@@ -266,6 +266,7 @@ CREATE TABLE IF NOT EXISTS report_shares (
 CREATE TABLE IF NOT EXISTS professional_plans (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   owner_user_id INT NOT NULL,
+  client_request_id CHAR(36) NULL,
   therapist_id INT NULL,
   source_feedback_id BIGINT NULL,
   title VARCHAR(200) NOT NULL,
@@ -284,6 +285,7 @@ CREATE TABLE IF NOT EXISTS professional_plans (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_professional_plan_owner_status (owner_user_id, status, updated_at),
+  UNIQUE KEY uq_professional_plan_request (owner_user_id, client_request_id),
   INDEX idx_professional_plan_therapist_review (therapist_id, confirmation_status, updated_at),
   FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (therapist_id) REFERENCES therapists(id) ON DELETE SET NULL,

@@ -14,7 +14,7 @@ const expectedColumns = {
   community_posts: ['moderation_status', 'risk_level'],
   community_comments: ['moderation_status', 'risk_level'],
   therapists: ['user_id'],
-  professional_plans: ['confirmation_status', 'professional_note', 'reviewed_at', 'reviewed_by_user_id', 'version'],
+  professional_plans: ['client_request_id', 'confirmation_status', 'professional_note', 'reviewed_at', 'reviewed_by_user_id', 'version'],
   report_shares: ['client_request_id']
 };
 

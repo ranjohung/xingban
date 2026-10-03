@@ -380,26 +380,54 @@ router.post('/plans', auth, requireRole('parent', 'admin'), (req, res) => {
   const payload = planPayload(req.body);
   const therapistId = positiveId(req.body.therapist_id) || null;
   const feedbackId = positiveId(req.body.source_feedback_id) || null;
+  const clientRequestId = clean(req.body.client_request_id, 36);
   if (!payload) return res.status(400).json({ error: '计划标题和状态必须有效' });
+  if (clientRequestId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientRequestId)) return res.status(400).json({ error: '请求标识无效' });
   if (therapistId && payload.status === 'active') return res.status(400).json({ error: '关联专业人员的计划必须先由对方确认，不能由家长直接标记执行中' });
   const confirmationStatus = therapistId ? 'pending' : 'not_requested';
-  const insert = (therapistUserId = null) => db.query(
-    `INSERT INTO professional_plans
-      (owner_user_id, therapist_id, source_feedback_id, title, goal, frequency, responsible_person, stop_conditions, review_date, status, confirmation_status, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [req.user.id, therapistId, feedbackId, payload.title, payload.goal, payload.frequency, payload.responsible_person, payload.stop_conditions, payload.review_date, payload.status, confirmationStatus, payload.notes],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: '协作计划暂时无法保存' });
-      recordPlanEvent(result.insertId, req.user, therapistId ? 'submitted' : 'created', null, confirmationStatus, payload.notes, eventErr => {
-        if (eventErr) return res.status(500).json({ error: '计划已保存，但审计记录失败，请联系管理员核查' });
-        const finish = notificationErr => notificationErr
-          ? res.status(500).json({ error: '计划已保存，但专业人员通知失败，请勿假设对方已收到' })
-          : res.status(201).json({ success: true, plan: { id: result.insertId, ...payload, therapist_id: therapistId, source_feedback_id: feedbackId, confirmation_status: confirmationStatus, version: 1 } });
-        if (therapistUserId) return sendTrustedNotification(therapistUserId, '新的协作计划待确认', `家长提交了“${payload.title}”，请核对目标、频率和停止条件。`, finish);
-        finish(null);
-      });
+  const responsePlan = id => ({ id, ...payload, therapist_id: therapistId, source_feedback_id: feedbackId, confirmation_status: confirmationStatus, version: 1 });
+  const readExisting = () => db.query(`SELECT id,therapist_id,source_feedback_id,title,goal,frequency,responsible_person,stop_conditions,review_date,status,confirmation_status,version,notes
+    FROM professional_plans WHERE owner_user_id=? AND client_request_id=?`, [req.user.id, clientRequestId], (readErr, rows) => {
+    if (readErr || !rows.length) return res.status(500).json({ error: '计划保存状态暂时无法确认，请勿重复提交并稍后重试' });
+    res.json({ success: true, message: '该计划此前已经保存', replayed: true, plan: rows[0] });
+  });
+  const insert = async (therapistUserId = null) => {
+    if (db.status().mode === 'mock') return db.query(
+      `INSERT INTO professional_plans
+        (owner_user_id,therapist_id,source_feedback_id,title,goal,frequency,responsible_person,stop_conditions,review_date,status,confirmation_status,notes)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [req.user.id,therapistId,feedbackId,payload.title,payload.goal,payload.frequency,payload.responsible_person,payload.stop_conditions,payload.review_date,payload.status,confirmationStatus,payload.notes],
+      (error, result) => {
+        if (error) return res.status(500).json({ error: '体验数据暂时无法保存' });
+        recordPlanEvent(result.insertId, req.user, therapistId ? 'submitted' : 'created', null, confirmationStatus, payload.notes, eventError => {
+          if (eventError) return res.status(500).json({ error: '体验计划已保存，但事件记录失败' });
+          res.status(201).json({ success: true, replayed: false, plan: responsePlan(result.insertId) });
+        });
+      }
+    );
+    if (clientRequestId) {
+      const existing = await new Promise(resolve => db.query('SELECT id FROM professional_plans WHERE owner_user_id=? AND client_request_id=?', [req.user.id, clientRequestId], (error, rows) => resolve(error ? null : rows)));
+      if (existing?.length) return readExisting();
+      if (existing === null) return res.status(500).json({ error: '计划保存状态暂时无法确认，请保留当前页面后重试' });
     }
-  );
+    try {
+      const result = await db.withTransaction(async tx => {
+        const inserted = await tx.query(`INSERT INTO professional_plans
+          (owner_user_id,client_request_id,therapist_id,source_feedback_id,title,goal,frequency,responsible_person,stop_conditions,review_date,status,confirmation_status,notes)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          [req.user.id,clientRequestId||null,therapistId,feedbackId,payload.title,payload.goal,payload.frequency,payload.responsible_person,payload.stop_conditions,payload.review_date,payload.status,confirmationStatus,payload.notes]);
+        await tx.query('INSERT INTO professional_plan_events (plan_id,actor_user_id,actor_role,action,from_status,to_status,note) VALUES (?,?,?,?,?,?,?)',
+          [inserted.insertId,req.user.id,req.user.role,therapistId?'submitted':'created',null,confirmationStatus,payload.notes]);
+        if (therapistUserId) await tx.query('INSERT INTO notifications (user_id,title,content,type) VALUES (?,?,?,?)',
+          [therapistUserId,'新的协作计划待确认',`家长提交了“${payload.title}”，请核对目标、频率和停止条件。`,'system']);
+        return inserted;
+      });
+      res.status(201).json({ success: true, replayed: false, plan: responsePlan(result.insertId) });
+    } catch (error) {
+      if (error?.code === 'ER_DUP_ENTRY' && clientRequestId) return readExisting();
+      res.status(500).json({ error: '计划、审计或站内通知未能完整保存，本次操作已回滚，请保留当前页面后重试' });
+    }
+  };
   if (!therapistId) return insert();
   db.query('SELECT id, user_id FROM therapists WHERE id=? AND is_certified=TRUE AND user_id IS NOT NULL', [therapistId], (err, rows) => {
     if (err) return res.status(500).json({ error: '暂时无法核验专业人员' });
