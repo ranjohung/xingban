@@ -41,11 +41,11 @@ CREATE TABLE IF NOT EXISTS children (
 ALTER TABLE children MODIFY diagnosis_type ENUM('UNCONFIRMED', 'ASD', 'ADHD', 'DD', 'OTHER') NOT NULL;
 
 CREATE TABLE IF NOT EXISTS caregiver_invitations (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY, public_id CHAR(36) NOT NULL UNIQUE, owner_user_id INT NOT NULL, child_id INT NOT NULL,
-  invitee_phone VARCHAR(20) NOT NULL, token_hash CHAR(64) NOT NULL UNIQUE, permissions JSON NOT NULL,
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, public_id CHAR(36) NOT NULL UNIQUE, owner_user_id INT NOT NULL, client_request_id CHAR(36) NULL, child_id INT NOT NULL,
+  invitee_phone VARCHAR(20) NOT NULL, token_hash CHAR(64) NOT NULL UNIQUE, token_ciphertext TEXT NULL, token_iv VARCHAR(64) NULL, token_auth_tag VARCHAR(64) NULL, permissions JSON NOT NULL,
   status ENUM('pending','accepted','revoked','expired') NOT NULL DEFAULT 'pending', expires_at TIMESTAMP NOT NULL,
   accepted_by_user_id INT NULL, accepted_at TIMESTAMP NULL, revoked_at TIMESTAMP NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_caregiver_invite_phone (invitee_phone,status,expires_at), FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_caregiver_invite_phone (invitee_phone,status,expires_at), UNIQUE KEY uq_caregiver_invitation_request (owner_user_id,client_request_id), FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE, FOREIGN KEY (accepted_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 CREATE TABLE IF NOT EXISTS child_caregivers (

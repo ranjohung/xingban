@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
-const { randomPublicId, randomToken, hashToken, decryptJson } = require('../services/sensitiveData');
+const { encryptJson, randomPublicId, randomToken, hashToken, decryptJson } = require('../services/sensitiveData');
 const { writeAudit } = require('../services/audit');
 const { parseDbJson } = require('../utils/json');
 
@@ -21,19 +21,30 @@ const requireCaregiverPermission = (permission, handler) => (req, res) => {
 router.use(auth);
 
 router.post('/caregivers/invitations', (req, res) => {
-  const childId = Number(req.body?.child_id); const phone = cleanPhone(req.body?.phone); const permissions = validPermissions(req.body?.permissions);
+  const childId = Number(req.body?.child_id); const phone = cleanPhone(req.body?.phone); const permissions = validPermissions(req.body?.permissions); const clientRequestId=String(req.body?.client_request_id||'').trim();
   if (!Number.isInteger(childId) || childId <= 0 || phone.length < 6 || !permissions.length) return res.status(400).json({ error: '儿童、手机号或授权范围无效' });
+  if(clientRequestId&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientRequestId))return res.status(400).json({error:'请求标识无效'});
   db.query('SELECT c.id,u.phone FROM children c JOIN users u ON u.id=c.user_id WHERE c.id=? AND c.user_id=?', [childId, req.user.id], (error, rows) => {
     if (error) return res.status(500).json({ error: '邀请服务暂时不可用' });
     if (!rows.length) return res.status(404).json({ error: '儿童档案不存在' });
     if (cleanPhone(rows[0].phone) === phone) return res.status(400).json({ error: '不能邀请自己的账号' });
-    const token = randomToken(); const publicId = randomPublicId();
-    db.query(`INSERT INTO caregiver_invitations (public_id,owner_user_id,child_id,invitee_phone,token_hash,permissions,expires_at)
-      VALUES (?,?,?,?,?,?,DATE_ADD(NOW(),INTERVAL 7 DAY))`, [publicId, req.user.id, childId, phone, hashToken(token), JSON.stringify(permissions)], (insertError) => {
-      if (insertError) return res.status(500).json({ error: '创建邀请失败' });
-      writeAudit(req, 'caregiver_invitation_created', 'child', String(childId), 'success', { invitation_id: publicId, permissions });
-      res.status(201).json({ success: true, invitation: { id: publicId, child_id: childId, permissions, expires_in_days: 7 }, invitation_code: token, delivery: 'manual' });
+    const replay = () => db.query(`SELECT public_id,child_id,permissions,token_ciphertext,token_iv,token_auth_tag FROM caregiver_invitations
+      WHERE owner_user_id=? AND client_request_id=? AND status='pending' AND expires_at>NOW()`,[req.user.id,clientRequestId],(readError,existing)=>{
+      if(readError||!existing.length)return res.status(500).json({error:'邀请保存状态暂时无法确认，请勿重复生成并稍后重试'});
+      try{const invite=existing[0],token=decryptJson({ciphertext:invite.token_ciphertext,iv:invite.token_iv,tag:invite.token_auth_tag}).token;res.json({success:true,replayed:true,invitation:{id:invite.public_id,child_id:invite.child_id,permissions:parseDbJson(invite.permissions,[]),expires_in_days:7},invitation_code:token,delivery:'manual'});}catch(_){return res.status(500).json({error:'邀请码暂时无法安全恢复，请联系管理员核查，不要重复授权'});}
     });
+    if(clientRequestId)return db.query('SELECT id FROM caregiver_invitations WHERE owner_user_id=? AND client_request_id=?',[req.user.id,clientRequestId],(readError,existing)=>{if(readError)return res.status(500).json({error:'邀请保存状态暂时无法确认，请保留当前页面后重试'});if(existing.length)return replay();create();});
+    create();
+    function create(){
+      const token = randomToken(); const publicId = randomPublicId();let encrypted;try{encrypted=encryptJson({token});}catch(_){return res.status(503).json({error:'邀请码加密服务未配置'});}
+      db.query(`INSERT INTO caregiver_invitations (public_id,owner_user_id,client_request_id,child_id,invitee_phone,token_hash,token_ciphertext,token_iv,token_auth_tag,permissions,expires_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,DATE_ADD(NOW(),INTERVAL 7 DAY))`, [publicId, req.user.id, clientRequestId||null, childId, phone, hashToken(token),encrypted.ciphertext,encrypted.iv,encrypted.tag,JSON.stringify(permissions)], (insertError) => {
+      if(insertError?.code==='ER_DUP_ENTRY'&&clientRequestId)return replay();
+      if (insertError) return res.status(500).json({ error: '邀请未确认创建，请保留当前页面后重试' });
+      writeAudit(req, 'caregiver_invitation_created', 'child', String(childId), 'success', { invitation_id: publicId, permissions });
+      res.status(201).json({ success: true, replayed:false, invitation: { id: publicId, child_id: childId, permissions, expires_in_days: 7 }, invitation_code: token, delivery: 'manual' });
+    });
+    }
   });
 });
 
@@ -41,15 +52,20 @@ router.post('/caregivers/invitations/accept', (req, res) => {
   const token = String(req.body?.invitation_code || '').trim();
   if (token.length < 20) return res.status(400).json({ error: '邀请码无效' });
   db.query(`SELECT i.*,u.phone current_phone FROM caregiver_invitations i JOIN users u ON u.id=?
-    WHERE i.token_hash=? AND i.status='pending' AND i.expires_at>NOW()`, [req.user.id, hashToken(token)], (error, rows) => {
+    WHERE i.token_hash=?`, [req.user.id, hashToken(token)], (error, rows) => {
     if (error) return res.status(500).json({ error: '接受邀请失败' });
-    const invite = rows[0]; if (!invite) return res.status(404).json({ error: '邀请不存在、已处理或已过期' });
+    const invite = rows[0]; if (!invite) return res.status(404).json({ error: '邀请不存在或已失效' });
     if (cleanPhone(invite.current_phone) !== cleanPhone(invite.invitee_phone)) return res.status(403).json({ error: '该邀请不属于当前登录手机号' });
+    if(invite.status==='accepted'&&Number(invite.accepted_by_user_id)===Number(req.user.id))return res.json({success:true,replayed:true,child_id:invite.child_id,message:'该邀请此前已经接受'});
+    if(invite.status!=='pending'||new Date(invite.expires_at).getTime()<=Date.now()){
+      if(invite.status==='pending')db.query("UPDATE caregiver_invitations SET status='expired',token_ciphertext=NULL,token_iv=NULL,token_auth_tag=NULL WHERE id=? AND status='pending'",[invite.id],()=>{});
+      return res.status(404).json({error:'邀请已处理或已过期'});
+    }
     db.withTransaction(async tx => {
       await tx.query(`INSERT INTO child_caregivers (child_id,owner_user_id,caregiver_user_id,permissions,status,accepted_at)
         VALUES (?,?,?,?, 'active',NOW()) ON DUPLICATE KEY UPDATE owner_user_id=VALUES(owner_user_id),permissions=VALUES(permissions),status='active',accepted_at=NOW(),revoked_at=NULL`, [invite.child_id, invite.owner_user_id, req.user.id, JSON.stringify(parseDbJson(invite.permissions, []))]);
-      await tx.query("UPDATE caregiver_invitations SET status='accepted',accepted_by_user_id=?,accepted_at=NOW() WHERE id=? AND status='pending'", [req.user.id, invite.id]);
-    }).then(() => { writeAudit(req, 'caregiver_invitation_accepted', 'child', String(invite.child_id), 'success', { invitation_id: invite.public_id }); res.json({ success: true, child_id: invite.child_id }); })
+      await tx.query("UPDATE caregiver_invitations SET status='accepted',accepted_by_user_id=?,accepted_at=NOW(),token_ciphertext=NULL,token_iv=NULL,token_auth_tag=NULL WHERE id=? AND status='pending'", [req.user.id, invite.id]);
+    }).then(() => { writeAudit(req, 'caregiver_invitation_accepted', 'child', String(invite.child_id), 'success', { invitation_id: invite.public_id }); res.json({ success: true, replayed:false, child_id: invite.child_id }); })
       .catch(() => res.status(500).json({ error: '接受邀请失败' }));
   });
 });

@@ -1,6 +1,6 @@
 'use strict';
 require('dotenv').config();
-const mysql=require('mysql2/promise');const jwt=require('jsonwebtoken');const {spawn}=require('child_process');const path=require('path');
+const mysql=require('mysql2/promise');const jwt=require('jsonwebtoken');const {spawn}=require('child_process');const path=require('path');const {randomUUID}=require('crypto');
 const {encryptJson,randomPublicId}=require('../services/sensitiveData');
 const port=3313,base=`http://127.0.0.1:${port}/api`;let db,server,serverLog='';const ids=[];
 const token=(id)=>jwt.sign({id,role:'parent',jti:`cg-${id}`},process.env.JWT_SECRET,{expiresIn:'5m'});
@@ -16,10 +16,14 @@ async function main(){
  server=spawn(process.execPath,['server.js'],{cwd:path.resolve(__dirname,'..'),env:{...process.env,PORT:String(port),NODE_ENV:'development',USE_MOCK_DB:'false',WEEKLY_REPORT_SCAN_INTERVAL_MINUTES:'0'},stdio:['ignore','pipe','pipe']});
  server.stdout.on('data',c=>serverLog+=c);server.stderr.on('data',c=>serverLog+=c);
  for(let i=0;i<80;i++){try{if((await fetch(base+'/health/ready')).ok)break}catch(_){}await new Promise(r=>setTimeout(r,100))}
- const created=await request('/family/caregivers/invitations',ids[0],'POST',{child_id:c.insertId,phone:phones[1],permissions:['profile_summary','behavior_records','weekly_reports','safety_plan','invalid']});
+ const invitePayload={client_request_id:randomUUID(),child_id:c.insertId,phone:phones[1],permissions:['profile_summary','behavior_records','weekly_reports','safety_plan','invalid']};
+ const created=await request('/family/caregivers/invitations',ids[0],'POST',invitePayload);
  if(created.r.status!==201||created.data.invitation.permissions.length!==4||created.data.delivery!=='manual')throw new Error(`创建邀请失败 ${created.r.status}`);
+ const replay=await request('/family/caregivers/invitations',ids[0],'POST',invitePayload);if(!replay.r.ok||!replay.data.replayed||replay.data.invitation.id!==created.data.invitation.id||replay.data.invitation_code!==created.data.invitation_code)throw new Error('共同照护邀请重复提交未安全返回原邀请码');
  const wrong=await request('/family/caregivers/invitations/accept',ids[2],'POST',{invitation_code:created.data.invitation_code});if(wrong.r.status!==403)throw new Error('非目标手机号接受邀请未被拒绝');
  const accepted=await request('/family/caregivers/invitations/accept',ids[1],'POST',{invitation_code:created.data.invitation_code});if(!accepted.r.ok)throw new Error('目标照护者接受失败');
+ const acceptedReplay=await request('/family/caregivers/invitations/accept',ids[1],'POST',{invitation_code:created.data.invitation_code});if(!acceptedReplay.r.ok||!acceptedReplay.data.replayed||Number(acceptedReplay.data.child_id)!==Number(c.insertId))throw new Error('接受邀请响应丢失后无法安全重试');
+ const[destroyed]=await db.execute('SELECT token_ciphertext,token_iv,token_auth_tag FROM caregiver_invitations WHERE public_id=?',[created.data.invitation.id]);if(destroyed[0]?.token_ciphertext||destroyed[0]?.token_iv||destroyed[0]?.token_auth_tag)throw new Error('邀请接受后仍保留可恢复邀请码密文');
  const children=await request('/family/caregivers/children',ids[1]);if(children.data.children?.length!==1||children.data.children[0].diagnosis_type!=='ASD'||children.data.children[0].permissions.includes('invalid'))throw new Error('儿童级字段授权错误');
  const records=await request(`/family/caregivers/children/${c.insertId}/records`,ids[1]);const reports=await request(`/family/caregivers/children/${c.insertId}/reports`,ids[1]);const safety=await request(`/family/caregivers/children/${c.insertId}/safety-plan`,ids[1]);
  if(records.data.records?.[0]?.id!==record.insertId||reports.data.reports?.[0]?.content?.summary?.total_records!==1||safety.data.plan?.data?.contact!=='120')throw new Error('分范围业务数据读取不完整');
