@@ -2,7 +2,7 @@ from pathlib import Path
 import os
 from playwright.sync_api import sync_playwright
 
-BASE = "http://127.0.0.1:8001/"
+BASE = os.environ.get("XINGBAN_BASE_URL", "http://127.0.0.1:8001/")
 OUT = Path(__file__).resolve().parent / "artifacts"
 OUT.mkdir(exist_ok=True)
 EXPECT_SERVER = os.environ.get("XINGBAN_EXPECT_SERVER") == "1"
