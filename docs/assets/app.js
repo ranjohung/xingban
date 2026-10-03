@@ -6537,25 +6537,27 @@
     }
 
     async function saveGoal() {
+      const childId = currentChildId();
       const category = document.getElementById('goal-category').value;
       const target = document.getElementById('goal-target').value;
       const current_level = parseInt(document.getElementById('goal-current').value);
       const target_level = parseInt(document.getElementById('goal-target-level').value);
       const deadline = document.getElementById('goal-deadline').value;
 
+      if (!childId) {
+        showToast('请先选择儿童档案');
+        return;
+      }
       if (!target || !deadline) {
         showToast('请填写完整信息');
         return;
       }
 
       try {
-        const result = await apiRequest('/child/1/goals', 'POST', {
-          child_id: 1,
-          category,
-          target,
-          current_level,
-          target_level,
-          deadline
+        const result = await apiRequest(`/child/${childId}/goals`, 'POST', {
+          goal_type: category,
+          description: target,
+          target_date: deadline
         });
 
         if (result.success) {
@@ -6773,8 +6775,11 @@
           </div>
           <div class="space-y-4">
             <div>
-              <label class="block text-sm text-text-secondary mb-1">预计年龄</label>
-              <input type="number" id="milestone-age" min="1" max="60" placeholder="例如: 8" class="w-full px-4 py-2.5 rounded-xl border border-border">
+              <label class="block text-sm text-text-secondary mb-1">成长阶段</label>
+              <select id="milestone-stage" class="w-full px-4 py-2.5 rounded-xl border border-border">
+                <option value="1">了解情况与建立支持</option><option value="2">早期支持</option><option value="3">学前适应</option>
+                <option value="4">学龄支持</option><option value="5">青春期支持</option><option value="6">成年过渡</option><option value="7">成年生活</option>
+              </select>
             </div>
             <div>
               <label class="block text-sm text-text-secondary mb-1">里程碑名称</label>
@@ -6792,19 +6797,23 @@
     }
 
     async function saveMilestone() {
-      const age = parseInt(document.getElementById('milestone-age').value);
+      const childId = currentChildId();
+      const milestoneId = parseInt(document.getElementById('milestone-stage').value, 10);
       const title = document.getElementById('milestone-title').value;
       const description = document.getElementById('milestone-description').value;
 
-      if (!age || !title) {
+      if (!childId) {
+        showToast('请先选择儿童档案');
+        return;
+      }
+      if (!milestoneId || !title) {
         showToast('请填写完整信息');
         return;
       }
 
       try {
-        const result = await apiRequest('/career/milestones/1', 'POST', {
-          child_id: 1,
-          age,
+        const result = await apiRequest(`/career/milestones/${childId}`, 'POST', {
+          milestone_id: milestoneId,
           title,
           description
         });
@@ -6861,23 +6870,27 @@
     }
 
     async function saveCareerGoal() {
+      const childId = currentChildId();
       const title = document.getElementById('career-goal-title').value.trim();
       const type = document.getElementById('career-goal-type').value;
       const description = document.getElementById('career-goal-description').value.trim();
       const deadline = document.getElementById('career-goal-deadline').value;
 
+      if (!childId) {
+        showToast('请先选择儿童档案');
+        return;
+      }
       if (!title || !deadline) {
         showToast('请填写完整信息');
         return;
       }
 
       try {
-        const result = await apiRequest('/career/goals/1', 'POST', {
-          child_id: 1,
+        const result = await apiRequest(`/career/goals/${childId}`, 'POST', {
           title,
-          type,
+          category: type,
           description,
-          deadline
+          target_date: deadline
         });
 
         if (result.success) {
@@ -6892,8 +6905,10 @@
     }
 
     async function updateGoalStatus(goalId, status) {
+      const childId = currentChildId();
+      if (!childId) return showToast('请先选择儿童档案');
       try {
-        const result = await apiRequest(`/career/goals/1/${goalId}`, 'PUT', { progress: status === 'completed' ? 100 : 0 });
+        const result = await apiRequest(`/career/goals/${childId}/${goalId}`, 'PUT', { progress: status === 'completed' ? 100 : 0 });
 
         if (result.success) {
           showToast('目标状态已更新');
@@ -6955,18 +6970,23 @@
     }
 
     async function saveEditCareerGoal(goalId) {
+      const childId = currentChildId();
       const title = document.getElementById('edit-goal-title').value.trim();
       const type = document.getElementById('edit-goal-type').value;
       const description = document.getElementById('edit-goal-description').value.trim();
       const deadline = document.getElementById('edit-goal-deadline').value;
 
+      if (!childId) {
+        showToast('请先选择儿童档案');
+        return;
+      }
       if (!title) {
         showToast('请填写目标名称');
         return;
       }
 
       try {
-        const result = await apiRequest(`/career/goals/1/${goalId}`, 'PUT', { title, category: type, description, target_date: deadline });
+        const result = await apiRequest(`/career/goals/${childId}/${goalId}`, 'PUT', { title, category: type, description, target_date: deadline });
         if (result.success) {
           showToast('目标已更新');
           closeTopModal();
@@ -7210,11 +7230,16 @@
     }
 
     async function saveExpense() {
+      const childId = currentChildId();
       const type = document.getElementById('expense-type').value;
       const category = document.getElementById('expense-category').value;
       const amount = parseFloat(document.getElementById('expense-amount').value);
       const note = document.getElementById('expense-note').value;
 
+      if (!childId) {
+        showToast('请先选择儿童档案');
+        return;
+      }
       if (!amount) {
         showToast('请填写金额');
         return;
@@ -7223,9 +7248,7 @@
       const finalAmount = type === 'income' ? -amount : amount;
 
       try {
-        const result = await apiRequest('/finance/expenses/1', 'POST', {
-          child_id: 1,
-          type,
+        const result = await apiRequest(`/finance/expenses/${childId}`, 'POST', {
           category,
           amount: finalAmount,
           description: note

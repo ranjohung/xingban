@@ -125,7 +125,7 @@ router.post('/goals/:childId', auth, (req, res) => {
   
   db.query(
     'INSERT INTO career_goals (child_id, category, title, description, target_date, priority, steps) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [req.params.childId, category, title, description || '', target_date || null, priority || 1, JSON.stringify(steps)],
+    [req.childId, category, title, description || '', target_date || null, priority || 1, JSON.stringify(steps)],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
       
