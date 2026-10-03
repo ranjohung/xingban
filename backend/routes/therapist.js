@@ -1,11 +1,15 @@
 'use strict';
 
 const express = require('express');
+const crypto = require('crypto');
+const multer = require('multer');
 const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
 const { requireRole } = require('../middleware/roles');
 const { parseDbJson } = require('../utils/json');
+const { encryptJson, decryptJson, randomPublicId } = require('../services/sensitiveData');
+const { writeAudit } = require('../services/audit');
 
 const clean = (value, max) => String(value ?? '').trim().slice(0, max);
 const positiveId = value => {
@@ -15,6 +19,52 @@ const positiveId = value => {
 const PUBLIC_FIELDS = 'id, name, professional_title, specialty, years_of_experience, profile_photo, rating, review_count, is_certified';
 const PLAN_STATUSES = new Set(['pending_confirmation', 'active', 'paused', 'completed', 'escalated']);
 const REVIEW_DECISIONS = new Set(['confirmed', 'returned']);
+const CREDENTIAL_TYPES = new Set(['license', 'certificate', 'employment', 'identity', 'other']);
+const EVIDENCE_MIMES = new Set(['application/pdf', 'image/jpeg', 'image/png']);
+const uploadCredentialEvidence = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, callback) => callback(null, EVIDENCE_MIMES.has(file.mimetype))
+});
+function evidenceMatchesMime(file) {
+  if (!file?.buffer?.length) return false;
+  if (file.mimetype === 'application/pdf') return file.buffer.subarray(0, 5).toString('ascii') === '%PDF-';
+  if (file.mimetype === 'image/jpeg') return file.buffer.length >= 3 && file.buffer[0] === 0xff && file.buffer[1] === 0xd8 && file.buffer[2] === 0xff;
+  if (file.mimetype === 'image/png') return file.buffer.length >= 8 && file.buffer.subarray(0, 8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]));
+  return false;
+}
+
+function syncCredentialStatus() {
+  return db.withTransaction(async tx => {
+    await tx.query("UPDATE professional_credentials SET status='expired' WHERE status='approved' AND expires_on < CURRENT_DATE");
+    await tx.query(`UPDATE therapists t SET is_certified=EXISTS(
+      SELECT 1 FROM professional_credentials c
+      WHERE c.therapist_id=t.id AND c.status='approved' AND c.expires_on >= CURRENT_DATE
+    )`);
+  });
+}
+
+const credentialView = row => ({
+  id: row.public_id,
+  therapist_id: Number(row.therapist_id),
+  therapist_name: row.therapist_name,
+  credential_type: row.credential_type,
+  reference_last4: row.reference_last4 || '',
+  issuing_authority: row.issuing_authority,
+  issued_on: row.issued_on,
+  expires_on: row.expires_on,
+  evidence_filename: row.evidence_filename,
+  evidence_mime: row.evidence_mime,
+  evidence_sha256: row.evidence_sha256,
+  status: row.status,
+  submitted_by_user_id: Number(row.submitted_by_user_id),
+  first_reviewer_user_id: row.first_reviewer_user_id ? Number(row.first_reviewer_user_id) : null,
+  second_reviewer_user_id: row.second_reviewer_user_id ? Number(row.second_reviewer_user_id) : null,
+  first_reviewed_at: row.first_reviewed_at,
+  second_reviewed_at: row.second_reviewed_at,
+  review_note: row.review_note || '',
+  created_at: row.created_at
+});
 
 function recordPlanEvent(planId, user, action, fromStatus, toStatus, note, callback = () => {}) {
   db.query(
@@ -91,7 +141,7 @@ router.post('/share', auth, requireRole('parent', 'admin'), (req, res) => {
   });
 });
 
-// 专业人员身份只能由管理员在核验资质后建立，禁止公开自助注册。
+// 专业人员档案只能由管理员建立；建档不等于资质通过，必须再走证据和双人复核。
 router.post('/register', auth, requireRole('admin'), (req, res) => {
   const userId = positiveId(req.body.user_id);
   const name = clean(req.body.name, 50);
@@ -106,13 +156,121 @@ router.post('/register', auth, requireRole('admin'), (req, res) => {
     if (userErr) return res.status(500).json({ error: '暂时无法核验专业账号' });
     if (!users.length) return res.status(400).json({ error: '目标账号不是专业人员账号' });
     db.query(
-      'INSERT INTO therapists (user_id, name, phone, email, professional_title, specialty, years_of_experience, is_certified) VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)',
+      'INSERT INTO therapists (user_id, name, phone, email, professional_title, specialty, years_of_experience, is_certified) VALUES (?, ?, ?, ?, ?, ?, ?, FALSE)',
       [userId, name, phone, email, title, specialty, years],
-      (err, result) => err
-        ? res.status(400).json({ error: '该账号或手机号已绑定专业人员资料' })
-        : res.status(201).json({ success: true, message: '专业人员资料已核验并建立', therapist: { id: result.insertId, name } })
+      (err, result) => {
+        if (err) return res.status(400).json({ error: '该账号或手机号已绑定专业人员资料' });
+        writeAudit(req, 'professional_profile_created', 'therapist', String(result.insertId), 'success', { user_id: userId, certified: false });
+        res.status(201).json({ success: true, message: '专业人员档案已建立，请提交资质证据并完成双人复核', therapist: { id: result.insertId, name, is_certified: false } });
+      }
     );
   });
+});
+
+router.post('/admin/profiles/:therapistId/credentials', auth, requireRole('admin'), uploadCredentialEvidence.single('evidence'), (req, res) => {
+  const therapistId = positiveId(req.params.therapistId);
+  const credentialType = clean(req.body.credential_type, 30);
+  const issuingAuthority = clean(req.body.issuing_authority, 200);
+  const issuedOn = /^\d{4}-\d{2}-\d{2}$/.test(String(req.body.issued_on || '')) ? req.body.issued_on : null;
+  const expiresOn = /^\d{4}-\d{2}-\d{2}$/.test(String(req.body.expires_on || '')) ? req.body.expires_on : '';
+  const referenceLast4 = /^[A-Za-z0-9]{4}$/.test(String(req.body.reference_last4 || '')) ? String(req.body.reference_last4) : null;
+  if (!therapistId || !CREDENTIAL_TYPES.has(credentialType) || !issuingAuthority || !expiresOn) return res.status(400).json({ error: '专业人员、资质类型、签发机构和有效期必须有效' });
+  if (expiresOn < new Date().toISOString().slice(0, 10)) return res.status(400).json({ error: '不能提交已经过期的资质证据' });
+  if (!req.file || !EVIDENCE_MIMES.has(req.file.mimetype) || !evidenceMatchesMime(req.file)) return res.status(400).json({ error: '请上传内容与格式一致且不超过2MB的PDF、JPG或PNG证据文件' });
+  let encrypted;
+  try { encrypted = encryptJson({ base64: req.file.buffer.toString('base64') }); }
+  catch (_) { return res.status(503).json({ error: '资质证据加密服务未配置' }); }
+  const filename = clean(req.file.originalname.replace(/[\r\n\\/]/g, '_'), 180) || 'credential-evidence';
+  const evidenceSha256 = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
+  const publicId = randomPublicId();
+  db.query('SELECT id FROM therapists WHERE id=?', [therapistId], (profileError, profiles) => {
+    if (profileError) return res.status(500).json({ error: '暂时无法核验专业档案' });
+    if (!profiles.length) return res.status(404).json({ error: '专业档案不存在' });
+    db.query(`INSERT INTO professional_credentials
+      (public_id,therapist_id,credential_type,reference_last4,issuing_authority,issued_on,expires_on,evidence_filename,evidence_mime,evidence_ciphertext,evidence_iv,evidence_auth_tag,evidence_sha256,submitted_by_user_id)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [publicId, therapistId, credentialType, referenceLast4, issuingAuthority, issuedOn, expiresOn, filename, req.file.mimetype, encrypted.ciphertext, encrypted.iv, encrypted.tag, evidenceSha256, req.user.id], (error) => {
+      if (error) return res.status(500).json({ error: '资质证据暂时无法保存' });
+      writeAudit(req, 'credential_submitted', 'professional_credential', publicId, 'success', { therapist_id: therapistId, mime: req.file.mimetype, size: req.file.size });
+      res.status(201).json({ success: true, credential: { id: publicId, status: 'pending' }, message: '证据已加密保存，等待两名其他管理员依次复核' });
+    });
+  });
+});
+
+router.get('/admin/credentials', auth, requireRole('admin'), async (req, res) => {
+  const view = String(req.query.view || 'active');
+  if (!['active','history','all'].includes(view)) return res.status(400).json({ error: '资质视图无效' });
+  const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+  const limit = Math.max(1, Math.min(100, Number.parseInt(req.query.limit, 10) || 20));
+  const offset = (page - 1) * limit;
+  try { await syncCredentialStatus(); } catch (_) { return res.status(500).json({ error: '资质状态同步失败' }); }
+  const statuses = view === 'active' ? ['pending','first_approved'] : view === 'history' ? ['approved','rejected','expired'] : [];
+  const where = statuses.length ? ` WHERE c.status IN (${statuses.map(() => '?').join(',')})` : '';
+  db.query(`SELECT c.public_id,c.therapist_id,t.name therapist_name,c.credential_type,c.reference_last4,c.issuing_authority,c.issued_on,c.expires_on,c.evidence_filename,c.evidence_mime,c.evidence_sha256,c.status,c.submitted_by_user_id,c.first_reviewer_user_id,c.second_reviewer_user_id,c.first_reviewed_at,c.second_reviewed_at,c.review_note,c.created_at
+    FROM professional_credentials c JOIN therapists t ON t.id=c.therapist_id${where}
+    ORDER BY c.updated_at DESC LIMIT ? OFFSET ?`, [...statuses, limit, offset], (error, rows) => {
+    if (error) return res.status(500).json({ error: '资质复核队列暂时无法读取' });
+    db.query(`SELECT COUNT(*) total FROM professional_credentials c${where}`, statuses, (countError, totals) => countError
+      ? res.status(500).json({ error: '资质复核队列暂时无法读取' })
+      : res.json({ success: true, credentials: rows.map(credentialView), total: Number(totals[0]?.total || 0), page, limit }));
+  });
+});
+
+router.get('/admin/credentials/:credentialId/evidence', auth, requireRole('admin'), (req, res) => {
+  db.query('SELECT public_id,evidence_filename,evidence_mime,evidence_ciphertext,evidence_iv,evidence_auth_tag FROM professional_credentials WHERE public_id=?', [req.params.credentialId], (error, rows) => {
+    if (error) return res.status(500).json({ error: '证据文件暂时无法读取' });
+    if (!rows.length) return res.status(404).json({ error: '资质证据不存在' });
+    try {
+      const row = rows[0];
+      const payload = decryptJson({ ciphertext: row.evidence_ciphertext, iv: row.evidence_iv, tag: row.evidence_auth_tag });
+      const data = Buffer.from(payload.base64, 'base64');
+      writeAudit(req, 'credential_evidence_read', 'professional_credential', row.public_id, 'success', { size: data.length });
+      res.setHeader('Content-Type', row.evidence_mime);
+      res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(row.evidence_filename)}`);
+      res.send(data);
+    } catch (_) {
+      writeAudit(req, 'credential_evidence_read', 'professional_credential', rows[0].public_id, 'decrypt_failed');
+      res.status(500).json({ error: '资质证据解密失败' });
+    }
+  });
+});
+
+router.post('/admin/credentials/:credentialId/review', auth, requireRole('admin'), async (req, res, next) => {
+  const decision = String(req.body?.decision || '');
+  const note = clean(req.body?.note, 1000);
+  if (!['approve','reject'].includes(decision)) return res.status(400).json({ error: '复核决定无效' });
+  if (note.length < 5) return res.status(400).json({ error: '请填写至少5字的复核依据' });
+  try {
+    const result = await db.withTransaction(async tx => {
+      const rows = await tx.query('SELECT id,public_id,therapist_id,status,submitted_by_user_id,first_reviewer_user_id FROM professional_credentials WHERE public_id=? FOR UPDATE', [req.params.credentialId]);
+      if (!rows.length) return { error: 'not_found' };
+      const item = rows[0];
+      if (!['pending','first_approved'].includes(item.status)) return { error: 'finished' };
+      if (Number(item.submitted_by_user_id) === Number(req.user.id)) return { error: 'submitter' };
+      if (item.first_reviewer_user_id && Number(item.first_reviewer_user_id) === Number(req.user.id)) return { error: 'same_reviewer' };
+      let nextStatus;
+      if (decision === 'reject') {
+        nextStatus = 'rejected';
+        if (item.status === 'pending') await tx.query("UPDATE professional_credentials SET status='rejected',first_reviewer_user_id=?,first_reviewed_at=NOW(),review_note=? WHERE id=?", [req.user.id, note, item.id]);
+        else await tx.query("UPDATE professional_credentials SET status='rejected',second_reviewer_user_id=?,second_reviewed_at=NOW(),review_note=? WHERE id=?", [req.user.id, note, item.id]);
+      } else if (item.status === 'pending') {
+        nextStatus = 'first_approved';
+        await tx.query("UPDATE professional_credentials SET status='first_approved',first_reviewer_user_id=?,first_reviewed_at=NOW(),review_note=? WHERE id=?", [req.user.id, note, item.id]);
+      } else {
+        nextStatus = 'approved';
+        await tx.query("UPDATE professional_credentials SET status='approved',second_reviewer_user_id=?,second_reviewed_at=NOW(),review_note=? WHERE id=?", [req.user.id, note, item.id]);
+      }
+      await tx.query(`UPDATE therapists t SET is_certified=EXISTS(
+        SELECT 1 FROM professional_credentials c WHERE c.therapist_id=t.id AND c.status='approved' AND c.expires_on >= CURRENT_DATE
+      ) WHERE t.id=?`, [item.therapist_id]);
+      const profileRows = await tx.query('SELECT is_certified FROM therapists WHERE id=?', [item.therapist_id]);
+      return { nextStatus, therapistId: item.therapist_id, isCertified: Boolean(profileRows[0]?.is_certified) };
+    });
+    const errors = { not_found: [404,'资质证据不存在'], finished: [409,'该证据已完成复核'], submitter: [403,'证据提交人不能参与复核'], same_reviewer: [403,'第二次复核必须由另一名管理员完成'] };
+    if (result.error) return res.status(errors[result.error][0]).json({ error: errors[result.error][1] });
+    writeAudit(req, `credential_${result.nextStatus}`, 'professional_credential', req.params.credentialId, 'success', { therapist_id: result.therapistId, note_present: true });
+    res.json({ success: true, status: result.nextStatus, is_certified: result.isCertified });
+  } catch (error) { next(error); }
 });
 
 // 管理端只返回核验档案清单；联系方式继续脱敏，避免运营台成为敏感通讯录。

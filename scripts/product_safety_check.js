@@ -38,4 +38,11 @@ for (const page of pages) {
 const hashes = pages.map(page => fs.readFileSync(page).toString('base64'));
 if (!hashes.every(value => value === hashes[0])) throw new Error('三个发布入口内容不一致');
 
-console.log(`产品安全静态回归通过：${pages.length} 个入口，${required.length} 项关键保护。`);
+const mirroredAssets = ['app.js', 'app.css', 'app-inline.css'];
+for (const asset of mirroredAssets) {
+  const rootAsset = fs.readFileSync(`assets/${asset}`);
+  const docsAsset = fs.readFileSync(`docs/assets/${asset}`);
+  if (!rootAsset.equals(docsAsset)) throw new Error(`发布镜像资源不一致: ${asset}`);
+}
+
+console.log(`产品安全静态回归通过：${pages.length} 个入口，${mirroredAssets.length} 个镜像资源，${required.length} 项关键保护。`);
