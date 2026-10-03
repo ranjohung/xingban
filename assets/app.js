@@ -3340,21 +3340,28 @@
               <input id="child-other-diagnosis" class="hidden mt-2 w-full px-4 py-2.5 rounded-xl border border-border" placeholder="请填写其他情况；不确定可写“评估中”">
             </div>
             <details open class="rounded-xl border border-border p-3"><summary class="font-medium text-sm">第2步 · 当前支持需要观察（非标准量表）</summary><div class="grid grid-cols-2 gap-3 mt-3">${[['communication','沟通'],['social','社交'],['selfcare','自理'],['cognition','认知']].map(([id,label])=>`<label class="text-xs text-text-secondary">${label}水平<select id="child-${id}" class="mt-1 w-full p-2 rounded-lg border"><option value="1">1 需要全面支持</option><option value="2">2 较多支持</option><option value="3" selected>3 部分支持</option><option value="4">4 少量支持</option><option value="5">5 基本独立</option></select></label>`).join('')}</div><p class="text-xs text-text-muted mt-2">只记录家长对当前支持需要的观察，不给孩子的能力定级，也不能代替专业评估。</p></details>
-            <details class="rounded-xl border border-border p-3"><summary class="font-medium text-sm">第3步 · 感官与偏好</summary><div class="space-y-3 mt-3"><label class="block text-xs">主要感官特点<select id="child-sensory" class="mt-1 w-full p-2 rounded-lg border"><option>尚不明确</option><option>声音敏感</option><option>视觉敏感</option><option>触觉敏感</option><option>寻求运动/前庭刺激</option><option>多种特点</option></select></label><label class="block text-xs">喜欢的物品或活动<textarea id="child-reinforcers" rows="2" class="mt-1 w-full p-2 rounded-lg border" placeholder="如：泡泡、绘本、散步；不要用剥夺基本需求作为奖励"></textarea></label></div></details>
+            <details class="rounded-xl border border-border p-3"><summary class="font-medium text-sm">第3步 · 感官与偏好</summary><div class="space-y-3 mt-3"><label class="block text-xs">主要感官特点<select id="child-sensory" class="mt-1 w-full p-2 rounded-lg border"><option value="unknown">尚不明确</option><option value="hearing_sensitive">声音敏感</option><option value="visual_sensitive">视觉敏感</option><option value="tactile_sensitive">触觉敏感</option><option value="vestibular_seeking">寻求运动/前庭刺激</option><option value="multiple">多种特点（请在下方补充）</option></select></label><label class="block text-xs">喜欢的物品、活动或感官补充<textarea id="child-reinforcers" rows="2" class="mt-1 w-full p-2 rounded-lg border" placeholder="如：泡泡、绘本、散步；不要用剥夺基本需求作为奖励"></textarea></label></div></details>
             <label class="flex items-start gap-2 text-xs text-text-secondary"><input id="child-consent" type="checkbox" class="mt-1"><span>我确认自己具备监护或合法授权关系，并会以适龄方式告知孩子记录用途。</span></label>
-            <button data-ui-call="saveChild" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
+            <input id="child-request-id" type="hidden" value="${newClientRequestId()}">
+            <p id="child-save-status" class="text-xs text-text-muted" role="status">档案尚未保存；网络失败时内容会保留在本页。</p>
+            <button id="child-save-button" data-ui-call="saveChild" class="w-full py-3 rounded-xl bg-primary text-white font-medium disabled:opacity-60">保存</button>
           </div>
         </div>
       `;
       document.body.appendChild(modal);
     }
 
+    let childSaveInFlight = false;
     async function saveChild() {
+      if (childSaveInFlight) return;
       const nickname = document.getElementById('child-nickname').value.trim();
       const birth_date = document.getElementById('child-birthdate').value;
       const diagnosis_type = document.getElementById('child-diagnosis').value;
       const otherDiagnosis = document.getElementById('child-other-diagnosis').value.trim();
       const consent = document.getElementById('child-consent').checked;
+      const client_request_id = document.getElementById('child-request-id').value;
+      const status = document.getElementById('child-save-status');
+      const button = document.getElementById('child-save-button');
 
       if (!nickname || !birth_date) {
         showToast('请填写昵称和出生日期');
@@ -3367,19 +3374,35 @@
       if (!consent) { showToast('请先确认监护或合法授权关系'); return; }
       const profileExtras = { communication:Number(document.getElementById('child-communication').value), social:Number(document.getElementById('child-social').value), selfcare:Number(document.getElementById('child-selfcare').value), cognition:Number(document.getElementById('child-cognition').value), sensory:document.getElementById('child-sensory').value, reinforcers:document.getElementById('child-reinforcers').value.trim() };
 
+      if (navigator.onLine === false) {
+        status.textContent = '未保存：当前网络已断开；儿童资料仍保留在本页，联网后可重试。';
+        showToast('当前网络已断开，儿童档案尚未保存');
+        return;
+      }
+
+      childSaveInFlight = true;
+      button.disabled = true;
+      button.textContent = '正在保存…';
+      status.textContent = '正在安全保存，请勿重复点击。';
       try {
-        const result = await apiRequest('/child', 'POST', { nickname, birth_date, diagnosis_type, diagnosis_other: otherDiagnosis, communication_level: profileExtras.communication, social_level: profileExtras.social, self_care_level: profileExtras.selfcare, cognitive_level: profileExtras.cognition, sensory_hearing: profileExtras.sensory, reinforcers: profileExtras.reinforcers ? [profileExtras.reinforcers] : [] });
+        const sensoryPayload={sensory_hearing:profileExtras.sensory==='hearing_sensitive'?'sensitive':'unknown',sensory_visual:profileExtras.sensory==='visual_sensitive'?'sensitive':'unknown',sensory_tactile:profileExtras.sensory==='tactile_sensitive'?'sensitive':'unknown',sensory_vestibular:profileExtras.sensory==='vestibular_seeking'?'seeking':'unknown'};
+        const result = await apiRequest('/child', 'POST', { client_request_id, nickname, birth_date, diagnosis_type, diagnosis_other: otherDiagnosis, communication_level: profileExtras.communication, social_level: profileExtras.social, self_care_level: profileExtras.selfcare, cognitive_level: profileExtras.cognition, ...sensoryPayload, reinforcers: profileExtras.reinforcers ? [profileExtras.reinforcers] : [] });
 
         if (result.success) {
           const age=Math.max(0,new Date().getFullYear()-new Date(birth_date).getFullYear()); MOCK_DATA.children.push({id:result.child?.id||Date.now(),name:nickname,age,gender:'未填写',diagnosis:diagnosis_type==='OTHER'?otherDiagnosis:diagnosis_type,avatar:'🧒',profile:profileExtras});
-          showToast('添加成功');
+          showToast(result.replayed ? '该儿童档案此前已经保存' : '添加成功');
           closeTopModal();
           navigateTo('children');
         } else {
           showToast(result.error || '添加失败');
         }
       } catch (error) {
-        showToast('网络不可用，儿童敏感资料未保存，请联网后重试');
+        status.textContent = `未确认保存：${error.message || '网络连接中断'}。资料仍在本页，可用相同内容重试。`;
+        showToast('儿童敏感资料尚未确认保存，请保留当前页面');
+      } finally {
+        childSaveInFlight = false;
+        const currentButton = document.getElementById('child-save-button');
+        if (currentButton) { currentButton.disabled = false; currentButton.textContent = '保存'; }
       }
     }
 

@@ -8,6 +8,12 @@ const DIAGNOSIS_TYPES = new Set(['UNCONFIRMED', 'ASD', 'ADHD', 'DD', 'OTHER']);
 const clean = (value, max) => String(value ?? '').trim().slice(0, max);
 const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) && !Number.isNaN(new Date(`${value}T00:00:00`).getTime()) && new Date(`${value}T00:00:00`) <= new Date();
 const validLevel = value => value === undefined || (Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= 5);
+const validRequestId = value => !value || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+const communicationValue = value => ['none', 'single_word', 'phrase', 'sentence', 'fluent'].includes(value)
+  ? value
+  : ({ 1: 'none', 2: 'single_word', 3: 'phrase', 4: 'sentence', 5: 'fluent' }[Number(value)] || 'none');
+const sensoryValue = value => ['unknown', 'sensitive', 'dull', 'seeking', 'avoiding', 'normal'].includes(value) ? value : 'unknown';
+const childResponse = row => ({ id: row.id, nickname: row.nickname, birth_date: row.birth_date, diagnosis_type: row.diagnosis_type });
 
 // router.param 会在具体路由中间件之前运行，因此必须先完成鉴权，
 // 否则参数归属校验读取不到 req.user。
@@ -160,14 +166,14 @@ router.post('/wizard/step4', auth, (req, res) => {
           data.birth_date,
           data.diagnosis_type,
           data.diagnosis_other || null,
-          data.communication_level || 'none',
+          communicationValue(data.communication_level),
           data.social_level || 1,
           data.self_care_level || 1,
           data.cognitive_level || 1,
-          data.sensory_hearing || 'normal',
-          data.sensory_visual || 'normal',
-          data.sensory_tactile || 'normal',
-          data.sensory_vestibular || 'normal',
+          sensoryValue(data.sensory_hearing),
+          sensoryValue(data.sensory_visual),
+          sensoryValue(data.sensory_tactile),
+          sensoryValue(data.sensory_vestibular),
           JSON.stringify(data.reinforcers || []),
           data.medical_info || null
         ],
@@ -257,7 +263,7 @@ router.post('/', auth, (req, res) => {
     nickname, birth_date, diagnosis_type, diagnosis_other,
     communication_level, social_level, self_care_level, cognitive_level,
     sensory_hearing, sensory_visual, sensory_tactile, sensory_vestibular,
-    reinforcers, medical_info
+    reinforcers, medical_info, client_request_id
   } = req.body;
   
   if (!nickname || !birth_date || !diagnosis_type) {
@@ -269,28 +275,33 @@ router.post('/', auth, (req, res) => {
   if ([communication_level, social_level, self_care_level, cognitive_level].some(value => !validLevel(value))) {
     return res.status(400).json({ error: '支持需要记录必须为1至5' });
   }
-  
-  db.query(
-    'INSERT INTO children (user_id, nickname, birth_date, diagnosis_type, diagnosis_other, communication_level, social_level, self_care_level, cognitive_level, sensory_hearing, sensory_visual, sensory_tactile, sensory_vestibular, reinforcers, medical_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+  const clientRequestId = clean(client_request_id, 36);
+  if (!validRequestId(clientRequestId)) return res.status(400).json({ error: '请求标识无效' });
+  const createChild = () => db.query(
+    'INSERT INTO children (user_id, client_request_id, nickname, birth_date, diagnosis_type, diagnosis_other, communication_level, social_level, self_care_level, cognitive_level, sensory_hearing, sensory_visual, sensory_tactile, sensory_vestibular, reinforcers, medical_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       req.user.id,
+      clientRequestId || null,
       nickname,
       birth_date,
       diagnosis_type,
       diagnosis_other || null,
-      communication_level || 'none',
+      communicationValue(communication_level),
       social_level || 1,
       self_care_level || 1,
       cognitive_level || 1,
-      sensory_hearing || 'normal',
-      sensory_visual || 'normal',
-      sensory_tactile || 'normal',
-      sensory_vestibular || 'normal',
+      sensoryValue(sensory_hearing),
+      sensoryValue(sensory_visual),
+      sensoryValue(sensory_tactile),
+      sensoryValue(sensory_vestibular),
       JSON.stringify(reinforcers || []),
       medical_info || null
     ],
     (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err?.code === 'ER_DUP_ENTRY' && clientRequestId) return db.query('SELECT * FROM children WHERE user_id=? AND client_request_id=?', [req.user.id, clientRequestId], (readError, rows) => readError || !rows.length
+        ? res.status(500).json({ error: '档案保存状态暂时无法确认，请保留当前页面后重试' })
+        : res.json({ success: true, replayed: true, message: '儿童档案此前已创建', child: childResponse(rows[0]) }));
+      if (err) return res.status(500).json({ error: '儿童档案未确认保存，请保留当前页面后重试' });
       
       const childId = result.insertId;
       // 目标必须经共同确认，不按诊断或单次分数自动生成。
@@ -298,10 +309,17 @@ router.post('/', auth, (req, res) => {
       res.status(201).json({
         success: true,
         message: '儿童档案创建成功',
+        replayed: false,
         child: { id: childId, nickname, birth_date, diagnosis_type }
       });
     }
   );
+  if (clientRequestId && db.status().mode === 'mysql') return db.query('SELECT * FROM children WHERE user_id=? AND client_request_id=?', [req.user.id, clientRequestId], (error, rows) => {
+    if (error) return res.status(500).json({ error: '档案保存状态暂时无法确认，请保留当前页面后重试' });
+    if (rows.length) return res.json({ success: true, replayed: true, message: '儿童档案此前已创建', child: childResponse(rows[0]) });
+    createChild();
+  });
+  return createChild();
 });
 
 function generateInitialGoalsForResponse() { return []; }

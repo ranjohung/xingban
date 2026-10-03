@@ -68,9 +68,14 @@ async function main() {
   if (!adminLogin.response.ok || !adminLogin.body.token) throw new Error(`管理员登录失败：${JSON.stringify(adminLogin.body)}`);
   const adminHeaders = { 'Content-Type': 'application/json', Authorization: `Bearer ${adminLogin.body.token}` };
 
-  const child = await request('/child', { method: 'POST', headers, body: JSON.stringify({ nickname: '测试儿童', birth_date: '2020-01-02', diagnosis_type: 'UNCONFIRMED' }) });
+  const childPayload = { client_request_id: randomUUID(), nickname: '测试儿童', birth_date: '2020-01-02', diagnosis_type: 'UNCONFIRMED', communication_level: 3, sensory_hearing: 'unknown', sensory_visual: 'sensitive' };
+  const child = await request('/child', { method: 'POST', headers, body: JSON.stringify(childPayload) });
   if (child.response.status !== 201) throw new Error(`建档失败：${JSON.stringify(child.body)}`);
+  const childReplay = await request('/child', { method: 'POST', headers, body: JSON.stringify(childPayload) });
+  if (!childReplay.response.ok || !childReplay.body.replayed || Number(childReplay.body.child?.id) !== Number(child.body.child.id)) throw new Error('儿童档案重复提交未返回原档案');
   const childId = child.body.child.id;
+  const childRead = await request(`/child/${childId}`, { headers });
+  if (!childRead.response.ok || childRead.body.child.communication_level !== 'phrase' || childRead.body.child.sensory_visual !== 'sensitive' || childRead.body.child.sensory_hearing !== 'unknown') throw new Error('儿童支持等级或感官字段映射不正确');
 
   const behaviorPayload = { child_id: childId, client_request_id: randomUUID(), input_type: 'text', content: '活动转换前哭泣约三分钟，提供选择后平静', behavior_category: '情绪爆发', emotion_state: '难过', intensity_level: 'medium' };
   const behavior = await request('/behavior', { method: 'POST', headers, body: JSON.stringify(behaviorPayload) });

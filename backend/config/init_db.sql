@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS children (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
+  client_request_id CHAR(36) NULL,
   nickname VARCHAR(50) NOT NULL,
   birth_date DATE NOT NULL,
   diagnosis_type ENUM('UNCONFIRMED', 'ASD', 'ADHD', 'DD', 'OTHER') NOT NULL,
@@ -24,16 +25,17 @@ CREATE TABLE IF NOT EXISTS children (
   social_level INT DEFAULT 1,
   self_care_level INT DEFAULT 1,
   cognitive_level INT DEFAULT 1,
-  sensory_hearing ENUM('sensitive', 'dull', 'seeking', 'avoiding', 'normal') DEFAULT 'normal',
-  sensory_visual ENUM('sensitive', 'dull', 'seeking', 'avoiding', 'normal') DEFAULT 'normal',
-  sensory_tactile ENUM('sensitive', 'dull', 'seeking', 'avoiding', 'normal') DEFAULT 'normal',
-  sensory_vestibular ENUM('sensitive', 'dull', 'seeking', 'avoiding', 'normal') DEFAULT 'normal',
+  sensory_hearing ENUM('unknown', 'sensitive', 'dull', 'seeking', 'avoiding', 'normal') DEFAULT 'unknown',
+  sensory_visual ENUM('unknown', 'sensitive', 'dull', 'seeking', 'avoiding', 'normal') DEFAULT 'unknown',
+  sensory_tactile ENUM('unknown', 'sensitive', 'dull', 'seeking', 'avoiding', 'normal') DEFAULT 'unknown',
+  sensory_vestibular ENUM('unknown', 'sensitive', 'dull', 'seeking', 'avoiding', 'normal') DEFAULT 'unknown',
   -- MySQL 9.x forbids defaults on JSON columns; application code treats NULL as an empty list.
   reinforcers JSON NULL,
   medical_info TEXT,
   avatar VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_child_user_request (user_id, client_request_id),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
