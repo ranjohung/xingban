@@ -20,7 +20,8 @@ const expectedColumns = {
   caregiver_invitations: ['client_request_id', 'token_ciphertext', 'token_iv', 'token_auth_tag'],
   data_deletion_requests: ['client_request_id'],
   report_shares: ['client_request_id'],
-  strategy_feedback: ['client_request_id']
+  strategy_feedback: ['client_request_id'],
+  safety_practice_records: ['client_request_id']
 };
 
 async function main() {

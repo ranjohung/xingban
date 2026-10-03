@@ -8,6 +8,7 @@ const positiveId = value => {
   return Number.isInteger(id) && id > 0 ? id : 0;
 };
 const clean = (value, max) => typeof value === 'string' ? value.trim().slice(0, max) : '';
+const uuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value || '') ? value : '';
 const verifyChild = (userId, childId, callback) => {
   db.query('SELECT id FROM children WHERE id = ? AND user_id = ?', [childId, userId], (err, rows) => callback(err, Boolean(rows?.length)));
 };
@@ -80,14 +81,27 @@ router.get('/skills/:id', auth, (req, res) => {
 router.post('/skills/:id/practice', auth, (req, res) => {
   const skillId = positiveId(req.params.id);
   const childId = positiveId(req.body.child_id);
+  const clientRequestId = uuid(req.body.client_request_id);
   if (!skillId || !childId) return res.status(400).json({ error: '儿童或技能编号无效' });
+  if (!clientRequestId) return res.status(400).json({ error: '请求标识无效，请刷新后重试' });
   verifyChild(req.user.id, childId, (verifyErr, owned) => {
     if (verifyErr) return res.status(500).json({ error: '暂时无法核验儿童档案' });
     if (!owned) return res.status(404).json({ error: '儿童档案不存在' });
-    db.query('INSERT INTO safety_practice_records (user_id, child_id, skill_id, completed) VALUES (?, ?, ?, ?)',
-      [req.user.id, childId, skillId, req.body.completed === true],
-      (err, result) => err ? res.status(500).json({ error: '练习记录暂时无法保存' }) : res.json({ success: true, message: '练习记录成功', record: { id: result.insertId, skill_id: skillId, completed: req.body.completed === true } })
-    );
+    db.query('SELECT id, child_id, skill_id, completed, created_at FROM safety_practice_records WHERE user_id = ? AND client_request_id = ? LIMIT 1', [req.user.id, clientRequestId], (lookupErr, rows) => {
+      if (lookupErr) return res.status(500).json({ error: '练习记录暂时无法核对' });
+      if (rows?.length) return res.json({ success: true, replayed: true, message: '本次练习此前已记录', record: rows[0] });
+      db.query('INSERT INTO safety_practice_records (user_id, client_request_id, child_id, skill_id, completed) VALUES (?, ?, ?, ?, ?)',
+        [req.user.id, clientRequestId, childId, skillId, req.body.completed === true],
+        (err, result) => {
+          if (!err) return res.json({ success: true, message: '练习记录成功', record: { id: result.insertId, child_id: childId, skill_id: skillId, completed: req.body.completed === true } });
+          if (err.code !== 'ER_DUP_ENTRY') return res.status(500).json({ error: '练习记录暂时无法保存' });
+          db.query('SELECT id, child_id, skill_id, completed, created_at FROM safety_practice_records WHERE user_id = ? AND client_request_id = ? LIMIT 1', [req.user.id, clientRequestId], (raceErr, replayRows) => {
+            if (raceErr || !replayRows?.length) return res.status(500).json({ error: '练习记录状态暂时无法确认' });
+            res.json({ success: true, replayed: true, message: '本次练习此前已记录', record: replayRows[0] });
+          });
+        }
+      );
+    });
   });
 });
 

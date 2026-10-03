@@ -5040,24 +5040,14 @@
       document.body.appendChild(modal);
 
       const fallbackSkills = [{id:1,name:'记住照护者姓名和电话',difficulty:'简单',description:'分段练习姓名与一个主要联系电话，不要求一次背完。'},{id:2,name:'走散后停在安全地点',difficulty:'中等',description:'练习停下、不继续奔跑，向穿制服的工作人员求助。'},{id:3,name:'识别道路与水边危险',difficulty:'中等',description:'使用真实场景照片练习“停—等—找成人”，必须由成人陪同。'}];
-      const renderSafetySkillList = skills => { const list=document.getElementById('safety-skills-list'); if(!list)return; list.innerHTML=skills.map(s=>`<div class="bg-white border border-border rounded-xl p-3"><div class="flex items-center justify-between mb-2"><span class="font-medium text-text-primary">${escapeText(s.name)}</span><span class="text-xs px-2 py-0.5 bg-primary-light/30 text-primary rounded-full">${escapeText(s.difficulty)}</span></div><p class="text-xs text-text-secondary mb-2">${escapeText(s.description)}</p><button data-ui-call="practiceSkill" data-ui-args="[${Number(s.id)}]" class="w-full py-2 bg-primary-light/30 text-primary rounded-lg text-sm">记录一次练习</button></div>`).join(''); };
+      const renderSafetySkillList = skills => { const list=document.getElementById('safety-skills-list'); if(!list)return; list.innerHTML=skills.map(s=>`<div class="bg-white border border-border rounded-xl p-3"><div class="flex items-center justify-between mb-2"><span class="font-medium text-text-primary">${escapeText(s.name)}</span><span class="text-xs px-2 py-0.5 bg-primary-light/30 text-primary rounded-full">${escapeText(s.difficulty)}</span></div><p class="text-xs text-text-secondary mb-2">${escapeText(s.description)}</p><input id="safety-practice-request-${Number(s.id)}" type="hidden" value="${newClientRequestId()}"><p id="safety-practice-status-${Number(s.id)}" class="text-xs text-text-muted mb-2" role="status">尚未记录；只有真实练习完成后才点击。</p><button id="safety-practice-button-${Number(s.id)}" data-ui-call="practiceSkill" data-ui-args="[${Number(s.id)}]" class="w-full py-2 bg-primary-light/30 text-primary rounded-lg text-sm disabled:opacity-60">记录完成一次真实练习</button></div>`).join(''); };
       renderSafetySkillList(fallbackSkills);
 
       try {
         const result = await apiRequest('/safety/skills', 'GET');
 
         if (result.success) {
-          const skillsList = document.getElementById('safety-skills-list');
-          skillsList.innerHTML = result.skills.map(s => `
-            <div class="bg-white border border-border rounded-xl p-3">
-              <div class="flex items-center justify-between mb-2">
-                <span class="font-medium text-text-primary">${escapeText(s.name)}</span>
-                <span class="text-xs px-2 py-0.5 ${s.difficulty === '简单' ? 'bg-success/20 text-success' : s.difficulty === '中等' ? 'bg-warning/20 text-warning' : 'bg-danger/20 text-danger'} rounded-full">${escapeText(s.difficulty)}</span>
-              </div>
-              <p class="text-xs text-text-secondary mb-2">${escapeText(s.description)}</p>
-              <button data-ui-call="practiceSkill" data-ui-args="[${Number(s.id)}]" class="w-full py-2 bg-primary-light/30 text-primary rounded-lg text-sm">记录完成一次真实练习</button>
-            </div>
-          `).join('');
+          renderSafetySkillList(result.skills);
         } else {
           console.warn('使用本地安全技能清单');
         }
@@ -5066,22 +5056,35 @@
       }
     }
 
+    const safetyPracticeInFlight = new Set();
     async function practiceSkill(skillId) {
+      if (safetyPracticeInFlight.has(skillId)) return;
       if (!confirm('请只在成人陪同、真实完成练习后记录。确认已完成本次练习吗？')) return;
+      const childId = Number(selectedChild?.id || MOCK_DATA.children?.[0]?.id);
+      const requestId = document.getElementById(`safety-practice-request-${skillId}`)?.value;
+      const status = document.getElementById(`safety-practice-status-${skillId}`);
+      const button = document.getElementById(`safety-practice-button-${skillId}`);
+      if (!childId) { showToast('请先建立或选择儿童档案'); return; }
+      if (navigator.onLine === false) { if(status)status.textContent='未记录：当前网络已断开；本次真实练习不会被冒充为已保存。'; showToast('当前网络已断开，练习尚未记录'); return; }
+      safetyPracticeInFlight.add(skillId); if(button){button.disabled=true;button.textContent='正在记录…'} if(status)status.textContent='正在保存，请勿重复点击。';
       try {
         const result = await apiRequest(`/safety/skills/${skillId}/practice`, 'POST', {
-          child_id: 1,
+          child_id: childId,
+          client_request_id: requestId,
           completed: true
         });
 
         if (result.success) {
-          showToast('练习完成！');
-          showSafetySkills();
+          if(status)status.textContent=result.replayed?'该次练习此前已记录，未重复计数。':'已记录本次真实练习。';
+          showToast(result.replayed?'该次练习此前已记录':'本次真实练习已记录');
         } else {
-          showToast(result.error || '练习失败');
+          throw new Error(result.error || '练习记录失败');
         }
       } catch (error) {
-        const progress=JSON.parse(sessionStorage.getItem('xingban_safety_skill_progress')||'{}');progress[skillId]=(progress[skillId]||0)+1;sessionStorage.setItem('xingban_safety_skill_progress',JSON.stringify(progress));showToast('网络不可用，本次练习仅暂存当前标签页');
+        if(status)status.textContent=`未确认记录：${error.message||'网络连接中断'}。可使用同一请求安全重试。`;
+        showToast('练习尚未确认记录');
+      } finally {
+        safetyPracticeInFlight.delete(skillId); if(button){button.disabled=false;button.textContent='记录完成一次真实练习'}
       }
     }
 

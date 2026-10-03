@@ -401,13 +401,17 @@ function query(sql, params, callback) {
       const id = params[0];
       const results = safetySkills.filter(s => s.id === id);
       callback(null, results);
+    } else if (sql.includes('SELECT id, child_id, skill_id, completed, created_at FROM safety_practice_records')) {
+      const results = safetyPracticeRecords.filter(r => r.user_id === params[0] && r.client_request_id === params[1]);
+      callback(null, results.slice(0, 1));
     } else if (sql.includes('INSERT INTO safety_practice_records')) {
       const record = {
         id: practiceIdCounter++,
         user_id: params[0],
-        child_id: params[1],
-        skill_id: params[2],
-        completed: params[3] || false,
+        client_request_id: params[1],
+        child_id: params[2],
+        skill_id: params[3],
+        completed: params[4] || false,
         created_at: new Date()
       };
       safetyPracticeRecords.push(record);

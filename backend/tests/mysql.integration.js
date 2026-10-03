@@ -77,6 +77,12 @@ async function main() {
   const childRead = await request(`/child/${childId}`, { headers });
   if (!childRead.response.ok || childRead.body.child.communication_level !== 'phrase' || childRead.body.child.sensory_visual !== 'sensitive' || childRead.body.child.sensory_hearing !== 'unknown') throw new Error('儿童支持等级或感官字段映射不正确');
 
+  const practicePayload = { child_id: childId, client_request_id: randomUUID(), completed: true };
+  const practice = await request('/safety/skills/1/practice', { method: 'POST', headers, body: JSON.stringify(practicePayload) });
+  if (!practice.response.ok) throw new Error(`安全技能练习记录失败：${JSON.stringify(practice.body)}`);
+  const practiceReplay = await request('/safety/skills/1/practice', { method: 'POST', headers, body: JSON.stringify(practicePayload) });
+  if (!practiceReplay.response.ok || !practiceReplay.body.replayed || Number(practiceReplay.body.record?.id) !== Number(practice.body.record.id)) throw new Error('安全技能练习重复提交未返回原记录');
+
   const behaviorPayload = { child_id: childId, client_request_id: randomUUID(), input_type: 'text', content: '活动转换前哭泣约三分钟，提供选择后平静', behavior_category: '情绪爆发', emotion_state: '难过', intensity_level: 'medium' };
   const behavior = await request('/behavior', { method: 'POST', headers, body: JSON.stringify(behaviorPayload) });
   if (behavior.response.status !== 201) throw new Error(`记录失败：${JSON.stringify(behavior.body)}`);

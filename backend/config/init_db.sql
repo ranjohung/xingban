@@ -497,8 +497,9 @@ CREATE TABLE IF NOT EXISTS safety_skills (
   description TEXT NOT NULL, difficulty TINYINT NOT NULL DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS safety_practice_records (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, child_id INT NOT NULL, skill_id INT NOT NULL,
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, client_request_id CHAR(36) NULL, child_id INT NOT NULL, skill_id INT NOT NULL,
   completed BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_safety_practice_request (user_id, client_request_id),
   INDEX idx_safety_practice_child_time (child_id, created_at),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE,
   FOREIGN KEY (skill_id) REFERENCES safety_skills(id) ON DELETE CASCADE
