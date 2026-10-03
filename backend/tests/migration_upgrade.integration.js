@@ -11,8 +11,8 @@ const expectedTables = [
 
 const expectedColumns = {
   behavior_records: ['client_request_id'],
-  community_posts: ['moderation_status', 'risk_level'],
-  community_comments: ['moderation_status', 'risk_level'],
+  community_posts: ['client_request_id', 'moderation_status', 'risk_level'],
+  community_comments: ['client_request_id', 'moderation_status', 'risk_level'],
   community_reports: ['client_request_id'],
   therapists: ['user_id'],
   professional_plans: ['client_request_id', 'confirmation_status', 'professional_note', 'reviewed_at', 'reviewed_by_user_id', 'version'],

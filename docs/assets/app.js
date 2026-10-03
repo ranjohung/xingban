@@ -5679,32 +5679,49 @@
             </div>
             <label class="flex items-start gap-3 p-3 rounded-xl bg-background text-sm"><input id="new-post-anonymous" type="checkbox" checked class="mt-1 accent-primary"><span><strong class="block">匿名发布</strong><span class="text-xs text-text-muted">默认不展示昵称；发布前请删除姓名、学校、电话、诊断证明和照片信息。</span></span></label>
             <p class="text-xs text-danger">社区不是危机热线。如孩子有即时自伤、自杀或伤人风险，请使用紧急支持并联系 120/110。</p>
-            <button data-ui-call="createPost" class="w-full py-3 rounded-xl bg-primary text-white font-medium">发布</button>
+            <input id="new-post-request-id" type="hidden" value="${newClientRequestId()}">
+            <p id="new-post-status" class="text-xs text-text-muted" role="status">尚未发布。网络失败时文字会保留在本页。</p>
+            <button id="new-post-button" data-ui-call="createPost" class="w-full py-3 rounded-xl bg-primary text-white font-medium disabled:opacity-60">发布</button>
           </div>
         </div>
       `;
       document.body.appendChild(modal);
     }
 
+    let communityPostInFlight = false;
     async function createPost() {
+      if (communityPostInFlight) return;
       const title = document.getElementById('new-post-title').value.trim();
       const category = document.getElementById('new-post-category').value;
       const content = document.getElementById('new-post-content').value.trim();
       const anonymous = document.getElementById('new-post-anonymous').checked;
+      const client_request_id = document.getElementById('new-post-request-id').value;
+      const status = document.getElementById('new-post-status');
+      const button = document.getElementById('new-post-button');
 
       if (!title || !content) {
         showToast('请填写完整信息');
         return;
       }
 
+      if (navigator.onLine === false) {
+        status.textContent = '未发布：当前网络已断开，文字仍保留在本页。';
+        showToast('当前网络已断开，帖子尚未发布');
+        return;
+      }
+
+      communityPostInFlight = true;
+      button.disabled = true;
+      button.textContent = '正在发布…';
+      status.textContent = '正在发布，请勿重复点击。';
       try {
-        const result = await apiRequest('/community/posts', 'POST', { title, content, category, anonymous });
+        const result = await apiRequest('/community/posts', 'POST', { title, content, category, anonymous, client_request_id });
 
         if (result.success && result.held_for_review) {
           closeTopModal();
           showCommunitySafetyHold(result);
         } else if (result.success) {
-          showToast('发布成功！');
+          showToast(result.replayed ? '这篇帖子此前已经发布' : '发布成功！');
 
           // 数据联动：社区互动 ↔ 成就（检查"社区之星"成就）
           const communityAchievement = MOCK_DATA.achievements.find(a => a.id === 6);
@@ -5724,7 +5741,12 @@
         }
       } catch (error) {
         console.error('发布帖子失败:', error);
-        showToast('网络错误');
+        status.textContent = `未确认发布：${error.message || '网络连接中断'}。文字仍在本页，可用同一内容重试。`;
+        showToast('帖子尚未确认发布，内容已保留');
+      } finally {
+        communityPostInFlight = false;
+        const currentButton = document.getElementById('new-post-button');
+        if (currentButton) { currentButton.disabled = false; currentButton.textContent = '发布'; }
       }
     }
 
@@ -5787,8 +5809,10 @@
 
               <div class="flex gap-2">
                 <input id="comment-input-${id}" type="text" placeholder="写下支持性评论，不提供诊断或用药建议" maxlength="500" class="flex-1 px-4 py-2 rounded-xl border border-border">
-                <button data-ui-call="addComment" data-ui-args="[${Number(id)}]" class="px-4 py-2 bg-primary text-white rounded-xl text-sm">发送</button>
+                <input id="comment-request-id-${id}" type="hidden" value="${newClientRequestId()}">
+                <button id="comment-button-${id}" data-ui-call="addComment" data-ui-args="[${Number(id)}]" class="px-4 py-2 bg-primary text-white rounded-xl text-sm disabled:opacity-60">发送</button>
               </div>
+              <p id="comment-status-${id}" class="mt-2 text-xs text-text-muted" role="status">尚未发送；失败时评论会保留。</p>
             </div>
           `;
         } else {
@@ -5837,31 +5861,52 @@
     async function showMyCommunityReports(){const modal=document.createElement('div');modal.className='fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[70] p-0 sm:p-4';modal.dataset.modal='true';modal.innerHTML='<div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5"><div class="flex justify-between"><h2 class="text-lg font-bold">我的举报记录</h2><button data-ui-action="close-top-modal">✕</button></div><div class="py-8 text-center text-text-muted">加载中…</div></div>';document.body.appendChild(modal);try{const result=await apiRequest('/community/reports/mine','GET');if(!result.success)throw new Error(result.error||'读取失败');const names={crisis:'即时危险',harassment:'骚扰攻击',privacy:'隐私泄露',misinformation:'错误信息',fraud:'诈骗推销',other:'其他'};const statuses={open:'待处理',reviewing:'处理中',resolved:'已处理',dismissed:'不成立'};modal.firstElementChild.innerHTML=`<div class="flex justify-between"><div><h2 class="text-lg font-bold">我的举报记录</h2><p class="text-xs text-text-muted mt-1">这里显示处理状态，不展示其他用户身份</p></div><button data-ui-action="close-top-modal">✕</button></div><div class="mt-4 space-y-3 max-h-[65vh] overflow-y-auto">${result.reports.length?result.reports.map(item=>`<div class="p-3 rounded-xl bg-background text-sm"><div class="flex justify-between gap-2"><strong>${escapeText(names[item.reason]||item.reason)}</strong><span class="text-primary">${escapeText(statuses[item.status]||item.status)}</span></div><div class="text-xs text-text-muted mt-1 break-all">工单：${escapeText(item.case_ref)}</div><div class="text-xs text-text-muted mt-1">${formatDate(item.created_at)}</div></div>`).join(''):'<div class="py-8 text-center text-text-muted">暂无举报记录</div>'}</div>`}catch(error){modal.firstElementChild.innerHTML=`<div class="text-center py-8 text-text-muted">${escapeText(error.message||'读取失败')}</div><button data-ui-action="close-top-modal" class="w-full py-3 rounded-xl bg-primary text-white">关闭</button>`}}
     function blockCommunityContent(id) { MOCK_DATA.communityPosts = MOCK_DATA.communityPosts.filter(p => p.id !== id); closeTopModal(); showToast('已在当前设备屏蔽该内容'); renderCommunity(document.getElementById('main-content')); }
 
+    const communityCommentInFlight = new Set();
     async function addComment(postId) {
+      if (communityCommentInFlight.has(postId)) return;
       const content = document.getElementById(`comment-input-${postId}`).value;
+      const client_request_id = document.getElementById(`comment-request-id-${postId}`).value;
+      const status = document.getElementById(`comment-status-${postId}`);
+      const button = document.getElementById(`comment-button-${postId}`);
 
       if (!content) {
         showToast('请输入评论内容');
         return;
       }
 
+      if (navigator.onLine === false) {
+        status.textContent = '未发送：当前网络已断开，评论仍保留在输入框。';
+        showToast('当前网络已断开，评论尚未发送');
+        return;
+      }
+
+      communityCommentInFlight.add(postId);
+      button.disabled = true;
+      button.textContent = '发送中…';
+      status.textContent = '正在发送，请勿重复点击。';
       try {
-        const result = await apiRequest(`/community/posts/${postId}/comments`, 'POST', { content });
+        const result = await apiRequest(`/community/posts/${postId}/comments`, 'POST', { content, client_request_id });
 
         if (result.success && result.held_for_review) {
           document.getElementById(`comment-input-${postId}`).value = '';
           closeTopModal();
           showCommunitySafetyHold(result);
         } else if (result.success) {
-          showToast('评论成功');
+          showToast(result.replayed ? '这条评论此前已经发送' : '评论成功');
           document.getElementById(`comment-input-${postId}`).value = '';
+          closeTopModal();
           showPostDetail(postId);
         } else {
           showToast(result.error || '评论失败');
         }
       } catch (error) {
         console.error('评论失败:', error);
-        showToast('网络错误');
+        status.textContent = `未确认发送：${error.message || '网络连接中断'}。评论仍在输入框，可重试。`;
+        showToast('评论尚未确认发送，内容已保留');
+      } finally {
+        communityCommentInFlight.delete(postId);
+        const currentButton = document.getElementById(`comment-button-${postId}`);
+        if (currentButton) { currentButton.disabled = false; currentButton.textContent = '发送'; }
       }
     }
 

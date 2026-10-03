@@ -11,6 +11,7 @@ const REPORT_REASONS = new Set(['crisis', 'harassment', 'privacy', 'misinformati
 const REPORT_STATUSES = new Set(['open', 'reviewing', 'resolved', 'dismissed']);
 const URGENT_PATTERN = /自杀|不想活|结束生命|伤害自己|伤害孩子|杀了|服药过量|吞药|幻觉|妄想|意识不清/;
 const cleanText = (value, max) => typeof value === 'string' ? value.trim().slice(0, max) : '';
+const validRequestId = value => !value || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 const positiveInt = (value, fallback, max) => {
   const parsed = Number.parseInt(value, 10);
   return Number.isInteger(parsed) && parsed > 0 ? Math.min(parsed, max) : fallback;
@@ -34,6 +35,19 @@ const crisisResponse = {
   title: '这条内容可能涉及即时安全风险，已暂缓公开',
   actions: ['不要等待社区回复', '陪伴处于风险中的孩子，不让其独处', '在不危及成人安全的前提下降低危险物可及性', '立即联系120/110、既往就诊机构或当地危机资源'],
 };
+
+function replayCommunityContent(res, type, row) {
+  if (row.moderation_status !== 'held') {
+    const item = type === 'post'
+      ? { id: row.id, title: row.title, content: row.content, category: row.category }
+      : { id: row.id, post_id: row.post_id, content: row.content };
+    return res.json({ success: true, replayed: true, [type]: item });
+  }
+  db.query("SELECT case_ref FROM community_reports WHERE target_type=? AND target_id=? AND reason='crisis' ORDER BY id ASC LIMIT 1", [type, row.id], (error, reports) => {
+    if (error || !reports.length) return res.status(503).json({ error: '内容已安全暂缓，但审核工单状态暂时无法确认；如有即时危险请联系120/110' });
+    res.json({ success: true, replayed: true, held_for_review: true, [`${type}_id`]: row.id, case_ref: reports[0].case_ref, safety: crisisResponse });
+  });
+}
 
 function createReport({ reporterId, targetType, targetId, reason, details, riskLevel }, callback) {
   const caseRef = randomUUID();
@@ -74,14 +88,34 @@ router.post('/posts', auth, (req, res) => {
   const title = cleanText(req.body.title, 80);
   const content = cleanText(req.body.content, 2000);
   const category = CATEGORIES.has(req.body.category) ? req.body.category : 'general';
+  const clientRequestId = cleanText(req.body.client_request_id, 36);
   if (!title || !content) return res.status(400).json({ error: '标题和内容不能为空' });
+  if (!validRequestId(clientRequestId)) return res.status(400).json({ error: '请求标识无效' });
   const urgent = URGENT_PATTERN.test(`${title}\n${content}`);
-  if (urgent && db.status().mode === 'mysql') return db.withTransaction(async tx => {
-    const result=await tx.query('INSERT INTO community_posts (user_id,title,content,category,moderation_status,risk_level) VALUES (?,?,?,?,?,?)',[req.user.id,title,content,category,'held','urgent']);
+  const createMysqlPost = () => {
+    if (urgent) return db.withTransaction(async tx => {
+    const result=await tx.query('INSERT INTO community_posts (user_id,client_request_id,title,content,category,moderation_status,risk_level) VALUES (?,?,?,?,?,?,?)',[req.user.id,clientRequestId||null,title,content,category,'held','urgent']);
     const caseRef=await createReportTx(tx,{reporterId:req.user.id,targetType:'post',targetId:result.insertId,reason:'crisis',details:'系统安全词触发，仅用于人工复核，不代表诊断',riskLevel:'urgent'});
     return {postId:result.insertId,caseRef};
   }).then(result=>res.status(202).json({success:true,held_for_review:true,post_id:result.postId,case_ref:result.caseRef,safety:crisisResponse}))
-    .catch(()=>res.status(503).json({error:'内容暂缓与紧急审核工单未能完整保存，本次操作已回滚；如有即时危险请直接联系120/110'}));
+    .catch(error=>{
+      if(error?.code==='ER_DUP_ENTRY'&&clientRequestId)return db.query('SELECT * FROM community_posts WHERE user_id=? AND client_request_id=?',[req.user.id,clientRequestId],(readError,rows)=>readError||!rows.length?res.status(503).json({error:'发布状态暂时无法确认，请勿重复编辑；如有即时危险请直接联系120/110'}):replayCommunityContent(res,'post',rows[0]));
+      return res.status(503).json({error:'内容暂缓与紧急审核工单未能完整保存，本次操作已回滚；如有即时危险请直接联系120/110'});
+    });
+    db.query('INSERT INTO community_posts (user_id,client_request_id,title,content,category,moderation_status,risk_level) VALUES (?,?,?,?,?,?,?)',[req.user.id,clientRequestId||null,title,content,category,'visible','none'],(error,result)=>{
+      if(error?.code==='ER_DUP_ENTRY'&&clientRequestId)return db.query('SELECT * FROM community_posts WHERE user_id=? AND client_request_id=?',[req.user.id,clientRequestId],(readError,rows)=>readError||!rows.length?res.status(500).json({error:'发布状态暂时无法确认，请保留内容后重试'}):replayCommunityContent(res,'post',rows[0]));
+      if(error)return res.status(500).json({error:'帖子未确认发布，请保留内容后重试'});
+      res.status(201).json({success:true,replayed:false,message:'发帖成功',post:{id:result.insertId,title,content,category}});
+    });
+  };
+  if (db.status().mode === 'mysql') {
+    if(clientRequestId)return db.query('SELECT * FROM community_posts WHERE user_id=? AND client_request_id=?',[req.user.id,clientRequestId],(error,rows)=>{
+      if(error)return res.status(500).json({error:'发布状态暂时无法确认，请保留内容后重试'});
+      if(rows.length)return replayCommunityContent(res,'post',rows[0]);
+      createMysqlPost();
+    });
+    return createMysqlPost();
+  }
   db.query('INSERT INTO community_posts (user_id, title, content, category, moderation_status, risk_level) VALUES (?, ?, ?, ?, ?, ?)',
     [req.user.id, title, content, category, urgent ? 'held' : 'visible', urgent ? 'urgent' : 'none'],
     (err, result) => {
@@ -139,20 +173,41 @@ router.get('/posts/:id/comments', auth, (req, res) => {
 router.post('/posts/:id/comments', auth, (req, res) => {
   const id = positiveInt(req.params.id, 0, Number.MAX_SAFE_INTEGER);
   const content = cleanText(req.body.content, 500);
+  const clientRequestId = cleanText(req.body.client_request_id, 36);
   if (!id) return res.status(400).json({ error: '帖子编号无效' });
   if (!content) return res.status(400).json({ error: '评论内容不能为空' });
+  if (!validRequestId(clientRequestId)) return res.status(400).json({ error: '请求标识无效' });
+  if (db.status().mode === 'mysql' && clientRequestId) return db.query('SELECT * FROM community_comments WHERE user_id=? AND client_request_id=?',[req.user.id,clientRequestId],(existingError,existing)=>{
+    if(existingError)return res.status(500).json({error:'评论状态暂时无法确认，请保留内容后重试'});
+    if(existing.length)return replayCommunityContent(res,'comment',existing[0]);
+    createComment();
+  });
+  return createComment();
+
+  function createComment() {
   db.query('SELECT * FROM community_posts WHERE id = ?', [id], (findErr, posts) => {
     if (findErr) return res.status(500).json({ error: '暂时无法评论' });
     if (!posts.length) return res.status(404).json({ error: '帖子不存在' });
     const urgent = URGENT_PATTERN.test(content);
     if (urgent && db.status().mode === 'mysql') return db.withTransaction(async tx => {
-      const result=await tx.query('INSERT INTO community_comments (user_id,post_id,content,moderation_status,risk_level) VALUES (?,?,?,?,?)',[req.user.id,id,content,'held','urgent']);
+      const result=await tx.query('INSERT INTO community_comments (user_id,client_request_id,post_id,content,moderation_status,risk_level) VALUES (?,?,?,?,?,?)',[req.user.id,clientRequestId||null,id,content,'held','urgent']);
       const caseRef=await createReportTx(tx,{reporterId:req.user.id,targetType:'comment',targetId:result.insertId,reason:'crisis',details:'系统安全词触发，仅用于人工复核，不代表诊断',riskLevel:'urgent'});
       return {commentId:result.insertId,caseRef};
     }).then(result=>res.status(202).json({success:true,held_for_review:true,comment_id:result.commentId,case_ref:result.caseRef,safety:crisisResponse}))
-      .catch(()=>res.status(503).json({error:'评论暂缓与紧急审核工单未能完整保存，本次操作已回滚；如有即时危险请直接联系120/110'}));
-    db.query('INSERT INTO community_comments (user_id, post_id, content, moderation_status, risk_level) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, id, content, urgent ? 'held' : 'visible', urgent ? 'urgent' : 'none'],
+      .catch(error=>{
+        if(error?.code==='ER_DUP_ENTRY'&&clientRequestId)return db.query('SELECT * FROM community_comments WHERE user_id=? AND client_request_id=?',[req.user.id,clientRequestId],(readError,rows)=>readError||!rows.length?res.status(503).json({error:'评论状态暂时无法确认，请保留内容后重试'}):replayCommunityContent(res,'comment',rows[0]));
+        return res.status(503).json({error:'评论暂缓与紧急审核工单未能完整保存，本次操作已回滚；如有即时危险请直接联系120/110'});
+      });
+    if(!urgent&&db.status().mode==='mysql')return db.withTransaction(async tx=>{
+      const result=await tx.query('INSERT INTO community_comments (user_id,client_request_id,post_id,content,moderation_status,risk_level) VALUES (?,?,?,?,?,?)',[req.user.id,clientRequestId||null,id,content,'visible','none']);
+      await tx.query('UPDATE community_posts SET comments_count=comments_count+1 WHERE id=?',[id]);
+      return result.insertId;
+    }).then(commentId=>res.status(201).json({success:true,replayed:false,message:'评论成功',comment:{id:commentId,post_id:id,content}})).catch(error=>{
+      if(error?.code==='ER_DUP_ENTRY'&&clientRequestId)return db.query('SELECT * FROM community_comments WHERE user_id=? AND client_request_id=?',[req.user.id,clientRequestId],(readError,rows)=>readError||!rows.length?res.status(500).json({error:'评论状态暂时无法确认，请保留内容后重试'}):replayCommunityContent(res,'comment',rows[0]));
+      return res.status(500).json({error:'评论未确认发布，请保留内容后重试'});
+    });
+    db.query('INSERT INTO community_comments (user_id, client_request_id, post_id, content, moderation_status, risk_level) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, clientRequestId||null, id, content, urgent ? 'held' : 'visible', urgent ? 'urgent' : 'none'],
       (err, result) => {
         if (err) return res.status(500).json({ error: '暂时无法评论' });
         if (!urgent) {
@@ -166,6 +221,7 @@ router.post('/posts/:id/comments', auth, (req, res) => {
       }
     );
   });
+  }
 });
 
 router.post('/reports', auth, (req, res) => {

@@ -102,6 +102,18 @@ async function main() {
   if (!reviewed.response.ok || reviewed.body.confirmation_status !== 'confirmed') throw new Error(`专业确认失败：${JSON.stringify(reviewed.body)}`);
   const activated = await request(`/therapist/plans/${plan.body.plan.id}`, { method: 'PATCH', headers, body: JSON.stringify({ title: '待确认的转换支持计划', goal: '孩子可表达暂停', frequency: '每天一次', responsible_person: '家长', stop_conditions: '孩子不适或风险升级', review_date: '2026-10-20', status: 'active' }) });
   if (!activated.response.ok) throw new Error(`专业确认后仍无法启动计划：${JSON.stringify(activated.body)}`);
+  const postPayload = { client_request_id: randomUUID(), title: '转换时如何提前提示', content: '想交流不含身份信息的家庭观察。', category: 'question' };
+  const communityPost = await request('/community/posts', { method: 'POST', headers, body: JSON.stringify(postPayload) });
+  if (communityPost.response.status !== 201) throw new Error(`社区发帖失败：${JSON.stringify(communityPost.body)}`);
+  const communityPostReplay = await request('/community/posts', { method: 'POST', headers, body: JSON.stringify(postPayload) });
+  if (!communityPostReplay.response.ok || !communityPostReplay.body.replayed || Number(communityPostReplay.body.post?.id) !== Number(communityPost.body.post.id)) throw new Error('社区帖子重复提交未返回原帖子');
+  const commentPayload = { client_request_id: randomUUID(), content: '可以先用视觉提示说明还有两分钟。' };
+  const communityComment = await request(`/community/posts/${communityPost.body.post.id}/comments`, { method: 'POST', headers, body: JSON.stringify(commentPayload) });
+  if (communityComment.response.status !== 201) throw new Error(`社区评论失败：${JSON.stringify(communityComment.body)}`);
+  const communityCommentReplay = await request(`/community/posts/${communityPost.body.post.id}/comments`, { method: 'POST', headers, body: JSON.stringify(commentPayload) });
+  if (!communityCommentReplay.response.ok || !communityCommentReplay.body.replayed || Number(communityCommentReplay.body.comment?.id) !== Number(communityComment.body.comment.id)) throw new Error('社区评论重复提交未返回原评论');
+  const communityPostRead = await request(`/community/posts/${communityPost.body.post.id}`, { headers });
+  if (!communityPostRead.response.ok || Number(communityPostRead.body.post.comments_count) !== 1) throw new Error('重复评论导致评论计数不一致');
   const held = await request('/community/posts', { method: 'POST', headers, body: JSON.stringify({ title: '需要马上帮助', content: '孩子说不想活并准备吞药', category: 'emotion' }) });
   if (held.response.status !== 202 || !held.body.case_ref) throw new Error(`危机审核失败：${JSON.stringify(held.body)}`);
   const reportPayload={client_request_id:randomUUID(),target_type:'post',target_id:held.body.post_id,reason:'privacy',details:'帖子包含不必要的儿童身份信息'};

@@ -525,19 +525,20 @@ CREATE TABLE IF NOT EXISTS story_feedback (
 );
 
 CREATE TABLE IF NOT EXISTS community_posts (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, title VARCHAR(80) NOT NULL, content TEXT NOT NULL,
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, client_request_id CHAR(36) NULL, title VARCHAR(80) NOT NULL, content TEXT NOT NULL,
   category ENUM('general','training','emotion','resource','question') NOT NULL DEFAULT 'general',
   likes INT NOT NULL DEFAULT 0, comments_count INT NOT NULL DEFAULT 0, liked_user_ids JSON NULL,
   moderation_status ENUM('visible','held','removed') NOT NULL DEFAULT 'visible',
   risk_level ENUM('none','review','urgent') NOT NULL DEFAULT 'none',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_community_post_request (user_id, client_request_id),
   INDEX idx_community_category_time (category, created_at), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS community_comments (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, post_id BIGINT NOT NULL, content VARCHAR(500) NOT NULL,
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, client_request_id CHAR(36) NULL, post_id BIGINT NOT NULL, content VARCHAR(500) NOT NULL,
   moderation_status ENUM('visible','held','removed') NOT NULL DEFAULT 'visible',
   risk_level ENUM('none','review','urgent') NOT NULL DEFAULT 'none',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_comment_post_time (post_id, created_at),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uq_community_comment_request (user_id, client_request_id), INDEX idx_comment_post_time (post_id, created_at),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY (post_id) REFERENCES community_posts(id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS community_reports (
