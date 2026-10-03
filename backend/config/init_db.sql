@@ -483,9 +483,10 @@ CREATE TABLE IF NOT EXISTS growth_profile (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS growth_records (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL,
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, client_request_id CHAR(36) NULL, activity_key VARCHAR(100) NULL,
   action VARCHAR(50) NOT NULL, points INT NOT NULL, description VARCHAR(200) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_growth_request (user_id, client_request_id), UNIQUE KEY uq_growth_activity (user_id, action, activity_key),
   INDEX idx_growth_user_time (user_id, created_at), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 

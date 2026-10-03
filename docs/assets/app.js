@@ -4653,6 +4653,11 @@
           const profile = result.profile;
           const levels = ['L1','L2','L3','L4','L5'];
           const courses = MOCK_DATA.growthCourses;
+          if (!useMockMode && Array.isArray(profile.course_progress)) {
+            const completedByCourse = new Map();
+            profile.course_progress.forEach(key => { const match = /^course:(\d+):chapter:(\d+)$/.exec(key); if (match) completedByCourse.set(Number(match[1]), Math.max(completedByCourse.get(Number(match[1])) || 0, Number(match[2]))); });
+            courses.forEach(course => { const completed = Math.min(course.chapters, completedByCourse.get(Number(course.id)) || 0); course.completed_chapters = completed; course.progress = Math.round((completed / course.chapters) * 100); });
+          }
           const courseCategories = ['全部', '入门', '行为干预', '情绪管理', '社交技能', '感觉统合', '沟通'];
           const unlockedAchievements = MOCK_DATA.achievements.filter(a => a.unlocked).length;
 
@@ -4803,19 +4808,28 @@
         <section class="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900"><strong>边界与停止条件：</strong>${escapeText(content.caution)}</section>
         <details class="mt-4 rounded-xl border border-border p-3"><summary class="font-medium cursor-pointer">查看完整课程路线</summary><ol class="mt-2 space-y-1 text-sm text-text-secondary">${content.chapters.map((title,index)=>`<li>${index+1}. ${escapeText(title)}${index < course.completed_chapters ? ' · 已阅读' : index === currentIndex ? ' · 当前' : ''}</li>`).join('')}</ol></details>
         <label class="mt-4 flex items-start gap-2 text-sm"><input id="course-complete-confirm" type="checkbox" class="mt-1"><span>我已阅读本章，并理解这只是家长教育内容，不是诊断或个体治疗方案。</span></label>
-        <button data-ui-call="startLearning" data-ui-args="[${Number(course.id)}]" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-medium">${course.progress === 100 ? '完成复习（不重复计分）' : '确认完成本章'}</button>
+        <input id="course-learning-request-id" type="hidden" value="${newClientRequestId()}">
+        <input id="course-learning-activity-key" type="hidden" value="course:${Number(course.id)}:chapter:${currentIndex + 1}">
+        <p id="course-learning-status" class="mt-3 text-xs text-text-muted" role="status">每个章节只记录一次学习活动；积分只表示平台内学习记录。</p>
+        <button id="course-learning-button" data-ui-call="startLearning" data-ui-args="[${Number(course.id)}]" class="w-full mt-4 py-3 rounded-xl bg-primary text-white font-medium disabled:opacity-60">${course.progress === 100 ? '完成复习（不重复计分）' : '确认完成本章'}</button>
       </div>`;
       document.body.appendChild(modal);
     }
 
+    let courseLearningInFlight = false;
     async function startLearning(courseId) {
+      if (courseLearningInFlight) return;
       const course = MOCK_DATA.growthCourses.find(c => c.id === courseId);
       if (!course) return;
       if (!document.getElementById('course-complete-confirm')?.checked) { showToast('请先阅读并确认本章边界'); return; }
       if (course.progress === 100) { closeTopModal(); showToast('已完成复习，不重复增加积分'); return; }
 
+      const button = document.getElementById('course-learning-button');
+      const status = document.getElementById('course-learning-status');
+      if (!useMockMode && navigator.onLine === false) { status.textContent='未记录：当前网络已断开；联网后可在本页重试。'; return showToast('当前离线，本章尚未记录'); }
+      courseLearningInFlight=true; button.disabled=true; button.textContent='正在记录…'; status.textContent='正在原子保存章节进度和积分，请勿重复点击。';
       try {
-        const result = await apiRequest('/growth/earn', 'POST', { action: 'course_learning', points: 5, description: '课程学习进度更新：' + course.title });
+        const result = await apiRequest('/growth/earn', 'POST', { action: 'course_learning', description: '课程学习进度更新：' + course.title, client_request_id: document.getElementById('course-learning-request-id').value, activity_key: document.getElementById('course-learning-activity-key').value });
         if (result.success) {
           const wasCompleted = course.progress === 100;
           // 更新mock数据中的进度
@@ -4826,10 +4840,9 @@
 
           // 数据联动：完成课程 ↔ 成长体系
           if (!wasCompleted && course.progress === 100) {
-            addGrowthRecord('完成课程: ' + course.title, 15, 'learning');
-            showToast('🎉 恭喜完成课程！获得15成长积分');
+            showToast('🎉 课程全部章节已完成；本章学习记录已保存');
           } else {
-            showToast('学习进度已更新！');
+            showToast(result.replayed ? '本章节此前已记录，未重复增加积分' : '学习进度已更新');
           }
 
           closeTopModal();
@@ -4838,7 +4851,11 @@
         }
       } catch (error) {
         console.error('学习失败:', error);
-        showToast('网络错误');
+        status.textContent=`未确认记录：${error.message || '网络连接中断'}。可在本页安全重试。`;
+        showToast('本章学习记录尚未确认保存');
+      } finally {
+        courseLearningInFlight=false;
+        const current=document.getElementById('course-learning-button'); if(current){current.disabled=false;current.textContent='确认完成本章'}
       }
     }
 

@@ -125,6 +125,14 @@ async function main() {
   const storyReplay = await request('/story/custom', { method: 'POST', headers, body: JSON.stringify(storyPayload) });
   if (!storyReplay.response.ok || !storyReplay.body.replayed || Number(storyReplay.body.story?.id) !== Number(story.body.story.id)) throw new Error('自定义故事重复提交未返回原记录');
 
+  const learningPayload = { client_request_id: randomUUID(), activity_key: 'course:1:chapter:1', action: 'course_learning', description: '完成课程第一章' };
+  const learning = await request('/growth/earn', { method: 'POST', headers, body: JSON.stringify(learningPayload) });
+  if (learning.response.status !== 201 || Number(learning.body.record?.points) !== 5) throw new Error(`课程学习记录失败：${JSON.stringify(learning.body)}`);
+  const learningReplay = await request('/growth/earn', { method: 'POST', headers, body: JSON.stringify({ ...learningPayload, client_request_id: randomUUID() }) });
+  if (!learningReplay.response.ok || !learningReplay.body.replayed || Number(learningReplay.body.record?.id) !== Number(learning.body.record.id)) throw new Error('同一课程章节重复记录未返回原活动');
+  const growthProfile = await request('/growth/profile', { headers });
+  if (Number(growthProfile.body.profile?.points) !== 5 || !growthProfile.body.profile?.course_progress?.includes('course:1:chapter:1')) throw new Error('课程积分或跨设备章节进度不一致');
+
   const contactData = { contacts: [{ id: 1, name: '共同监护人', fullPhone: '13800138001' }] };
   const contactSave = await request(`/sensitive/record/emergency_contacts/${childId}`, { method: 'PUT', headers, body: JSON.stringify({ data: contactData }) });
   if (!contactSave.response.ok) throw new Error(`紧急联系人加密保存失败：${JSON.stringify(contactSave.body)}`);
@@ -247,7 +255,7 @@ async function cleanup() {
   finally { await connection.end(); }
 }
 
-main().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {
+main().catch(error => { console.error(error); if (serverLog) console.error(serverLog.slice(-4000)); process.exitCode = 1; }).finally(async () => {
   try { await cleanup(); } catch (error) { console.error(`清理失败：${error.message}`); process.exitCode = 1; }
   server.kill();
 });
