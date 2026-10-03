@@ -13,6 +13,7 @@ const expectedColumns = {
   behavior_records: ['client_request_id'],
   community_posts: ['moderation_status', 'risk_level'],
   community_comments: ['moderation_status', 'risk_level'],
+  community_reports: ['client_request_id'],
   therapists: ['user_id'],
   professional_plans: ['client_request_id', 'confirmation_status', 'professional_note', 'reviewed_at', 'reviewed_by_user_id', 'version'],
   caregiver_invitations: ['client_request_id', 'token_ciphertext', 'token_iv', 'token_auth_tag'],

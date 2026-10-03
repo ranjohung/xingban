@@ -44,6 +44,13 @@ function createReport({ reporterId, targetType, targetId, reason, details, riskL
   );
 }
 
+async function createReportTx(tx, { reporterId, targetType, targetId, reason, details, riskLevel, clientRequestId = null }) {
+  const caseRef = randomUUID();
+  await tx.query('INSERT INTO community_reports (case_ref,reporter_user_id,client_request_id,target_type,target_id,reason,details,risk_level) VALUES (?,?,?,?,?,?,?,?)',
+    [caseRef,reporterId,clientRequestId,targetType,targetId,reason,details||null,riskLevel]);
+  return caseRef;
+}
+
 router.get('/posts', auth, (req, res) => {
   const page = positiveInt(req.query.page, 1, 100000);
   const limit = positiveInt(req.query.limit, 10, 50);
@@ -69,6 +76,12 @@ router.post('/posts', auth, (req, res) => {
   const category = CATEGORIES.has(req.body.category) ? req.body.category : 'general';
   if (!title || !content) return res.status(400).json({ error: '标题和内容不能为空' });
   const urgent = URGENT_PATTERN.test(`${title}\n${content}`);
+  if (urgent && db.status().mode === 'mysql') return db.withTransaction(async tx => {
+    const result=await tx.query('INSERT INTO community_posts (user_id,title,content,category,moderation_status,risk_level) VALUES (?,?,?,?,?,?)',[req.user.id,title,content,category,'held','urgent']);
+    const caseRef=await createReportTx(tx,{reporterId:req.user.id,targetType:'post',targetId:result.insertId,reason:'crisis',details:'系统安全词触发，仅用于人工复核，不代表诊断',riskLevel:'urgent'});
+    return {postId:result.insertId,caseRef};
+  }).then(result=>res.status(202).json({success:true,held_for_review:true,post_id:result.postId,case_ref:result.caseRef,safety:crisisResponse}))
+    .catch(()=>res.status(503).json({error:'内容暂缓与紧急审核工单未能完整保存，本次操作已回滚；如有即时危险请直接联系120/110'}));
   db.query('INSERT INTO community_posts (user_id, title, content, category, moderation_status, risk_level) VALUES (?, ?, ?, ?, ?, ?)',
     [req.user.id, title, content, category, urgent ? 'held' : 'visible', urgent ? 'urgent' : 'none'],
     (err, result) => {
@@ -132,6 +145,12 @@ router.post('/posts/:id/comments', auth, (req, res) => {
     if (findErr) return res.status(500).json({ error: '暂时无法评论' });
     if (!posts.length) return res.status(404).json({ error: '帖子不存在' });
     const urgent = URGENT_PATTERN.test(content);
+    if (urgent && db.status().mode === 'mysql') return db.withTransaction(async tx => {
+      const result=await tx.query('INSERT INTO community_comments (user_id,post_id,content,moderation_status,risk_level) VALUES (?,?,?,?,?)',[req.user.id,id,content,'held','urgent']);
+      const caseRef=await createReportTx(tx,{reporterId:req.user.id,targetType:'comment',targetId:result.insertId,reason:'crisis',details:'系统安全词触发，仅用于人工复核，不代表诊断',riskLevel:'urgent'});
+      return {commentId:result.insertId,caseRef};
+    }).then(result=>res.status(202).json({success:true,held_for_review:true,comment_id:result.commentId,case_ref:result.caseRef,safety:crisisResponse}))
+      .catch(()=>res.status(503).json({error:'评论暂缓与紧急审核工单未能完整保存，本次操作已回滚；如有即时危险请直接联系120/110'}));
     db.query('INSERT INTO community_comments (user_id, post_id, content, moderation_status, risk_level) VALUES (?, ?, ?, ?, ?)',
       [req.user.id, id, content, urgent ? 'held' : 'visible', urgent ? 'urgent' : 'none'],
       (err, result) => {
@@ -154,12 +173,23 @@ router.post('/reports', auth, (req, res) => {
   const targetId = positiveInt(req.body.target_id, 0, Number.MAX_SAFE_INTEGER);
   const reason = REPORT_REASONS.has(req.body.reason) ? req.body.reason : '';
   const details = cleanText(req.body.details, 500);
+  const clientRequestId=cleanText(req.body.client_request_id,36);
   if (!targetType || !targetId || !reason) return res.status(400).json({ error: '举报对象和原因必须有效' });
+  if(clientRequestId&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientRequestId))return res.status(400).json({error:'请求标识无效'});
   const table = targetType === 'post' ? 'community_posts' : 'community_comments';
   db.query(`SELECT id FROM ${table} WHERE id=?`, [targetId], (findErr, rows) => {
     if (findErr) return res.status(500).json({ error: '暂时无法核验举报对象' });
     if (!rows.length) return res.status(404).json({ error: '举报对象不存在' });
     const riskLevel = reason === 'crisis' ? 'urgent' : 'review';
+    if(clientRequestId&&db.status().mode==='mysql')return db.query('SELECT case_ref,status,risk_level FROM community_reports WHERE reporter_user_id=? AND client_request_id=?',[req.user.id,clientRequestId],(readError,existing)=>{
+      if(readError)return res.status(500).json({error:'举报状态暂时无法确认，请勿重复提交并稍后重试'});
+      if(existing.length)return res.json({success:true,replayed:true,case_ref:existing[0].case_ref,status:existing[0].status,safety:existing[0].risk_level==='urgent'?crisisResponse:undefined});
+      const caseRef=randomUUID();db.query('INSERT INTO community_reports (case_ref,reporter_user_id,client_request_id,target_type,target_id,reason,details,risk_level) VALUES (?,?,?,?,?,?,?,?)',[caseRef,req.user.id,clientRequestId,targetType,targetId,reason,details||null,riskLevel],insertError=>{
+        if(insertError?.code==='ER_DUP_ENTRY')return db.query('SELECT case_ref,status,risk_level FROM community_reports WHERE reporter_user_id=? AND client_request_id=?',[req.user.id,clientRequestId],(retryError,replayed)=>retryError||!replayed.length?res.status(500).json({error:'举报状态暂时无法确认，请勿重复提交'}):res.json({success:true,replayed:true,case_ref:replayed[0].case_ref,status:replayed[0].status,safety:replayed[0].risk_level==='urgent'?crisisResponse:undefined}));
+        if(insertError)return res.status(500).json({error:'举报未确认提交，请保留当前页面后重试'});
+        res.status(201).json({success:true,replayed:false,case_ref:caseRef,status:'open',safety:reason==='crisis'?crisisResponse:undefined});
+      });
+    });
     createReport({ reporterId: req.user.id, targetType, targetId, reason, details, riskLevel }, (err, caseRef) => err
       ? res.status(500).json({ error: '举报暂时无法提交' })
       : res.status(201).json({ success: true, case_ref: caseRef, status: 'open', safety: reason === 'crisis' ? crisisResponse : undefined })

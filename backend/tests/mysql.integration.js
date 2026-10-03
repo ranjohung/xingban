@@ -104,6 +104,9 @@ async function main() {
   if (!activated.response.ok) throw new Error(`专业确认后仍无法启动计划：${JSON.stringify(activated.body)}`);
   const held = await request('/community/posts', { method: 'POST', headers, body: JSON.stringify({ title: '需要马上帮助', content: '孩子说不想活并准备吞药', category: 'emotion' }) });
   if (held.response.status !== 202 || !held.body.case_ref) throw new Error(`危机审核失败：${JSON.stringify(held.body)}`);
+  const reportPayload={client_request_id:randomUUID(),target_type:'post',target_id:held.body.post_id,reason:'privacy',details:'帖子包含不必要的儿童身份信息'};
+  const communityReport=await request('/community/reports',{method:'POST',headers,body:JSON.stringify(reportPayload)});if(communityReport.response.status!==201)throw new Error(`社区举报失败：${JSON.stringify(communityReport.body)}`);
+  const communityReportReplay=await request('/community/reports',{method:'POST',headers,body:JSON.stringify(reportPayload)});if(!communityReportReplay.response.ok||!communityReportReplay.body.replayed||communityReportReplay.body.case_ref!==communityReport.body.case_ref)throw new Error('社区举报重复提交未返回原工单');
   const deniedProfiles = await request('/therapist/admin/profiles', { headers });
   if (deniedProfiles.response.status !== 403) throw new Error('普通家长不应读取专业资质运营清单');
   const profiles = await request('/therapist/admin/profiles', { headers: adminHeaders });
@@ -123,7 +126,7 @@ async function main() {
     request('/therapist/plans/mine', { headers }), request('/community/reports/mine', { headers }),
     request(`/therapist/plans/${plan.body.plan.id}/events`, { headers }), request('/notification', { headers })
   ]);
-  if (children.body.children?.length !== 1 || records.body.records?.length !== 1 || reports.body.reports?.length !== 1 || feedbackList.body.feedback?.length !== 1 || plans.body.plans?.length !== 1 || cases.body.reports?.length !== 1 || events.body.events?.length < 3 || notifications.body.notifications?.length < 1) {
+  if (children.body.children?.length !== 1 || records.body.records?.length !== 1 || reports.body.reports?.length !== 1 || feedbackList.body.feedback?.length !== 1 || plans.body.plans?.length !== 1 || cases.body.reports?.length !== 2 || events.body.events?.length < 3 || notifications.body.notifications?.length < 1) {
     throw new Error('真实数据库回读数量不一致');
   }
   console.log(JSON.stringify({ database: 'mysql', child_id: childId, behavior_id: behavior.body.record.id, report_id: report.body.report.id, feedback_id: feedback.body.feedback.id, plan_id: plan.body.plan.id, moderation_case: held.body.case_ref }));

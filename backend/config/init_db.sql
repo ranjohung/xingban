@@ -544,6 +544,7 @@ CREATE TABLE IF NOT EXISTS community_reports (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   case_ref CHAR(36) NOT NULL UNIQUE,
   reporter_user_id INT NOT NULL,
+  client_request_id CHAR(36) NULL,
   target_type ENUM('post','comment') NOT NULL,
   target_id BIGINT NOT NULL,
   reason ENUM('crisis','harassment','privacy','misinformation','fraud','other') NOT NULL,
@@ -556,6 +557,7 @@ CREATE TABLE IF NOT EXISTS community_reports (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_community_report_queue (status, risk_level, created_at),
   INDEX idx_community_report_reporter (reporter_user_id, created_at),
+  UNIQUE KEY uq_community_report_request (reporter_user_id, client_request_id),
   FOREIGN KEY (reporter_user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (moderator_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
