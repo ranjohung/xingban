@@ -110,15 +110,18 @@ router.get('/caregivers/children/:childId/safety-plan', requireCaregiverPermissi
 
 router.post('/mood', auth, (req, res) => {
   const { mood, emoji, note } = req.body;
+  const clientRequestId = String(req.body.client_request_id || '').trim();
   
-  if (!mood || !emoji) {
+  if (!mood || !emoji || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientRequestId)) {
     return res.status(400).json({ error: '心情和表情不能为空' });
   }
   
-  db.query('INSERT INTO family_moods (user_id, mood, emoji, note) VALUES (?, ?, ?, ?)',
-    [req.user.id, mood, emoji, note || ''],
+  const replay = () => db.query('SELECT id,mood,emoji,note,created_at FROM family_moods WHERE user_id=? AND client_request_id=?', [req.user.id, clientRequestId], (readErr, rows) => readErr || !rows.length ? res.status(500).json({ error: '心情记录状态暂时无法确认' }) : res.json({ success: true, replayed: true, record: rows[0] }));
+  const create = () => db.query('INSERT INTO family_moods (user_id, client_request_id, mood, emoji, note) VALUES (?, ?, ?, ?, ?)',
+    [req.user.id, clientRequestId, String(mood).slice(0, 50), String(emoji).slice(0, 20), String(note || '').trim().slice(0, 500)],
     (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err?.code === 'ER_DUP_ENTRY') return replay();
+      if (err) return res.status(500).json({ error: '心情记录暂时无法保存' });
       
       res.json({
         success: true,
@@ -127,6 +130,7 @@ router.post('/mood', auth, (req, res) => {
       });
     }
   );
+  db.query('SELECT id FROM family_moods WHERE user_id=? AND client_request_id=?', [req.user.id, clientRequestId], (err, rows) => err ? res.status(500).json({ error: '心情记录状态暂时无法确认' }) : rows.length ? replay() : create());
 });
 
 router.get('/mood', auth, (req, res) => {
@@ -145,15 +149,18 @@ router.get('/mood', auth, (req, res) => {
 
 router.post('/gratitude', auth, (req, res) => {
   const { partner, content } = req.body;
+  const clientRequestId = String(req.body.client_request_id || '').trim();
   
-  if (!partner || !content) {
+  if (!partner || !content || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientRequestId)) {
     return res.status(400).json({ error: '对方称呼和感谢内容不能为空' });
   }
   
-  db.query('INSERT INTO gratitude_cards (user_id, partner, content) VALUES (?, ?, ?)',
-    [req.user.id, partner, content],
+  const replay = () => db.query('SELECT id,partner,content,sent,created_at FROM gratitude_cards WHERE user_id=? AND client_request_id=?', [req.user.id, clientRequestId], (readErr, rows) => readErr || !rows.length ? res.status(500).json({ error: '感谢卡保存状态暂时无法确认' }) : res.json({ success: true, replayed: true, card: rows[0] }));
+  const create = () => db.query('INSERT INTO gratitude_cards (user_id, client_request_id, partner, content) VALUES (?, ?, ?, ?)',
+    [req.user.id, clientRequestId, String(partner).trim().slice(0, 80), String(content).trim().slice(0, 2000)],
     (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err?.code === 'ER_DUP_ENTRY') return replay();
+      if (err) return res.status(500).json({ error: '感谢卡暂时无法保存' });
       
       res.json({
         success: true,
@@ -162,6 +169,7 @@ router.post('/gratitude', auth, (req, res) => {
       });
     }
   );
+  db.query('SELECT id FROM gratitude_cards WHERE user_id=? AND client_request_id=?', [req.user.id, clientRequestId], (err, rows) => err ? res.status(500).json({ error: '感谢卡保存状态暂时无法确认' }) : rows.length ? replay() : create());
 });
 
 router.get('/gratitude', auth, (req, res) => {

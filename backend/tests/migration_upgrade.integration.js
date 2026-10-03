@@ -27,6 +27,8 @@ const expectedColumns = {
   ,career_milestones: ['client_request_id']
   ,career_goals: ['client_request_id']
   ,financial_records: ['client_request_id']
+  ,family_moods: ['client_request_id']
+  ,gratitude_cards: ['client_request_id']
 };
 
 async function main() {

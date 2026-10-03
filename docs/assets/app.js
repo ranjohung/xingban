@@ -4514,21 +4514,28 @@
       `;
     }
 
+    let moodSaveInFlight = false;
     async function recordMood(mood, emoji) {
+      if (moodSaveInFlight) return;
+      if (navigator.onLine === false) return showToast('当前离线，心情尚未记录');
       const note = prompt('添加备注（可选）：');
+      if (note === null) return;
 
+      moodSaveInFlight = true;
       try {
-        const result = await apiRequest('/family/mood', 'POST', { mood, emoji, note: note || '' });
+        const result = await apiRequest('/family/mood', 'POST', { mood, emoji, note: note || '', client_request_id: newClientRequestId() });
 
         if (result.success) {
-          showToast(`已记录心情：${mood}`);
+          showToast(result.replayed ? '这次心情此前已记录，未重复添加' : `已记录心情：${mood}`);
           document.getElementById('family-content').innerHTML = renderFamilyMoodContent();
         } else {
           showToast(result.error || '记录失败');
         }
       } catch (error) {
         console.error('记录心情失败:', error);
-        showToast('网络错误');
+        showToast('心情尚未确认保存，请稍后重试');
+      } finally {
+        moodSaveInFlight = false;
       }
     }
 
@@ -4550,7 +4557,9 @@
               <label class="block text-sm text-text-secondary mb-1">感谢内容</label>
               <textarea id="gratitude-content" placeholder="写下你的感谢..." class="w-full px-4 py-3 rounded-xl border border-border" rows="3"></textarea>
             </div>
-            <button data-ui-call="saveGratitude" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存</button>
+            <input type="hidden" id="gratitude-request-id" value="${newClientRequestId()}">
+            <button id="gratitude-save-button" data-ui-call="saveGratitude" class="w-full py-3 rounded-xl bg-primary text-white font-medium disabled:opacity-60">保存</button>
+            <p id="gratitude-save-status" class="text-xs text-text-muted" role="status">尚未保存或发送</p>
           </div>
         </div>
       `;
@@ -4560,17 +4569,22 @@
     async function saveGratitude() {
       const partner = document.getElementById('gratitude-partner').value;
       const content = document.getElementById('gratitude-content').value;
+      const button = document.getElementById('gratitude-save-button');
+      const status = document.getElementById('gratitude-save-status');
+      if (button.disabled) return;
 
       if (!partner || !content) {
         showToast('请填写完整信息');
         return;
       }
+      if (navigator.onLine === false) { status.textContent = '未保存：当前网络已断开，内容仍保留。'; return showToast('当前离线，感谢卡尚未保存'); }
 
+      button.disabled = true; button.textContent = '正在保存…'; status.textContent = '正在保存，请勿重复点击。';
       try {
-        const result = await apiRequest('/family/gratitude', 'POST', { partner, content });
+        const result = await apiRequest('/family/gratitude', 'POST', { partner, content, client_request_id: document.getElementById('gratitude-request-id').value });
 
         if (result.success) {
-          showToast('感谢卡已创建');
+          showToast(result.replayed ? '感谢卡此前已保存，未重复创建' : '感谢卡已创建');
           closeTopModal();
           renderFamilyGratitude(document.querySelector('#family-content').previousElementSibling);
         } else {
@@ -4578,7 +4592,9 @@
         }
       } catch (error) {
         console.error('创建感谢卡失败:', error);
-        showToast('网络错误');
+        status.textContent = '保存状态未确认，内容仍保留；可使用同一页面重试。'; showToast('感谢卡尚未确认保存');
+      } finally {
+        if (document.body.contains(button)) { button.disabled = false; button.textContent = '保存'; }
       }
     }
 

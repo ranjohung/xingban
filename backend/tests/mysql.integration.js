@@ -101,6 +101,18 @@ async function main() {
   const financeReplay = await request(`/finance/expenses/${childId}`, { method: 'POST', headers, body: JSON.stringify(financePayload) });
   if (!financeReplay.response.ok || !financeReplay.body.replayed || Number(financeReplay.body.record?.id) !== Number(finance.body.record.id)) throw new Error('家庭记账重复提交未返回原记录');
 
+  const moodPayload = { client_request_id: randomUUID(), mood: '压力', emoji: '😰', note: '需要安排短暂替班休息' };
+  const mood = await request('/family/mood', { method: 'POST', headers, body: JSON.stringify(moodPayload) });
+  if (!mood.response.ok || !mood.body.record?.id) throw new Error(`照护者心情记录失败：${JSON.stringify(mood.body)}`);
+  const moodReplay = await request('/family/mood', { method: 'POST', headers, body: JSON.stringify(moodPayload) });
+  if (!moodReplay.response.ok || !moodReplay.body.replayed || Number(moodReplay.body.record?.id) !== Number(mood.body.record.id)) throw new Error('照护者心情重复提交未返回原记录');
+
+  const gratitudePayload = { client_request_id: randomUUID(), partner: '共同照护者', content: '谢谢你今天接手了半小时。' };
+  const gratitude = await request('/family/gratitude', { method: 'POST', headers, body: JSON.stringify(gratitudePayload) });
+  if (!gratitude.response.ok || !gratitude.body.card?.id) throw new Error(`感谢卡创建失败：${JSON.stringify(gratitude.body)}`);
+  const gratitudeReplay = await request('/family/gratitude', { method: 'POST', headers, body: JSON.stringify(gratitudePayload) });
+  if (!gratitudeReplay.response.ok || !gratitudeReplay.body.replayed || Number(gratitudeReplay.body.card?.id) !== Number(gratitude.body.card.id)) throw new Error('感谢卡重复提交未返回原记录');
+
   const contactData = { contacts: [{ id: 1, name: '共同监护人', fullPhone: '13800138001' }] };
   const contactSave = await request(`/sensitive/record/emergency_contacts/${childId}`, { method: 'PUT', headers, body: JSON.stringify({ data: contactData }) });
   if (!contactSave.response.ok) throw new Error(`紧急联系人加密保存失败：${JSON.stringify(contactSave.body)}`);
