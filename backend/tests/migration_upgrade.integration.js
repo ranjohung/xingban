@@ -10,6 +10,7 @@ const expectedTables = [
 ];
 
 const expectedColumns = {
+  behavior_records: ['client_request_id'],
   community_posts: ['moderation_status', 'risk_level'],
   community_comments: ['moderation_status', 'risk_level'],
   therapists: ['user_id'],

@@ -74,6 +74,7 @@ CREATE TABLE IF NOT EXISTS behavior_records (
   id INT AUTO_INCREMENT PRIMARY KEY,
   child_id INT NOT NULL,
   user_id INT NOT NULL,
+  client_request_id CHAR(36) NULL,
   input_type ENUM('voice', 'text', 'photo') NOT NULL,
   content TEXT,
   audio_url VARCHAR(255),
@@ -88,6 +89,7 @@ CREATE TABLE IF NOT EXISTS behavior_records (
   duration INT,
   ai_analysis JSON,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_behavior_user_request (user_id, client_request_id),
   FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

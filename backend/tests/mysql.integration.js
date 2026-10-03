@@ -5,6 +5,7 @@ const { spawn } = require('child_process');
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 const path = require('path');
+const { randomUUID } = require('crypto');
 
 const PORT = 3299;
 const BASE = `http://127.0.0.1:${PORT}/api`;
@@ -71,8 +72,11 @@ async function main() {
   if (child.response.status !== 201) throw new Error(`建档失败：${JSON.stringify(child.body)}`);
   const childId = child.body.child.id;
 
-  const behavior = await request('/behavior', { method: 'POST', headers, body: JSON.stringify({ child_id: childId, input_type: 'text', content: '活动转换前哭泣约三分钟，提供选择后平静', behavior_category: '情绪爆发', emotion_state: '难过', intensity_level: 'medium' }) });
+  const behaviorPayload = { child_id: childId, client_request_id: randomUUID(), input_type: 'text', content: '活动转换前哭泣约三分钟，提供选择后平静', behavior_category: '情绪爆发', emotion_state: '难过', intensity_level: 'medium' };
+  const behavior = await request('/behavior', { method: 'POST', headers, body: JSON.stringify(behaviorPayload) });
   if (behavior.response.status !== 201) throw new Error(`记录失败：${JSON.stringify(behavior.body)}`);
+  const behaviorReplay = await request('/behavior', { method: 'POST', headers, body: JSON.stringify(behaviorPayload) });
+  if (!behaviorReplay.response.ok || !behaviorReplay.body.replayed || Number(behaviorReplay.body.record?.id) !== Number(behavior.body.record.id)) throw new Error('行为记录重复提交未返回原记录');
   const report = await request(`/report/generate/${childId}`, { method: 'POST', headers, body: '{}' });
   if (report.response.status !== 201) throw new Error(`周报失败：${JSON.stringify(report.body)}`);
   const feedback = await request('/strategy/feedback', { method: 'POST', headers, body: JSON.stringify({ child_id: childId, strategy_id: 1, behavior_record_id: behavior.body.record.id, effectiveness: 'effective', note: '转换支持有效', scene: '活动转换' }) });

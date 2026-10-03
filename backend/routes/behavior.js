@@ -22,24 +22,38 @@ const behaviorCategories = {
 
 router.post('/', auth, (req, res) => {
   const {
-    child_id, input_type, content, audio_url, photo_url,
+    child_id, client_request_id, input_type, content, audio_url, photo_url,
     behavior_category, behavior_subtype, emotion_state,
     trigger_factor, behavior_function, intensity_level, location, duration
   } = req.body || {};
   if (!Number.isInteger(Number(child_id)) || !['voice', 'text', 'photo'].includes(input_type)) return res.status(400).json({ error: '孩子ID或记录方式无效' });
+  if (client_request_id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(client_request_id))) return res.status(400).json({ error: '请求标识无效' });
   if (!String(content || '').trim() && !audio_url && !photo_url) return res.status(400).json({ error: '请至少填写文字、语音或图片记录' });
   db.query('SELECT id FROM children WHERE id = ? AND user_id = ?', [Number(child_id), req.user.id], (ownerErr, childRows) => {
     if (ownerErr) return res.status(500).json({ error: '记录服务暂时不可用' });
     if (!childRows.length) return res.status(404).json({ error: '儿童档案不存在' });
     const aiAnalysis = performAIAnalysis(String(content || ''), behavior_category, behavior_subtype);
-    db.query(
-      'INSERT INTO behavior_records (child_id, user_id, input_type, content, audio_url, photo_url, behavior_category, behavior_subtype, emotion_state, trigger_factor, behavior_function, intensity_level, location, duration, ai_analysis) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [Number(child_id), req.user.id, input_type, String(content || '').slice(0, 5000) || null, audio_url || null, photo_url || null, behavior_category || null, behavior_subtype || null, emotion_state || null, trigger_factor || null, behavior_function || null, ['low', 'medium', 'high'].includes(intensity_level) ? intensity_level : 'medium', location || null, duration || null, JSON.stringify(aiAnalysis)],
+    const create = () => db.query(
+      'INSERT INTO behavior_records (child_id, user_id, client_request_id, input_type, content, audio_url, photo_url, behavior_category, behavior_subtype, emotion_state, trigger_factor, behavior_function, intensity_level, location, duration, ai_analysis) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [Number(child_id), req.user.id, client_request_id || null, input_type, String(content || '').slice(0, 5000) || null, audio_url || null, photo_url || null, behavior_category || null, behavior_subtype || null, emotion_state || null, trigger_factor || null, behavior_function || null, ['low', 'medium', 'high'].includes(intensity_level) ? intensity_level : 'medium', location || null, duration || null, JSON.stringify(aiAnalysis)],
       (err, result) => {
-        if (err) return res.status(500).json({ error: '记录保存失败' });
-        res.status(201).json({ success: true, message: '行为记录创建成功', record: { id: result.insertId, child_id: Number(child_id), input_type, ai_analysis: aiAnalysis } });
+        if (err?.code === 'ER_DUP_ENTRY' && client_request_id) return readExisting();
+        if (err) return res.status(500).json({ error: '记录保存失败，本次请求未确认，请保留当前页面后重试' });
+        res.status(201).json({ success: true, message: '行为记录已保存', replayed: false, record: { id: result.insertId, child_id: Number(child_id), input_type, ai_analysis: aiAnalysis } });
       }
     );
+    const readExisting = () => db.query('SELECT id,child_id,input_type,ai_analysis FROM behavior_records WHERE user_id=? AND client_request_id=?', [req.user.id, client_request_id], (existingError, rows) => {
+      if (existingError || !rows.length) return res.status(500).json({ error: '记录保存状态暂时无法确认，请勿重复填写并稍后重试' });
+      res.json({ success: true, message: '该记录此前已经保存', replayed: true, record: { ...rows[0], ai_analysis: parseDbJson(rows[0].ai_analysis, {}) } });
+    });
+    if (client_request_id) {
+      return db.query('SELECT id,child_id,input_type,ai_analysis FROM behavior_records WHERE user_id=? AND client_request_id=?', [req.user.id, client_request_id], (existingError, rows) => {
+        if (existingError) return res.status(500).json({ error: '记录保存状态暂时无法确认，请保留当前页面后重试' });
+        if (rows.length) return res.json({ success: true, message: '该记录此前已经保存', replayed: true, record: { ...rows[0], ai_analysis: parseDbJson(rows[0].ai_analysis, {}) } });
+        create();
+      });
+    }
+    create();
   });
 });
 
@@ -154,7 +168,7 @@ router.get('/:childId/timeline', auth, (req, res) => {
     WHERE child_id = ? AND user_id = ?
     GROUP BY DATE(created_at), behavior_category, emotion_state
     ORDER BY date DESC
-  `, [req.params.childId], (err, results) => {
+  `, [req.params.childId, req.user.id], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     
     res.json({ success: true, timeline: results });

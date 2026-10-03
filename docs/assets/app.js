@@ -1535,6 +1535,7 @@
       }
     }
 
+    function newClientRequestId(){if(globalThis.crypto?.randomUUID)return globalThis.crypto.randomUUID();const bytes=new Uint8Array(16);globalThis.crypto.getRandomValues(bytes);bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;const hex=[...bytes].map(value=>value.toString(16).padStart(2,'0')).join('');return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`}
     function showNewRecord(childId = null) {
       const modal = document.createElement('div');
       modal.className = 'fixed inset-0 bg-black/50 flex items-end justify-center z-50';
@@ -1559,6 +1560,7 @@
                 <button data-ui-call="setRecordType" data-ui-args='["photo"]' data-ui-pass-this="true" class="flex-1 py-2 rounded-lg border border-border text-text-secondary text-sm">拍照</button>
               </div>
               <input type="hidden" id="record-type" value="text">
+              <input type="hidden" id="record-request-id" value="${newClientRequestId()}">
             </div>
             <div>
               <label class="block text-sm text-text-secondary mb-1">行为描述</label>
@@ -1642,7 +1644,8 @@
               <input type="hidden" id="record-intensity" value="medium">
               <div class="grid grid-cols-3 gap-2 mt-2 text-xs text-text-muted"><span><strong>低：</strong>可继续日常活动</span><span><strong>中：</strong>明显中断，需成人支持</span><span><strong>高：</strong>无法保持安全或基本活动</span></div>
             </div>
-            <button data-ui-call="saveRecord" class="w-full py-3 rounded-xl bg-primary text-white font-medium">保存记录</button>
+            <p id="record-save-status" class="text-xs text-text-muted" role="status">尚未保存。网络失败时内容会保留在本页，可直接重试。</p>
+            <button id="record-save-button" data-ui-call="saveRecord" class="w-full py-3 rounded-xl bg-primary text-white font-medium disabled:opacity-60">保存记录</button>
           </div>
         </div>
       `;
@@ -1766,8 +1769,11 @@
       reader.readAsDataURL(file);
     }
 
+    let recordSaveInFlight=false;
     async function saveRecord() {
+      if(recordSaveInFlight)return;
       const child_id = parseInt(document.getElementById('record-child').value);
+      const client_request_id = document.getElementById('record-request-id')?.value;
       const input_type = document.getElementById('record-type').value;
       const content = document.getElementById('record-content').value;
       const behavior_category = document.getElementById('record-category').value;
@@ -1781,19 +1787,22 @@
         showToast('请填写行为描述');
         return;
       }
+      if(!useMockMode&&navigator.onLine===false){showToast('当前网络已断开，记录尚未保存；内容仍在本页，联网后重试');const status=document.getElementById('record-save-status');if(status)status.textContent='未保存：当前网络已断开，联网后可直接重试。';return}
 
+      const saveButton=document.getElementById('record-save-button');const saveStatus=document.getElementById('record-save-status');recordSaveInFlight=true;if(saveButton){saveButton.disabled=true;saveButton.textContent='正在保存…'}if(saveStatus)saveStatus.textContent='正在保存，请不要关闭页面或重复点击。';
       try {
         const result = await apiRequest('/behavior', 'POST', {
-          child_id, input_type, content, behavior_category, emotion_state, intensity_level,
+          child_id, client_request_id, input_type, content, behavior_category, emotion_state, intensity_level,
           sleep_hours, energy_level, medical_event
         });
 
         if (result.success) {
-          showToast('记录成功');
+          showToast(result.replayed?'记录此前已保存，未重复创建':'记录已保存');
           // 添加到本地数据
           const child = MOCK_DATA.children.find(c => c.id === child_id);
           const newRecord = {
             id: result.record?.id || Date.now(),
+            childId: child_id,
             childName: child ? child.name : '未知',
             type: behavior_category.includes('沟通') ? '沟通' : behavior_category.includes('社交') ? '行为' : behavior_category.includes('情绪') ? '情绪' : '行为',
             category: behavior_category,
@@ -1803,25 +1812,27 @@
             intensity: intensity_level === 'low' ? 3 : intensity_level === 'medium' ? 5 : 8,
             sleep_hours, energy_level, medical_event
           };
-          MOCK_DATA.behaviors.unshift(newRecord);
+          if(!MOCK_DATA.behaviors.some(item=>Number(item.id)===Number(newRecord.id)))MOCK_DATA.behaviors.unshift(newRecord);
           if (mayUsePrototypeStorage()) persistBehaviors();
 
           // 数据联动：行为记录 ↔ 成长体系
-          addGrowthRecord('记录行为', 5, 'recording');
+          if(!result.replayed)addGrowthRecord('记录行为', 5, 'recording');
 
           // 数据联动：行为记录 ↔ 周报（更新当周周报的records数量）
           const currentWeek = MOCK_DATA.reports.find(r => r.childName === (child ? child.name : ''));
-          if (currentWeek) {
+          if (currentWeek&&!result.replayed) {
             currentWeek.records = (currentWeek.records || 0) + 1;
           }
 
           closeTopModal();
           await openRecommendedStrategies(newRecord, child_id, behavior_category);
         } else {
-          showToast(result.error || '记录失败');
+          if(saveStatus)saveStatus.textContent='未保存：'+(result.error||'服务拒绝保存')+'。内容仍在本页，可重试。';showToast(result.error || '记录未保存，请重试');
         }
       } catch (error) {
-        showToast('网络错误');
+        if(saveStatus)saveStatus.textContent='未保存：网络连接中断。内容仍在本页，联网后可重试。';showToast('网络连接中断，记录尚未保存');
+      } finally {
+        recordSaveInFlight=false;const button=document.getElementById('record-save-button');if(button){button.disabled=false;button.textContent='保存记录'}
       }
     }
 
@@ -7137,6 +7148,8 @@
 
     // === 初始化 ===
     document.addEventListener('DOMContentLoaded', () => {
+      window.addEventListener('offline',()=>showToast('网络已断开；未完成的保存不会自动假装成功'));
+      window.addEventListener('online',()=>showToast('网络已恢复，可重试刚才未完成的保存'));
       document.addEventListener('click', event => {
         const trigger = event.target.closest('[data-ui-action],[data-ui-call],[data-nav]');
         if (!trigger) return;
