@@ -248,6 +248,7 @@ CREATE TABLE IF NOT EXISTS report_shares (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   report_id INT NOT NULL,
   owner_user_id INT NOT NULL,
+  client_request_id CHAR(36) NULL,
   therapist_id INT NOT NULL,
   scope JSON NOT NULL,
   note VARCHAR(500) NOT NULL DEFAULT '',
@@ -256,6 +257,7 @@ CREATE TABLE IF NOT EXISTS report_shares (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_report_share_therapist (therapist_id, expires_at),
   INDEX idx_report_share_owner (owner_user_id, created_at),
+  UNIQUE KEY uq_report_share_request (owner_user_id, client_request_id),
   FOREIGN KEY (report_id) REFERENCES weekly_reports(id) ON DELETE CASCADE,
   FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (therapist_id) REFERENCES therapists(id) ON DELETE CASCADE

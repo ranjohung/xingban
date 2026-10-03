@@ -3717,14 +3717,18 @@
               <label class="block text-sm pt-1">访问有效期<select id="share-expiry" class="ml-2 p-2 rounded-lg border border-border"><option value="7">7 天</option><option value="30">30 天</option><option value="1">1 天</option></select></label>
             </div>
             <label class="flex items-start gap-2 text-sm text-text-secondary"><input id="share-consent" type="checkbox" class="mt-1"><span>我已核对接收者、分享范围和有效期，并明确授权本次分享。可在专业协作页查看并撤销。</span></label>
-            <button data-ui-call="confirmShareReport" data-ui-args="[${Number(reportId)}]" class="w-full py-3 rounded-xl bg-primary text-white font-medium">确认分享</button>
+            <input id="share-request-id" type="hidden" value="${newClientRequestId()}">
+            <p id="share-save-status" class="text-xs text-text-muted" role="status">尚未创建授权。网络失败时可保留本页直接重试。</p>
+            <button id="share-save-button" data-ui-call="confirmShareReport" data-ui-args="[${Number(reportId)}]" class="w-full py-3 rounded-xl bg-primary text-white font-medium disabled:opacity-60">确认分享</button>
           </div>
         </div>
       `;
       document.body.appendChild(modal);
     }
 
+    let reportShareInFlight=false;
     async function confirmShareReport(reportId) {
+      if(reportShareInFlight)return;
       const therapistInput = document.querySelector('input[name="share-therapist"]:checked');
       const note = document.getElementById('share-note')?.value || '';
       const consent = document.getElementById('share-consent')?.checked;
@@ -3736,20 +3740,27 @@
       }
       if (!scope.length) { showToast('请至少选择一项分享内容'); return; }
       if (!consent) { showToast('请先核对并确认本次授权'); return; }
+      if(!useMockMode&&navigator.onLine===false){const status=document.getElementById('share-save-status');if(status)status.textContent='未分享：当前网络已断开，联网后可直接重试。';showToast('当前网络已断开，周报尚未分享');return}
       const therapistId = parseInt(therapistInput.value);
+      const clientRequestId=document.getElementById('share-request-id')?.value;
+      const saveButton=document.getElementById('share-save-button'),saveStatus=document.getElementById('share-save-status');reportShareInFlight=true;if(saveButton){saveButton.disabled=true;saveButton.textContent='正在创建授权…'}if(saveStatus)saveStatus.textContent='正在创建授权，请勿关闭页面或重复点击。';
       try {
-        const result = await apiRequest('/therapist/share', 'POST', { report_id: reportId, therapist_id: therapistId, note, scope, expires_days: expiresDays });
+        const result = await apiRequest('/therapist/share', 'POST', { report_id: reportId, therapist_id: therapistId, client_request_id: clientRequestId, note, scope, expires_days: expiresDays });
         if (result.success) {
           const therapist = MOCK_DATA.therapists.find(item => Number(item.id) === therapistId);
-          reportShareRecords.unshift({ ...result.share, report_id: reportId, therapist_id: therapistId, therapist_name: therapist?.name || `专业人员 #${therapistId}`, note, scope, expires_at: new Date(Date.now() + expiresDays * 86400000).toISOString(), revoked_at: null, created_at: new Date().toISOString() });
-          showToast('周报已分享给专业人员');
+          if(!reportShareRecords.some(item=>Number(item.id)===Number(result.share.id)))reportShareRecords.unshift({ ...result.share, report_id: reportId, therapist_id: therapistId, therapist_name: therapist?.name || `专业人员 #${therapistId}`, note, scope, expires_at: result.share.expires_at||new Date(Date.now() + expiresDays * 86400000).toISOString(), revoked_at: result.share.revoked_at||null, created_at: new Date().toISOString() });
+          showToast(result.replayed?'该周报授权此前已创建，未重复分享':'周报已分享给专业人员');
           closeTopModal();
         } else {
+          if(saveStatus)saveStatus.textContent=`未分享：${result.error||'服务拒绝创建授权'}。内容仍在本页，可重试。`;
           showToast(result.error || '分享失败');
         }
       } catch (error) {
         console.error('分享失败:', error);
-        showToast('网络错误');
+        if(saveStatus)saveStatus.textContent='未分享：网络连接中断。内容仍在本页，联网后可重试。';
+        showToast('网络连接中断，周报尚未分享');
+      } finally {
+        reportShareInFlight=false;const button=document.getElementById('share-save-button');if(button){button.disabled=false;button.textContent='确认分享'}
       }
     }
 

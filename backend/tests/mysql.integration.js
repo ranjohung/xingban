@@ -79,6 +79,11 @@ async function main() {
   if (!behaviorReplay.response.ok || !behaviorReplay.body.replayed || Number(behaviorReplay.body.record?.id) !== Number(behavior.body.record.id)) throw new Error('行为记录重复提交未返回原记录');
   const report = await request(`/report/generate/${childId}`, { method: 'POST', headers, body: '{}' });
   if (report.response.status !== 201) throw new Error(`周报失败：${JSON.stringify(report.body)}`);
+  const sharePayload = { report_id: report.body.report.id, therapist_id: therapistId, client_request_id: randomUUID(), scope: ['summary'], expires_days: 7, note: '供协作复核' };
+  const share = await request('/therapist/share', { method: 'POST', headers, body: JSON.stringify(sharePayload) });
+  if (share.response.status !== 201) throw new Error(`周报分享失败：${JSON.stringify(share.body)}`);
+  const shareReplay = await request('/therapist/share', { method: 'POST', headers, body: JSON.stringify(sharePayload) });
+  if (!shareReplay.response.ok || !shareReplay.body.replayed || Number(shareReplay.body.share?.id) !== Number(share.body.share.id)) throw new Error('周报分享重复提交未返回原授权');
   const feedback = await request('/strategy/feedback', { method: 'POST', headers, body: JSON.stringify({ child_id: childId, strategy_id: 1, behavior_record_id: behavior.body.record.id, effectiveness: 'effective', note: '转换支持有效', scene: '活动转换' }) });
   if (feedback.response.status !== 201) throw new Error(`策略反馈失败：${JSON.stringify(feedback.body)}`);
   const plan = await request('/therapist/plans', { method: 'POST', headers, body: JSON.stringify({ therapist_id: therapistId, title: '待确认的转换支持计划', goal: '孩子可表达暂停', frequency: '每天一次', responsible_person: '家长', stop_conditions: '孩子不适或风险升级', review_date: '2026-10-20', status: 'pending_confirmation' }) });

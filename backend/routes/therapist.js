@@ -115,11 +115,13 @@ function filterReport(content, scopes) {
 router.post('/share', auth, requireRole('parent', 'admin'), (req, res) => {
   const reportId = positiveId(req.body.report_id);
   const therapistId = positiveId(req.body.therapist_id);
+  const clientRequestId = clean(req.body.client_request_id, 36);
   const allowedScopes = new Set(['summary', 'risk', 'medical']);
   const scope = Array.isArray(req.body.scope) ? [...new Set(req.body.scope)] : [];
   const expiresDays = Number(req.body.expires_days ?? 7);
   const note = clean(req.body.note, 500);
   if (!reportId || !therapistId) return res.status(400).json({ error: '周报和专业人员编号无效' });
+  if (clientRequestId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientRequestId)) return res.status(400).json({ error: '请求标识无效' });
   if (!scope.length || scope.some(item => !allowedScopes.has(item))) return res.status(400).json({ error: '分享范围无效' });
   if (![1, 7, 30].includes(expiresDays)) return res.status(400).json({ error: '分享有效期无效' });
 
@@ -129,14 +131,29 @@ router.post('/share', auth, requireRole('parent', 'admin'), (req, res) => {
     db.query('SELECT id FROM therapists WHERE id = ? AND is_certified = TRUE', [therapistId], (therapistErr, therapists) => {
       if (therapistErr) return res.status(500).json({ error: '暂时无法核验专业人员' });
       if (!therapists.length) return res.status(400).json({ error: '接收者尚未通过资质核验，不能分享儿童资料' });
-      const expiresAt = new Date(Date.now() + expiresDays * 86400000);
-      db.query(
-        'INSERT INTO report_shares (report_id, owner_user_id, therapist_id, scope, note, expires_at) VALUES (?, ?, ?, ?, ?, ?)',
-        [reportId, req.user.id, therapistId, JSON.stringify(scope), note, expiresAt],
-        (err, result) => err
-          ? res.status(500).json({ error: '周报暂时无法分享' })
-          : res.status(201).json({ success: true, message: '周报已按授权范围分享', share: { id: result.insertId, scope, expires_days: expiresDays } })
-      );
+      const replyExisting = () => db.query('SELECT id,scope,expires_at,revoked_at FROM report_shares WHERE owner_user_id=? AND client_request_id=?', [req.user.id, clientRequestId], (readErr, rows) => {
+        if (readErr || !rows.length) return res.status(500).json({ error: '分享状态暂时无法确认，请勿重复授权并稍后重试' });
+        const row = rows[0];
+        res.json({ success: true, message: '该授权此前已经创建', replayed: true, share: { id: row.id, scope: parseDbJson(row.scope, []), expires_at: row.expires_at, revoked_at: row.revoked_at } });
+      });
+      const create = () => {
+        const expiresAt = new Date(Date.now() + expiresDays * 86400000);
+        db.query(
+          'INSERT INTO report_shares (report_id, owner_user_id, client_request_id, therapist_id, scope, note, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [reportId, req.user.id, clientRequestId || null, therapistId, JSON.stringify(scope), note, expiresAt],
+          (err, result) => {
+            if (err?.code === 'ER_DUP_ENTRY' && clientRequestId) return replyExisting();
+            if (err) return res.status(500).json({ error: '周报授权未确认保存，请保留当前页面后重试' });
+            res.status(201).json({ success: true, message: '周报已按授权范围分享', replayed: false, share: { id: result.insertId, scope, expires_days: expiresDays, expires_at: expiresAt } });
+          }
+        );
+      };
+      if (!clientRequestId) return create();
+      db.query('SELECT id,scope,expires_at,revoked_at FROM report_shares WHERE owner_user_id=? AND client_request_id=?', [req.user.id, clientRequestId], (readErr, rows) => {
+        if (readErr) return res.status(500).json({ error: '分享状态暂时无法确认，请保留当前页面后重试' });
+        if (rows.length) return res.json({ success: true, message: '该授权此前已经创建', replayed: true, share: { id: rows[0].id, scope: parseDbJson(rows[0].scope, []), expires_at: rows[0].expires_at, revoked_at: rows[0].revoked_at } });
+        create();
+      });
     });
   });
 });
