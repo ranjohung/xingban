@@ -30,6 +30,7 @@ const expectedColumns = {
   ,family_moods: ['client_request_id']
   ,gratitude_cards: ['client_request_id']
   ,fraud_reports: ['client_request_id']
+  ,custom_stories: ['client_request_id']
 };
 
 async function main() {

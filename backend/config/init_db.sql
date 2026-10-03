@@ -515,10 +515,10 @@ CREATE TABLE IF NOT EXISTS story_library (
   play_count INT NOT NULL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS custom_stories (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, child_id INT NULL,
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, child_id INT NULL, client_request_id CHAR(36) NULL,
   title VARCHAR(80) NOT NULL, content TEXT NOT NULL, category ENUM('emotion','social','daily','safety') NOT NULL DEFAULT 'daily',
   cover_image VARCHAR(500), play_count INT NOT NULL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_custom_story_user_time (user_id, created_at), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE KEY uq_custom_story_request (user_id, client_request_id), INDEX idx_custom_story_user_time (user_id, created_at), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE SET NULL
 );
 CREATE TABLE IF NOT EXISTS story_play_records (

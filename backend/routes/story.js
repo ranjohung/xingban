@@ -9,6 +9,7 @@ const positiveId = value => {
   const id = Number.parseInt(value, 10);
   return Number.isInteger(id) && id > 0 ? id : 0;
 };
+const requestId = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim()) ? String(value).trim() : '';
 const publicStory = story => ({
   id: story.id,
   title: story.title,
@@ -43,16 +44,17 @@ router.post('/custom', auth, (req, res) => {
   const content = clean(req.body.content, 3000);
   const category = CATEGORIES.has(req.body.category) ? req.body.category : 'daily';
   const childId = positiveId(req.body.child_id);
-  if (!title || !content) return res.status(400).json({ error: '标题和内容不能为空' });
-  const save = () => db.query('INSERT INTO custom_stories (user_id, child_id, title, content, category) VALUES (?, ?, ?, ?, ?)',
-    [req.user.id, childId || null, title, content, category],
-    (err, result) => err ? res.status(500).json({ error: '故事暂时无法创建' }) : res.json({ success: true, message: '自定义故事创建成功', story: { id: result.insertId, title, content, category } })
+  const clientRequestId = requestId(req.body.client_request_id);
+  if (!title || !content || !childId || !clientRequestId) return res.status(400).json({ error: '请选择儿童档案并填写标题和内容' });
+  const replay = () => db.query('SELECT id,child_id,title,content,category,created_at FROM custom_stories WHERE user_id=? AND client_request_id=?', [req.user.id, clientRequestId], (readErr, rows) => readErr || !rows.length ? res.status(500).json({ error: '故事保存状态暂时无法确认，请保留页面后重试' }) : res.json({ success: true, replayed: true, story: rows[0] }));
+  const save = () => db.query('INSERT INTO custom_stories (user_id, child_id, client_request_id, title, content, category) VALUES (?, ?, ?, ?, ?, ?)',
+    [req.user.id, childId, clientRequestId, title, content, category],
+    (err, result) => err?.code === 'ER_DUP_ENTRY' ? replay() : err ? res.status(500).json({ error: '故事暂时无法创建' }) : res.status(201).json({ success: true, message: '自定义故事创建成功', story: { id: result.insertId, child_id: childId, title, content, category } })
   );
-  if (!childId) return save();
   db.query('SELECT id FROM children WHERE id = ? AND user_id = ?', [childId, req.user.id], (err, rows) => {
     if (err) return res.status(500).json({ error: '暂时无法核验儿童档案' });
     if (!rows.length) return res.status(404).json({ error: '儿童档案不存在' });
-    save();
+    db.query('SELECT id FROM custom_stories WHERE user_id=? AND client_request_id=?', [req.user.id, clientRequestId], (readErr, existing) => readErr ? res.status(500).json({ error: '故事保存状态暂时无法确认' }) : existing.length ? replay() : save());
   });
 });
 

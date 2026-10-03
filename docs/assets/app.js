@@ -5246,7 +5246,9 @@
               <label class="block text-sm text-text-secondary mb-1">内容</label>
               <textarea id="new-story-content" placeholder="用描述性语言写一个具体场景，保留孩子说不、求助和退出的方式" maxlength="3000" class="w-full px-4 py-3 rounded-xl border border-border" rows="4"></textarea>
             </div>
-            <button data-ui-call="createStory" class="w-full py-3 rounded-xl bg-primary text-white font-medium">创建</button>
+            <input type="hidden" id="new-story-request-id" value="${newClientRequestId()}">
+            <button id="new-story-save-button" data-ui-call="createStory" class="w-full py-3 rounded-xl bg-primary text-white font-medium disabled:opacity-60">创建</button>
+            <p id="new-story-save-status" class="text-xs text-text-muted" role="status">将保存到当前儿童档案；尚未保存。</p>
           </div>
         </div>
       `;
@@ -5254,17 +5256,26 @@
     }
 
     async function createStory() {
+      const childId = currentChildId();
       const title = document.getElementById('new-story-title').value.trim();
       const category = document.getElementById('new-story-category').value;
       const content = document.getElementById('new-story-content').value.trim();
+      const button = document.getElementById('new-story-save-button');
+      const status = document.getElementById('new-story-save-status');
+      if (button.disabled) return;
 
+      if (!childId) { showToast('请先选择儿童档案'); return; }
       if (!title || !content) {
         showToast('请填写完整信息');
         return;
       }
+      if (navigator.onLine === false) { status.textContent = '未保存：当前网络已断开，故事内容仍保留。'; return showToast('当前离线，故事尚未保存'); }
 
+      button.disabled = true; button.textContent = '正在保存…'; status.textContent = '正在保存到当前儿童档案，请勿重复点击。';
       try {
         const result = await apiRequest('/story/custom', 'POST', {
+          child_id: childId,
+          client_request_id: document.getElementById('new-story-request-id').value,
           title,
           category,
           content,
@@ -5272,7 +5283,7 @@
         });
 
         if (result.success) {
-          showToast('创建成功！');
+          showToast(result.replayed ? '故事此前已保存，未重复创建' : '创建成功！');
           closeTopModal();
           renderStories(document.getElementById('main-content'));
         } else {
@@ -5280,7 +5291,9 @@
         }
       } catch (error) {
         console.error('创建故事失败:', error);
-        showToast('网络错误');
+        status.textContent = '保存状态未确认，内容仍保留；可使用同一页面重试。'; showToast('故事尚未确认保存');
+      } finally {
+        if (document.body.contains(button)) { button.disabled = false; button.textContent = '创建'; }
       }
     }
 
