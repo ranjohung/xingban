@@ -248,7 +248,7 @@
                   return { success: true, message: '操作成功（演示模式）' };
                 }
                 if (url.startsWith('/finance/fraud-report') && method === 'POST') {
-                  return { success: true, message: '举报已提交（演示模式）' };
+                  return { success: true, service_connected: false, message: '体验模式仅在当前页面模拟保存，未发送给任何审核或执法机构', report: { id: Date.now(), title: data.title, status: 'demo' } };
                 }
                 if (url.startsWith('/peer/groups') && method === 'GET') {
                   return { success: true, groups: MOCK_DATA.peerGroups };
@@ -7215,9 +7215,15 @@
           </div>
 
           <div class="bg-white rounded-xl p-4 card-shadow mt-4">
-            <h4 class="font-medium text-text-primary mb-3">举报诈骗</h4>
-            <textarea id="fraud-report-content" placeholder="不要填写身份证号、银行卡号、验证码或完整联系方式" maxlength="1000" class="w-full px-4 py-3 rounded-xl border border-border mb-3" rows="3"></textarea>
-            <button data-ui-call="submitFraudReport" class="w-full py-3 rounded-xl bg-danger text-white font-medium">提交举报</button>
+            <h4 class="font-medium text-text-primary">保存可疑线索</h4>
+            <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3 my-3">此功能只帮助您整理线索，当前没有连接监管、警方或人工审核。已经转账、泄露验证码或面临威胁时，请立即联系银行和110，不要等待本页面反馈。</p>
+            <input id="fraud-report-title" placeholder="简短标题，如：机构要求私下转账" maxlength="100" class="w-full px-4 py-3 rounded-xl border border-border mb-3">
+            <select id="fraud-report-type" class="w-full px-4 py-3 rounded-xl border border-border mb-3"><option value="institution">机构</option><option value="product">产品</option><option value="course">课程</option><option value="insurance">保险</option><option value="donation">捐款</option><option value="other">其他</option></select>
+            <input id="fraud-report-location" placeholder="地区（可选，不填写详细住址）" maxlength="100" class="w-full px-4 py-3 rounded-xl border border-border mb-3">
+            <textarea id="fraud-report-content" placeholder="描述可疑行为；不要填写身份证号、银行卡号、验证码或完整联系方式" maxlength="1000" class="w-full px-4 py-3 rounded-xl border border-border mb-3" rows="3"></textarea>
+            <input type="hidden" id="fraud-report-request-id" value="${newClientRequestId()}">
+            <button id="fraud-report-button" data-ui-call="submitFraudReport" class="w-full py-3 rounded-xl bg-danger text-white font-medium disabled:opacity-60">保存线索</button>
+            <p id="fraud-report-status" class="text-xs text-text-muted mt-2" role="status">尚未保存；不会自动发送给任何外部机构。</p>
           </div>
         </div>
       `;
@@ -7377,24 +7383,34 @@
     }
 
     async function submitFraudReport() {
-      const content = document.getElementById('fraud-report-content').value;
+      const title = document.getElementById('fraud-report-title').value.trim();
+      const description = document.getElementById('fraud-report-content').value.trim();
+      const type = document.getElementById('fraud-report-type').value;
+      const location = document.getElementById('fraud-report-location').value.trim();
+      const button = document.getElementById('fraud-report-button');
+      const status = document.getElementById('fraud-report-status');
+      if (button.disabled) return;
 
-      if (!content) {
-        showToast('请填写举报内容');
+      if (!title || !description) {
+        showToast('请填写标题和线索描述');
         return;
       }
+      if (navigator.onLine === false) { status.textContent = '未保存：当前网络已断开，内容仍保留。'; return showToast('当前离线，线索尚未保存'); }
 
+      button.disabled = true; button.textContent = '正在保存…'; status.textContent = '正在保存个人线索，请勿重复点击。';
       try {
-        const result = await apiRequest('/finance/fraud-report', 'POST', { content });
+        const result = await apiRequest('/finance/fraud-report', 'POST', { title, type, description, location, client_request_id: document.getElementById('fraud-report-request-id').value });
 
         if (result.success) {
-          showToast('举报已提交');
-          document.getElementById('fraud-report-content').value = '';
+          status.textContent = result.message || '已保存为个人线索，未发送给外部机构。';
+          showToast(result.replayed ? '线索此前已保存，未重复创建' : '线索已保存，未发送给外部机构');
         } else {
           showToast(result.error || '提交失败');
         }
       } catch (error) {
-        showToast('网络错误');
+        status.textContent = '保存状态未确认，内容仍保留；可使用同一页面重试。'; showToast('线索尚未确认保存');
+      } finally {
+        button.disabled = false; button.textContent = '保存线索';
       }
     }
 

@@ -178,25 +178,33 @@ router.get('/fraud-alerts', auth, (req, res) => {
 });
 
 router.post('/fraud-report', auth, (req, res) => {
-  const { title, type, description, location, evidence_url } = req.body;
+  const title = typeof req.body.title === 'string' ? req.body.title.trim().slice(0, 100) : '';
+  const description = typeof req.body.description === 'string' ? req.body.description.trim().slice(0, 1000) : '';
+  const type = ['institution', 'product', 'donation', 'course', 'insurance', 'other'].includes(req.body.type) ? req.body.type : 'other';
+  const location = typeof req.body.location === 'string' ? req.body.location.trim().slice(0, 100) : '';
+  const clientRequestId = requestId(req.body.client_request_id);
   
-  if (!title || !description) {
+  if (!title || !description || !clientRequestId) {
     return res.status(400).json({ error: '请填写标题和描述' });
   }
   
-  db.query(
-    'INSERT INTO fraud_reports (user_id, title, type, description, location, evidence_url, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [req.user.id, title, type || 'other', description, location || '', evidence_url || null, 'pending'],
+  const replay = () => db.query('SELECT id,title,type,description,location,status,created_at FROM fraud_reports WHERE user_id=? AND client_request_id=?', [req.user.id, clientRequestId], (readErr, rows) => readErr || !rows.length ? res.status(500).json({ error: '线索保存状态暂时无法确认，请保留页面后重试' }) : res.json({ success: true, replayed: true, service_connected: false, report: rows[0] }));
+  const create = () => db.query(
+    'INSERT INTO fraud_reports (user_id, client_request_id, title, type, description, location, evidence_url, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [req.user.id, clientRequestId, title, type, description, location, null, 'pending'],
     (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err?.code === 'ER_DUP_ENTRY') return replay();
+      if (err) return res.status(500).json({ error: '防骗线索暂时无法保存' });
       
       res.status(201).json({
         success: true,
-        message: '已提交体验记录；正式审核和反馈服务尚未接入',
+        service_connected: false,
+        message: '已保存为个人防骗线索；未发送给监管、警方或平台审核人员',
         report: { id: result.insertId, title, status: 'pending' }
       });
     }
   );
+  db.query('SELECT id FROM fraud_reports WHERE user_id=? AND client_request_id=?', [req.user.id, clientRequestId], (err, rows) => err ? res.status(500).json({ error: '线索保存状态暂时无法确认' }) : rows.length ? replay() : create());
 });
 
 router.get('/fraud-reports', auth, (req, res) => {

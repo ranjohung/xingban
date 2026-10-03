@@ -113,6 +113,12 @@ async function main() {
   const gratitudeReplay = await request('/family/gratitude', { method: 'POST', headers, body: JSON.stringify(gratitudePayload) });
   if (!gratitudeReplay.response.ok || !gratitudeReplay.body.replayed || Number(gratitudeReplay.body.card?.id) !== Number(gratitude.body.card.id)) throw new Error('感谢卡重复提交未返回原记录');
 
+  const fraudPayload = { client_request_id: randomUUID(), title: '机构要求私下转账', type: 'institution', description: '对方要求脱离正规平台支付，作为测试线索保存。', location: '测试地区' };
+  const fraud = await request('/finance/fraud-report', { method: 'POST', headers, body: JSON.stringify(fraudPayload) });
+  if (fraud.response.status !== 201 || fraud.body.service_connected !== false) throw new Error(`防骗线索保存失败或服务边界错误：${JSON.stringify(fraud.body)}`);
+  const fraudReplay = await request('/finance/fraud-report', { method: 'POST', headers, body: JSON.stringify(fraudPayload) });
+  if (!fraudReplay.response.ok || !fraudReplay.body.replayed || Number(fraudReplay.body.report?.id) !== Number(fraud.body.report.id)) throw new Error('防骗线索重复提交未返回原记录');
+
   const contactData = { contacts: [{ id: 1, name: '共同监护人', fullPhone: '13800138001' }] };
   const contactSave = await request(`/sensitive/record/emergency_contacts/${childId}`, { method: 'PUT', headers, body: JSON.stringify({ data: contactData }) });
   if (!contactSave.response.ok) throw new Error(`紧急联系人加密保存失败：${JSON.stringify(contactSave.body)}`);

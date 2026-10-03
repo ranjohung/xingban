@@ -605,9 +605,9 @@ CREATE TABLE IF NOT EXISTS user_subsidies (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS fraud_reports (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, title VARCHAR(100) NOT NULL, type VARCHAR(50) NOT NULL DEFAULT 'other',
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, client_request_id CHAR(36) NULL, title VARCHAR(100) NOT NULL, type VARCHAR(50) NOT NULL DEFAULT 'other',
   description TEXT NOT NULL, location VARCHAR(100), evidence_url VARCHAR(500), status VARCHAR(30) NOT NULL DEFAULT 'pending',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_fraud_user_time (user_id, created_at),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uq_fraud_report_request (user_id, client_request_id), INDEX idx_fraud_user_time (user_id, created_at),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
