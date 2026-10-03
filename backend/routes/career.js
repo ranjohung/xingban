@@ -4,30 +4,23 @@ const db = require('../config/db');
 const auth = require('../middleware/auth');
 
 const careerMilestones = [
-  { id: 1, stage: 'diagnosis', title: '确诊初期', age_range: '0-3岁', description: '接受诊断，了解自闭症相关知识', icon: '🏥' },
-  { id: 2, stage: 'early_intervention', title: '早期干预', age_range: '3-6岁', description: '开始专业康复训练，建立干预计划', icon: '👶' },
-  { id: 3, stage: 'preschool', title: '学前阶段', age_range: '4-6岁', description: '准备进入幼儿园，学习社交规则', icon: '🏫' },
-  { id: 4, stage: 'school_age', title: '学龄期', age_range: '6-12岁', description: '融入小学，学习学科知识', icon: '📚' },
-  { id: 5, stage: 'adolescence', title: '青春期', age_range: '12-18岁', description: '自我认同，职业探索', icon: '🎯' },
-  { id: 6, stage: 'young_adult', title: '青年期', age_range: '18-25岁', description: '独立生活，就业准备', icon: '💼' },
-  { id: 7, stage: 'adult', title: '成年期', age_range: '25岁+', description: '稳定生活，长期规划', icon: '🏠' }
+  { id: 1, stage: 'understanding', title: '了解情况与建立支持', age_range: '按家庭需要', description: '理解孩子的沟通方式、感官需要、兴趣和压力信号', icon: '🧭' },
+  { id: 2, stage: 'early_support', title: '早期支持', age_range: '按发展阶段', description: '以安全、关系和日常参与为中心共同确定支持', icon: '🌱' },
+  { id: 3, stage: 'preschool', title: '学前适应', age_range: '入园前后', description: '准备环境调整、沟通支持和渐进适应方案', icon: '🏫' },
+  { id: 4, stage: 'school_age', title: '学龄支持', age_range: '在校阶段', description: '共同复核学习、同伴、感官与合理便利', icon: '📚' },
+  { id: 5, stage: 'adolescence', title: '青春期支持', age_range: '青春期', description: '支持自我认同、身体界限、情绪和选择表达', icon: '🎯' },
+  { id: 6, stage: 'transition', title: '成年过渡', age_range: '转衔阶段', description: '探索本人愿意尝试的生活、学习、社区和工作活动', icon: '🌉' },
+  { id: 7, stage: 'adult', title: '成年生活', age_range: '持续复核', description: '围绕本人意愿调整决策、居住、健康和参与支持', icon: '🏠' }
 ];
 
 const milestoneAchievements = [
-  { id: 1, milestone_id: 1, title: '第一次眼神交流', category: 'social', description: '孩子主动与家人进行眼神交流' },
-  { id: 2, milestone_id: 1, title: '说出第一个有意义的词', category: 'communication', description: '孩子说出第一个有意义的词汇' },
-  { id: 3, milestone_id: 2, title: '独立完成如厕', category: 'self_care', description: '孩子能够独立完成如厕流程' },
-  { id: 4, milestone_id: 2, title: '使用图片卡表达需求', category: 'communication', description: '孩子学会使用图片卡表达基本需求' },
-  { id: 5, milestone_id: 3, title: '在幼儿园待满一天', category: 'social', description: '孩子能够在幼儿园度过完整的一天' },
-  { id: 6, milestone_id: 3, title: '与同伴分享玩具', category: 'social', description: '孩子主动与同伴分享玩具' },
-  { id: 7, milestone_id: 4, title: '独立完成作业', category: 'learning', description: '孩子能够独立完成家庭作业' },
-  { id: 8, milestone_id: 4, title: '主动打招呼', category: 'social', description: '孩子主动向老师或同学打招呼' },
-  { id: 9, milestone_id: 5, title: '参与班级活动', category: 'social', description: '孩子主动参与班级集体活动' },
-  { id: 10, milestone_id: 5, title: '表达个人喜好', category: 'communication', description: '孩子能够清晰表达自己的喜好' },
-  { id: 11, milestone_id: 6, title: '兼职工作', category: 'career', description: '孩子获得第一份兼职工作' },
-  { id: 12, milestone_id: 6, title: '独立出行', category: 'self_care', description: '孩子能够独立乘坐公共交通工具' },
-  { id: 13, milestone_id: 7, title: '稳定就业', category: 'career', description: '孩子获得稳定的全职工作' },
-  { id: 14, milestone_id: 7, title: '独立居住', category: 'self_care', description: '孩子能够独立居住生活' }
+  { id: 1, milestone_id: 1, title: '找到可靠的表达方式', category: 'communication', description: '孩子能用自己舒适的方式表达需要、同意或拒绝' },
+  { id: 2, milestone_id: 2, title: '完成一次舒适的共同活动', category: 'participation', description: '在尊重节奏与退出权的前提下参与家庭活动' },
+  { id: 3, milestone_id: 3, title: '确认一项有效环境调整', category: 'environment', description: '找到能降低压力、增加安全感的环境支持' },
+  { id: 4, milestone_id: 4, title: '参与制定学习支持', category: 'learning', description: '孩子用适合自己的方式表达学习偏好与困难' },
+  { id: 5, milestone_id: 5, title: '表达个人边界', category: 'safety', description: '孩子能表达不舒服、暂停或寻求可信成人帮助' },
+  { id: 6, milestone_id: 6, title: '尝试一项感兴趣的社会活动', category: 'community', description: '通过低风险体验了解偏好和所需支持' },
+  { id: 7, milestone_id: 7, title: '共同复核成年生活选择', category: 'choice', description: '本人参与讨论居住、活动、健康和决策支持' }
 ];
 
 const GOAL_CATEGORIES = new Set(['skill', 'social', 'career', 'education', 'life', 'self_care', 'learning']);
@@ -175,7 +168,11 @@ router.delete('/goals/:childId/:goalId', auth, (req, res) => {
 });
 
 router.post('/simulator', auth, (req, res) => {
-  const { childId, current_capacity, support_level } = req.body;
+  const childId = Number.parseInt(req.body.childId, 10);
+  const supportLevel = ['light', 'regular', 'intensive'].includes(req.body.support_level) ? req.body.support_level : 'regular';
+  const allowedDomains = new Set(['communication', 'daily_living', 'learning', 'community']);
+  const focusDomains = Array.isArray(req.body.focus_domains) ? [...new Set(req.body.focus_domains.filter(item => allowedDomains.has(item)))].slice(0, 4) : [];
+  if (!Number.isInteger(childId) || childId <= 0 || !focusDomains.length) return res.status(400).json({ error: '请选择儿童档案和至少一个支持方向' });
   
   db.query('SELECT * FROM children WHERE id = ? AND user_id = ?',
     [childId, req.user.id],
@@ -185,13 +182,10 @@ router.post('/simulator', auth, (req, res) => {
         return res.status(404).json({ error: '儿童档案不存在' });
       }
       
-      const child = results[0];
-      const simulation = generateSimulation(child, current_capacity, support_level);
-      
       res.json({
         success: true,
-        disclaimer: '本模拟仅供参考，实际发展受多种因素影响',
-        simulation
+        disclaimer: '这是讨论清单，不预测孩子未来能力、教育、居住或就业结果，也不替代专业评估。',
+        support_plan: buildSupportPlan(focusDomains, supportLevel)
       });
     }
   );
@@ -255,7 +249,7 @@ function generateGoalSteps(category, title) {
       { step: 1, description: '探索职业兴趣', completed: false },
       { step: 2, description: '学习职业技能', completed: false },
       { step: 3, description: '实习或兼职体验', completed: false },
-      { step: 4, description: '稳定就业', completed: false }
+      { step: 4, description: '复核意愿、适配程度和所需支持', completed: false }
     ]
   };
   
@@ -267,62 +261,19 @@ function generateGoalSteps(category, title) {
   ];
 }
 
-function generateSimulation(child, current_capacity, support_level) {
-  const levels = ['basic', 'medium', 'comprehensive'];
-  const levelNames = {
-    basic: '基础支持',
-    medium: '中等支持',
-    comprehensive: '全面支持'
+function buildSupportPlan(focusDomains, supportLevel) {
+  const domainMap = {
+    communication: { title: '沟通与表达', questions: ['孩子最容易使用哪种表达方式？', '哪些环境会让表达更困难？', '怎样让孩子能明确表示同意、拒绝或暂停？'] },
+    daily_living: { title: '日常生活参与', questions: ['孩子希望参与哪一项日常活动？', '任务可以拆成哪一个最小步骤？', '需要视觉提示、示范、陪同还是环境调整？'] },
+    learning: { title: '学习与环境适配', questions: ['孩子当前感兴趣并愿意尝试什么？', '噪声、光线、时间或任务长度需要怎样调整？', '怎样记录“更舒适、更愿意参与”而不只看完成率？'] },
+    community: { title: '社区与成年过渡', questions: ['孩子希望接触哪些场所、活动或角色？', '出行、安全、决策和求助需要哪些支持？', '当地有哪些资源需要向主管部门或专业人员核验？'] }
   };
-  
-  const scenarios = {
-    basic: {
-      living: '在家人支持下生活，日常活动需要家人协助，居住在家庭环境中',
-      social: '与家人有良好互动，能够参与简单的家庭社交活动',
-      career: '可能从事简单的家务劳动或庇护性就业，收入较低',
-      education: '完成九年义务教育，可能接受职业教育',
-      case_study: '小明在家人的精心照顾下，学会了基本的生活自理，每天帮助家人做一些简单的家务'
-    },
-    medium: {
-      living: '能够在社区支持下独立生活，定期有社工或康复师上门指导',
-      social: '能够参与社区活动，有固定的朋友，社交范围逐渐扩大',
-      career: '可以从事庇护性就业或支持性就业，有一定的收入来源',
-      education: '完成义务教育，接受职业培训，掌握一技之长',
-      case_study: '小红通过社区支持，学会了独立乘坐公交车，现在在一家面包店做包装工作'
-    },
-    comprehensive: {
-      living: '能够独立居住生活，有专业团队提供定期支持和指导',
-      social: '能够主动社交，参与社会活动，有良好的社交网络',
-      career: '可以从事竞争性就业，实现经济独立',
-      education: '完成高等教育或专业培训，具备专业技能',
-      case_study: '小华通过多年的专业干预和支持，成功考入大学，现在从事计算机相关工作'
-    }
-  };
-  
+  const levelLabels = { light: '少量提醒或环境调整', regular: '持续协助与定期复核', intensive: '密集协助与跨专业协调' };
   return {
-    current_status: {
-      diagnosis: child.diagnosis_type,
-      age: calculateAge(child.birth_date),
-      capacity: current_capacity || {
-        communication: child.communication_level,
-        social: child.social_level,
-        self_care: child.self_care_level,
-        cognitive: child.cognitive_level
-      }
-    },
-    scenarios: levels.map(level => ({
-      level,
-      name: levelNames[level],
-      ...scenarios[level]
-    })),
-    recommended_support: levelNames[support_level || 'medium'],
-    key_factors: [
-      '早期干预的持续性和专业性',
-      '家庭支持系统的健全程度',
-      '社区和社会资源的可及性',
-      '孩子自身的能力和潜力',
-      '教育和职业培训的机会'
-    ]
+    support_level: supportLevel,
+    support_level_label: levelLabels[supportLevel],
+    domains: focusDomains.map(key => ({ key, ...domainMap[key] })),
+    review_rule: '先征求孩子意见，只选择一项可逆、低风险的小步骤；记录孩子的舒适度和拒绝信号，1至2周后共同复核，出现明显痛苦立即暂停。'
   };
 }
 

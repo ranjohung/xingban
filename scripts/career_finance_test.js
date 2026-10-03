@@ -6,5 +6,7 @@ const finance=fs.readFileSync(path.resolve(__dirname,'..','backend','routes','fi
 ["router.param('childId'","SELECT id FROM children WHERE id = ? AND user_id = ?",'req.body.title === undefined','目标不存在'].forEach(marker=>assert(career.includes(marker),'生涯接口缺少: '+marker));
 ["router.param('childId'",'FINANCE_CATEGORIES','Number.isFinite(amount)','verified: false','示例信息，未按地区','正式审核和反馈服务尚未接入'].forEach(marker=>assert(finance.includes(marker),'财务接口缺少: '+marker));
 assert(!html.includes('建议重点培养数字技能和编程能力'),'不得按诊断标签预设职业');
+['能够独立居住生活','实现经济独立','成功考入大学','generateSimulation'].forEach(marker=>assert(!career.includes(marker),'服务端仍含固定结局预测: '+marker));
+['buildSupportPlan','不预测孩子未来能力','拒绝信号'].forEach(marker=>assert(career.includes(marker),'服务端支持清单缺少: '+marker));
 assert(!finance.includes('会在24小时内审核'),'未接审核服务不得承诺时限');
 console.log('生涯与财务回归通过：去预测和刻板印象、字段契约、儿童所有权、政策核验边界与金额校验齐全。');

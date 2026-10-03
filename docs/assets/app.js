@@ -123,6 +123,9 @@
         if (url.startsWith('/safety') && method === 'GET') {
           return { success: true, profile: {}, skills: MOCK_DATA.safetySkills, records: [] };
         }
+        if (url === '/career/simulator' && method === 'POST') {
+          return { success: true, disclaimer: '体验模式本地生成：这是讨论清单，未上传或保存，不预测孩子未来，也不替代专业评估。', support_plan: buildLocalCareerSupportPlan(data.focus_domains, data.support_level) };
+        }
         if (url.startsWith('/story') && method === 'GET') {
                   const path = url.replace('/story', '');
                   if (path === '/library' || path.startsWith('/library?')) {
@@ -509,13 +512,13 @@
         ]
       },
       careerMilestones: [
-        { id: 1, child_id: 1, age: 6, title: '进入小学', description: '顺利进入普通小学就读', achieved: true, date: '2026-09-01' },
-        { id: 2, child_id: 1, age: 8, title: '学会骑自行车', description: '能够独立骑自行车', achieved: false },
-        { id: 3, child_id: 1, age: 12, title: '小学毕业', description: '完成小学学业', achieved: false },
-        { id: 4, child_id: 1, age: 15, title: '初中毕业', description: '完成初中学业，获得毕业证', achieved: false },
-        { id: 5, child_id: 1, age: 18, title: '高中毕业', description: '完成高中学业', achieved: false },
-        { id: 6, child_id: 1, age: 22, title: '职业技能培训', description: '完成职业技能培训课程', achieved: false },
-        { id: 7, child_id: 1, age: 24, title: '成年生活选择', description: '能够成年生活选择和工作', achieved: false }
+        { id: 1, child_id: 1, age: 6, title: '找到舒适的入学支持', description: '记录孩子愿意使用的沟通、感官和课堂支持', achieved: true, date: '2026-09-01' },
+        { id: 2, child_id: 1, age: 8, title: '尝试喜欢的户外活动', description: '由孩子选择活动、节奏和需要的协助', achieved: false },
+        { id: 3, child_id: 1, age: 12, title: '共同复核学习安排', description: '和孩子及学校讨论下一阶段愿望与合理便利', achieved: false },
+        { id: 4, child_id: 1, age: 15, title: '练习表达选择与拒绝', description: '确保孩子能用适合自己的方式参与重要决定', achieved: false },
+        { id: 5, child_id: 1, age: 18, title: '探索成年过渡支持', description: '核对健康、教育、生活、决策与社区支持', achieved: false },
+        { id: 6, child_id: 1, age: 22, title: '尝试感兴趣的活动角色', description: '通过低风险体验了解偏好、优势与所需支持', achieved: false },
+        { id: 7, child_id: 1, age: 24, title: '复核成年生活选择', description: '尊重本人意愿，持续调整居住、活动和支持安排', achieved: false }
       ],
       careerGoals: [
         { id: 1, child_id: 1, title: '探索孩子当前兴趣', description: '从孩子本人意愿和多场景参与出发尝试不同活动', type: 'skill', deadline: '2027-12-31', status: 'in_progress' },
@@ -6574,14 +6577,14 @@
 
     function renderCareer(container) {
       document.getElementById('page-title').textContent = '生涯规划';
-      document.getElementById('page-subtitle').textContent = '全生涯规划与未来模拟器';
+      document.getElementById('page-subtitle').textContent = '以孩子意愿为中心的成长支持规划';
 
       container.innerHTML = `
         <div class="p-4 space-y-4 animate-fade-in">
           <div class="flex bg-white rounded-xl p-1 card-shadow">
             <button data-ui-call="renderCareerTimeline" data-ui-pass-this="true" class="flex-1 py-2 rounded-lg bg-primary text-white font-medium">生涯时间轴</button>
             <button data-ui-call="renderCareerGoals" data-ui-pass-this="true" class="flex-1 py-2 rounded-lg text-text-secondary">生涯目标</button>
-            <button data-ui-call="renderCareerSimulator" data-ui-pass-this="true" class="flex-1 py-2 rounded-lg text-text-secondary">未来模拟</button>
+            <button data-ui-call="renderCareerSimulator" data-ui-pass-this="true" class="flex-1 py-2 rounded-lg text-text-secondary">未来支持</button>
           </div>
 
           <div id="career-content">
@@ -6687,29 +6690,13 @@
           <div class="bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl p-5 text-white card-shadow mb-4">
             <div class="text-center mb-4">
               <div class="text-sm text-white/80">按阶段提前准备支持，不预测孩子结局</div>
-              <div class="text-2xl font-bold mt-1">小明 · 6岁 → 24岁</div>
+              <div class="text-2xl font-bold mt-1">${escapeText(selectedChild?.name || '当前儿童')} · 分阶段准备</div>
             </div>
-            <div class="space-y-3">
-              <div class="flex items-center justify-between bg-white/20 rounded-lg p-3">
-                <span>小学阶段</span>
-                <span class="font-medium">6-12岁</span>
-              </div>
-              <div class="flex items-center justify-between bg-white/20 rounded-lg p-3">
-                <span>初中阶段</span>
-                <span class="font-medium">12-15岁</span>
-              </div>
-              <div class="flex items-center justify-between bg-white/20 rounded-lg p-3">
-                <span>高中阶段</span>
-                <span class="font-medium">15-18岁</span>
-              </div>
-              <div class="flex items-center justify-between bg-white/20 rounded-lg p-3">
-                <span>成年过渡支持</span>
-                <span class="font-medium">18-22岁</span>
-              </div>
-              <div class="flex items-center justify-between bg-white/20 rounded-lg p-3">
-                <span>成年生活选择</span>
-                <span class="font-medium">22-24岁</span>
-              </div>
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="bg-white/20 rounded-lg p-3">孩子的意愿与拒绝</div>
+              <div class="bg-white/20 rounded-lg p-3">沟通与环境适配</div>
+              <div class="bg-white/20 rounded-lg p-3">健康、安全与决策</div>
+              <div class="bg-white/20 rounded-lg p-3">学习、社区与活动</div>
             </div>
           </div>
 
@@ -6718,10 +6705,21 @@
             <p class="text-sm text-text-secondary mb-4">
               不要依据诊断标签预设职业。请从孩子当前兴趣、沟通方式、感官需要、日常参与和本人意愿出发，同时准备不同支持强度下的教育、生活、健康、决策支持和职业探索方案。
             </p>
-            <button data-ui-call="runCareerSimulation" class="w-full py-3 rounded-xl bg-primary text-white font-medium">
-              重新模拟
+            <fieldset class="space-y-2 mb-4">
+              <legend class="text-sm font-medium text-text-primary mb-2">这次优先梳理哪些支持？（可多选）</legend>
+              ${[['communication','沟通与表达'],['daily_living','日常生活参与'],['learning','学习与环境适配'],['community','社区与成年过渡']].map(([value,label]) => `<label class="flex items-center gap-2 text-sm text-text-secondary"><input type="checkbox" name="career-support-domain" value="${value}" class="w-4 h-4" ${value === 'communication' ? 'checked' : ''}>${label}</label>`).join('')}
+            </fieldset>
+            <label class="block text-sm font-medium text-text-primary mb-2" for="career-support-level">目前希望获得的协助强度</label>
+            <select id="career-support-level" class="w-full px-4 py-2.5 rounded-xl border border-border mb-4">
+              <option value="light">少量提醒或环境调整</option><option value="regular">持续协助与定期复核</option><option value="intensive">密集协助与跨专业协调</option>
+            </select>
+            <button id="career-support-plan-button" data-ui-call="runCareerSimulation" class="w-full py-3 rounded-xl bg-primary text-white font-medium">
+              生成下一步讨论清单
             </button>
+            <p id="career-support-plan-status" class="text-xs text-text-muted mt-2" role="status">清单用于家庭与专业人员共同讨论，不是能力预测或诊断结论。</p>
           </div>
+
+          <div id="career-support-plan-result"></div>
 
           <div class="bg-white rounded-xl p-4 card-shadow">
             <h4 class="font-medium text-text-primary mb-1">法律与成年过渡核对清单</h4><p class="text-xs text-text-muted mb-3">以下是讨论主题，不是法律意见；制度因地区和时间变化，请向当地主管部门或执业律师核验。</p>
@@ -6921,11 +6919,49 @@
       }
     }
 
-    function runCareerSimulation() {
-      showToast('正在模拟未来发展路径...');
-      setTimeout(() => {
-        showToast('模拟完成！');
-      }, 1500);
+    async function runCareerSimulation() {
+      const childId = currentChildId();
+      if (!childId) return showToast('请先选择儿童档案');
+      const domains = Array.from(document.querySelectorAll('input[name="career-support-domain"]:checked')).map(input => input.value);
+      if (!domains.length) return showToast('请至少选择一个支持方向');
+      const button = document.getElementById('career-support-plan-button');
+      const status = document.getElementById('career-support-plan-status');
+      button.disabled = true;
+      status.textContent = '正在整理讨论清单…';
+      try {
+        const result = await apiRequest('/career/simulator', 'POST', {
+          childId,
+          focus_domains: domains,
+          support_level: document.getElementById('career-support-level').value
+        });
+        if (!result.success) throw new Error(result.error || '生成失败');
+        const plan = result.support_plan;
+        document.getElementById('career-support-plan-result').innerHTML = `
+          <section class="bg-white rounded-xl p-4 card-shadow space-y-3" aria-label="未来支持讨论清单">
+            <div><h4 class="font-bold text-text-primary">下一步讨论清单</h4><p class="text-xs text-text-muted mt-1">${escapeText(result.disclaimer)}</p></div>
+            ${plan.domains.map(domain => `<div class="rounded-xl bg-primary/5 p-3"><div class="font-medium text-text-primary">${escapeText(domain.title)}</div><ul class="mt-2 space-y-1 text-sm text-text-secondary">${domain.questions.map(q => `<li>• ${escapeText(q)}</li>`).join('')}</ul></div>`).join('')}
+            <div class="rounded-xl border border-border p-3 text-sm text-text-secondary"><strong class="text-text-primary">复核方式：</strong>${escapeText(plan.review_rule)}</div>
+          </section>`;
+        status.textContent = '已生成。请和孩子一起选择愿意尝试的一小步。';
+      } catch (error) {
+        status.textContent = navigator.onLine ? (error.message || '暂时无法生成，请稍后重试') : '当前离线，尚未生成或保存任何清单。';
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    function buildLocalCareerSupportPlan(focusDomains, supportLevel) {
+      const map = {
+        communication: ['沟通与表达', ['孩子最容易使用哪种表达方式？', '哪些环境会让表达更困难？', '怎样让孩子能明确表示同意、拒绝或暂停？']],
+        daily_living: ['日常生活参与', ['孩子希望参与哪一项日常活动？', '任务可以拆成哪一个最小步骤？', '需要视觉提示、示范、陪同还是环境调整？']],
+        learning: ['学习与环境适配', ['孩子当前感兴趣并愿意尝试什么？', '噪声、光线、时间或任务长度需要怎样调整？', '怎样记录舒适度和参与意愿，而不只看完成率？']],
+        community: ['社区与成年过渡', ['孩子希望接触哪些场所、活动或角色？', '出行、安全、决策和求助需要哪些支持？', '哪些当地资源仍需向主管部门或专业人员核验？']]
+      };
+      return {
+        support_level: supportLevel,
+        domains: (focusDomains || []).filter(key => map[key]).map(key => ({ key, title: map[key][0], questions: map[key][1] })),
+        review_rule: '先征求孩子意见，只选择一项可逆、低风险的小步骤；记录舒适度和拒绝信号，1至2周后共同复核，出现明显痛苦立即暂停。'
+      };
     }
 
     function editCareerGoal(goalId) {
