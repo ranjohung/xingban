@@ -22,12 +22,16 @@ async function main() {
   const [admin] = await connection.execute("INSERT INTO users (phone,password,nickname,role) VALUES (?,?,'周报管理员测试','admin')", [`15${suffix}4`.slice(0, 11), 'not-used']);
   adminId = admin.insertId;
   const [child] = await connection.execute("INSERT INTO children (user_id,nickname,birth_date,diagnosis_type) VALUES (?, '周报测试儿童','2020-01-02','UNCONFIRMED')", [userId]);
+  await connection.execute("INSERT INTO weekly_report_preferences (user_id,enabled,delivery_weekday,delivery_hour,timezone) VALUES (?,FALSE,1,8,'Asia/Shanghai')", [userId]);
   const { weekStart } = completedWeek(reference);
   await connection.execute(`INSERT INTO behavior_records (child_id,user_id,input_type,content,behavior_category,intensity_level,created_at)
     VALUES (?,?,'text','转换前哭泣，给出预告后平静','情绪爆发','medium',?)`, [child.insertId, userId, `${weekStart} 10:00:00`]);
 
   db.connect(() => {});
   await new Promise(resolve => setTimeout(resolve, 100));
+  const paused = await runWeeklyReportCycle(reference);
+  if (paused.enqueued !== 0 || paused.attempted !== 0) throw new Error(`暂停后仍生成周报任务：${JSON.stringify(paused)}`);
+  await connection.execute('UPDATE weekly_report_preferences SET enabled=TRUE WHERE user_id=?', [userId]);
   const first = await runWeeklyReportCycle(reference);
   const second = await runWeeklyReportCycle(reference);
   const [reports] = await connection.execute('SELECT id,content FROM weekly_reports WHERE child_id=? AND week_start=?', [child.insertId, weekStart]);
@@ -50,7 +54,13 @@ async function main() {
   const adminQueue = await fetch(`http://127.0.0.1:${port}/api/report/admin/jobs?status=succeeded`, { headers: { Authorization: `Bearer ${token(adminId)}` } });
   const parentRun = await fetch(`http://127.0.0.1:${port}/api/report/admin/jobs/run`, { method: 'POST', headers: { Authorization: `Bearer ${token(userId)}`, 'Content-Type': 'application/json' }, body: '{}' });
   if (parentQueue.status !== 403 || parentRun.status !== 403 || !adminQueue.ok) throw new Error(`周报管理权限隔离失败：${parentQueue.status}/${parentRun.status}/${adminQueue.status}`);
-  console.log('PASS real MySQL weekly jobs: completed-week window, idempotent report, one notification, truthful delivery state, admin isolation');
+  const preferenceHeaders = { Authorization: `Bearer ${token(userId)}`, 'Content-Type': 'application/json' };
+  const invalidPreference = await fetch(`http://127.0.0.1:${port}/api/report/preferences`, { method: 'PUT', headers: preferenceHeaders, body: JSON.stringify({ enabled: true, delivery_weekday: 9, delivery_hour: 25, timezone: 'bad/timezone' }) });
+  const savedPreference = await fetch(`http://127.0.0.1:${port}/api/report/preferences`, { method: 'PUT', headers: preferenceHeaders, body: JSON.stringify({ enabled: false, delivery_weekday: 5, delivery_hour: 20, timezone: 'Asia/Shanghai' }) });
+  const readPreference = await fetch(`http://127.0.0.1:${port}/api/report/preferences`, { headers: preferenceHeaders });
+  const preference = await readPreference.json();
+  if (invalidPreference.status !== 400 || !savedPreference.ok || !readPreference.ok || preference.preference.enabled !== false || preference.preference.delivery_weekday !== 5 || preference.preference.delivery_hour !== 20) throw new Error('家庭周报偏好保存、读取或校验失败');
+  console.log('PASS real MySQL weekly jobs: family pause/schedule, completed-week window, idempotent report, one notification, truthful delivery state, admin isolation');
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {

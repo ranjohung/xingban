@@ -28,6 +28,35 @@ router.post('/share/:token/comment', (req, res) => {
 // 其余周报接口全部要求登录，确保 router.param 能拿到 req.user 做儿童归属核验。
 router.use(auth);
 
+const validTimezone = value => {
+  try { new Intl.DateTimeFormat('zh-CN', { timeZone: value }).format(); return true; } catch (_) { return false; }
+};
+
+router.get('/preferences', requireRole('parent', 'admin'), (req, res) => {
+  db.query('SELECT enabled,delivery_weekday,delivery_hour,timezone,updated_at FROM weekly_report_preferences WHERE user_id=?', [req.user.id], (error, rows) => {
+    if (error) return res.status(500).json({ error: '周报设置暂时无法读取' });
+    const preference = rows[0] || { enabled: true, delivery_weekday: 1, delivery_hour: 8, timezone: 'Asia/Shanghai', updated_at: null };
+    res.json({ success: true, preference: { ...preference, enabled: Boolean(preference.enabled) } });
+  });
+});
+
+router.put('/preferences', requireRole('parent', 'admin'), (req, res) => {
+  const enabled = req.body.enabled === true || req.body.enabled === 1;
+  const weekday = Number(req.body.delivery_weekday);
+  const hour = Number(req.body.delivery_hour);
+  const timezone = String(req.body.timezone || '').trim();
+  if (!Number.isInteger(weekday) || weekday < 1 || weekday > 7 || !Number.isInteger(hour) || hour < 0 || hour > 23 || !validTimezone(timezone)) {
+    return res.status(400).json({ error: '周报星期、小时或时区无效' });
+  }
+  db.query(`INSERT INTO weekly_report_preferences (user_id,enabled,delivery_weekday,delivery_hour,timezone)
+    VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE enabled=VALUES(enabled),delivery_weekday=VALUES(delivery_weekday),delivery_hour=VALUES(delivery_hour),timezone=VALUES(timezone)`,
+    [req.user.id, enabled, weekday, hour, timezone], (error) => {
+      if (error) return res.status(500).json({ error: '周报设置暂时无法保存' });
+      writeAudit(req, 'weekly_report_preference_update', 'user', String(req.user.id), 'success', { enabled, delivery_weekday: weekday, delivery_hour: hour, timezone });
+      res.json({ success: true, preference: { enabled, delivery_weekday: weekday, delivery_hour: hour, timezone } });
+    });
+});
+
 router.get('/admin/jobs', requireRole('admin'), (req, res) => {
   const status = String(req.query.status || 'failed');
   if (!['pending','processing','retry','succeeded','failed'].includes(status)) return res.status(400).json({ error: '任务状态无效' });

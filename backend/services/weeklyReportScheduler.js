@@ -17,9 +17,34 @@ function completedWeek(reference = new Date()) {
 
 async function enqueueCompletedWeek(reference) {
   const { weekStart, weekEnd } = completedWeek(reference);
-  const result = await query(`INSERT IGNORE INTO weekly_report_jobs (child_id,user_id,week_start,week_end)
-    SELECT id,user_id,?,? FROM children`, [weekStart, weekEnd]);
-  return { weekStart, weekEnd, enqueued: Number(result.affectedRows || 0) };
+  const families = await query(`SELECT c.id child_id,c.user_id,
+      COALESCE(p.enabled,TRUE) enabled,COALESCE(p.delivery_weekday,1) delivery_weekday,
+      COALESCE(p.delivery_hour,8) delivery_hour,COALESCE(p.timezone,'Asia/Shanghai') timezone
+    FROM children c LEFT JOIN weekly_report_preferences p ON p.user_id=c.user_id`);
+  let enqueued = 0;
+  for (const family of families) {
+    if (!family.enabled || !isScheduleDue(reference, family)) continue;
+    const result = await query(`INSERT IGNORE INTO weekly_report_jobs (child_id,user_id,week_start,week_end) VALUES (?,?,?,?)`,
+      [family.child_id, family.user_id, weekStart, weekEnd]);
+    enqueued += Number(result.affectedRows || 0);
+  }
+  return { weekStart, weekEnd, enqueued };
+}
+
+function localScheduleParts(reference, timezone) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+    timeZone: timezone, weekday: 'short', hour: '2-digit', hourCycle: 'h23'
+  }).formatToParts(reference).filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+  const weekday = ({ Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6,Sun:7 })[parts.weekday];
+  return { weekday, hour: Number(parts.hour) };
+}
+
+function isScheduleDue(reference, preference) {
+  try {
+    const local = localScheduleParts(reference, preference.timezone);
+    return local.weekday > Number(preference.delivery_weekday) ||
+      (local.weekday === Number(preference.delivery_weekday) && local.hour >= Number(preference.delivery_hour));
+  } catch (_) { return false; }
 }
 
 async function buildContent(tx, job) {
@@ -89,4 +114,4 @@ async function runWeeklyReportCycle(reference = new Date()) {
   return { ...queued, attempted: jobs.length, succeeded };
 }
 
-module.exports = { completedWeek, enqueueCompletedWeek, runWeeklyReportCycle };
+module.exports = { completedWeek, enqueueCompletedWeek, isScheduleDue, runWeeklyReportCycle };

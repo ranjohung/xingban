@@ -62,6 +62,9 @@ with sync_playwright() as p:
 
     if not EXPECT_SERVER:
         page.evaluate("navigateTo('settings')")
+        page.get_by_text("家庭周报自动生成", exact=True).click()
+        assert page.get_by_text("公开体验版没有后台家庭任务", exact=False).count() == 1, "演示版错误暗示已开启后台周报"
+        page.evaluate("closeTopModal()")
         page.get_by_text("数据删除申请", exact=True).click()
         assert page.get_by_text("公开体验版没有真实云端账号数据", exact=False).count() == 1, "演示版删除入口未如实说明无云端工单"
         page.evaluate("closeTopModal()")
