@@ -118,6 +118,12 @@ async function main() {
   if (fraud.response.status !== 201 || fraud.body.service_connected !== false) throw new Error(`防骗线索保存失败或服务边界错误：${JSON.stringify(fraud.body)}`);
   const fraudReplay = await request('/finance/fraud-report', { method: 'POST', headers, body: JSON.stringify(fraudPayload) });
   if (!fraudReplay.response.ok || !fraudReplay.body.replayed || Number(fraudReplay.body.report?.id) !== Number(fraud.body.report.id)) throw new Error('防骗线索重复提交未返回原记录');
+  const subsidyFollow = await request('/finance/subsidies/follow/1', { method: 'POST', headers, body: '{}' });
+  const subsidyReplay = await request('/finance/subsidies/follow/1', { method: 'POST', headers, body: '{}' });
+  const subsidies = await request('/finance/subsidies', { headers });
+  if (!subsidyFollow.response.ok || !subsidyReplay.body.replayed || !subsidies.body.subsidies?.find(item => item.id === 1)?.followed || /将提醒/.test(subsidyFollow.body.message)) throw new Error('补贴示例关注状态或能力边界不可靠');
+  const invalidSubsidy = await request('/finance/subsidies/follow/999', { method: 'POST', headers, body: '{}' });
+  if (invalidSubsidy.response.status !== 404) throw new Error('补贴关注接受了不存在的示例编号');
 
   const storyPayload = { client_request_id: randomUUID(), child_id: childId, title: '去医院前我可以知道什么', category: 'daily', content: '我可以先看流程，也可以说暂停并请可信成人帮助。' };
   const story = await request('/story/custom', { method: 'POST', headers, body: JSON.stringify(storyPayload) });

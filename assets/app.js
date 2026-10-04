@@ -247,6 +247,9 @@
                 if (url.startsWith('/finance/subsidies') && method === 'POST') {
                   return { success: true, message: '操作成功（演示模式）' };
                 }
+                if (url === '/finance/subsidies' && method === 'GET') {
+                  return { success: true, subsidies: MOCK_DATA.subsidies.map(s => ({ ...s, conditions: s.requirement, followed: s.status === '关注中' })), disclaimer: '界面示例，未按地区核验' };
+                }
                 if (url.startsWith('/finance/fraud-report') && method === 'POST') {
                   return { success: true, service_connected: false, message: '体验模式仅在当前页面模拟保存，未发送给任何审核或执法机构', report: { id: Date.now(), title: data.title, status: 'demo' } };
                 }
@@ -7197,7 +7200,7 @@
       document.getElementById('finance-content').innerHTML = renderFinanceRecordsContent();
     }
 
-    function renderFinanceSubsidies(btn) {
+    async function renderFinanceSubsidies(btn) {
       btn.classList.add('bg-primary', 'text-white');
       btn.classList.remove('text-text-secondary');
       btn.previousElementSibling.classList.remove('bg-primary', 'text-white');
@@ -7205,7 +7208,14 @@
       btn.nextElementSibling.classList.remove('bg-primary', 'text-white');
       btn.nextElementSibling.classList.add('text-text-secondary');
 
-      const subsidies = MOCK_DATA.subsidies;
+      let subsidies = MOCK_DATA.subsidies;
+      try {
+        const result = await apiRequest('/finance/subsidies', 'GET');
+        if (result.success && Array.isArray(result.subsidies)) {
+          subsidies = result.subsidies.map(s => ({ id:Number(s.id), name:s.name, amount:s.amount, requirement:s.conditions || s.requirement || '', status:s.followed ? '关注中' : '未关注', deadline:s.deadline, type:s.type }));
+          MOCK_DATA.subsidies = subsidies;
+        }
+      } catch (_) { showToast('关注状态暂时无法同步，当前显示可能不是最新'); }
 
       document.getElementById('finance-content').innerHTML = `
         <div>
@@ -7413,22 +7423,28 @@
       }
     }
 
+    const subsidyFollowInFlight = new Set();
     async function toggleSubsidyFollow(subsidyId) {
+      if (subsidyFollowInFlight.has(subsidyId)) return;
       const isFollowing = MOCK_DATA.subsidies.find(s => s.id === subsidyId)?.status === '关注中';
       const endpoint = isFollowing ? 'unfollow' : 'follow';
-
+      if (navigator.onLine === false) { showToast('当前网络已断开，关注状态未改变'); return; }
+      subsidyFollowInFlight.add(subsidyId);
       try {
         const result = await apiRequest(`/finance/subsidies/${endpoint}/${subsidyId}`, isFollowing ? 'DELETE' : 'POST');
 
         if (result.success) {
+          const item = MOCK_DATA.subsidies.find(s => s.id === subsidyId);
+          if (item) item.status = isFollowing ? '未关注' : '关注中';
           showToast(isFollowing ? '已取消示例关注' : '已关注示例；请自行核验当地政策');
-          renderFinance(document.getElementById('main-content'));
+          const tab = document.querySelector('[data-ui-call="renderFinanceSubsidies"]');
+          if (tab) await renderFinanceSubsidies(tab);
         } else {
           showToast(result.error || '操作失败');
         }
       } catch (error) {
-        showToast('网络错误');
-      }
+        showToast('状态未确认，请保留页面后重试');
+      } finally { subsidyFollowInFlight.delete(subsidyId); }
     }
 
     async function submitFraudReport() {

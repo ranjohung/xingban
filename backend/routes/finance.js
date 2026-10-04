@@ -119,21 +119,23 @@ router.get('/subsidies', auth, (req, res) => {
 });
 
 router.post('/subsidies/follow/:subsidyId', auth, (req, res) => {
+  const subsidyId = Number.parseInt(req.params.subsidyId, 10);
+  if (!subsidyTemplates.some(item => item.id === subsidyId)) return res.status(404).json({ error: '补贴示例不存在' });
   db.query('SELECT * FROM user_subsidies WHERE user_id = ? AND subsidy_id = ?',
-    [req.user.id, req.params.subsidyId],
+    [req.user.id, subsidyId],
     (err, results) => {
       if (err) return res.status(500).json({ error: err.message });
       
       if (results.length > 0) {
-        return res.status(400).json({ error: '已关注该补贴' });
+        return res.json({ success: true, replayed: true, followed: true, message: '该示例此前已关注；平台不会自动发送到期提醒' });
       }
       
       db.query('INSERT INTO user_subsidies (user_id, subsidy_id) VALUES (?, ?)',
-        [req.user.id, req.params.subsidyId],
+        [req.user.id, subsidyId],
         (err) => {
           if (err) return res.status(500).json({ error: err.message });
           
-          res.json({ success: true, message: '关注成功，到期前将提醒您' });
+          res.json({ success: true, replayed: false, followed: true, message: '关注状态已保存；平台不会自动发送到期提醒，请自行核验并记录日期' });
         }
       );
     }
@@ -141,12 +143,14 @@ router.post('/subsidies/follow/:subsidyId', auth, (req, res) => {
 });
 
 router.delete('/subsidies/unfollow/:subsidyId', auth, (req, res) => {
+  const subsidyId = Number.parseInt(req.params.subsidyId, 10);
+  if (!subsidyTemplates.some(item => item.id === subsidyId)) return res.status(404).json({ error: '补贴示例不存在' });
   db.query('DELETE FROM user_subsidies WHERE user_id = ? AND subsidy_id = ?',
-    [req.user.id, req.params.subsidyId],
+    [req.user.id, subsidyId],
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
       
-      res.json({ success: true, message: '已取消关注' });
+      res.json({ success: true, followed: false, message: '已取消示例关注' });
     }
   );
 });
@@ -227,8 +231,10 @@ function calculateDaysUntilDeadline(deadline) {
   const now = new Date();
   let targetDate;
   
-  if (deadline.includes('月')) {
-    const month = parseInt(deadline.match(/(\d+)月/)[1]);
+  const annualMonth = deadline.match(/^每年(\d{1,2})月$/);
+  if (annualMonth) {
+    const month = Number(annualMonth[1]);
+    if (month < 1 || month > 12) return -1;
     targetDate = new Date(now.getFullYear(), month - 1, 15);
     if (targetDate < now) {
       targetDate = new Date(now.getFullYear() + 1, month - 1, 15);
@@ -239,11 +245,6 @@ function calculateDaysUntilDeadline(deadline) {
     targetDate = new Date(now.getFullYear(), lastMonthOfQuarter - 1, 30);
     if (targetDate < now) {
       targetDate = new Date(now.getFullYear() + 1, lastMonthOfQuarter - 1, 30);
-    }
-  } else if (deadline.includes('年')) {
-    targetDate = new Date(now.getFullYear(), 8, 15);
-    if (targetDate < now) {
-      targetDate = new Date(now.getFullYear() + 1, 8, 15);
     }
   } else {
     return -1;
