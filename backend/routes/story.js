@@ -19,6 +19,13 @@ const publicStory = story => ({
   play_count: Number(story.play_count || 0),
   created_at: story.created_at
 });
+const verifyPlayableStory = (userId, storyId, storyType, callback) => {
+  const sql = storyType === 'custom'
+    ? 'SELECT id FROM custom_stories WHERE id = ? AND user_id = ?'
+    : 'SELECT id FROM story_library WHERE id = ?';
+  const params = storyType === 'custom' ? [storyId, userId] : [storyId];
+  db.query(sql, params, (err, rows) => callback(err, Boolean(rows?.length)));
+};
 
 router.get('/library', auth, (req, res) => {
   const category = CATEGORIES.has(req.query.category) ? req.query.category : null;
@@ -80,21 +87,36 @@ router.post('/play', auth, (req, res) => {
   const childId = positiveId(req.body.child_id);
   const storyType = req.body.story_type === 'custom' ? 'custom' : 'library';
   if (!storyId) return res.status(400).json({ error: '故事编号无效' });
-  db.query('INSERT INTO story_play_records (user_id, child_id, story_id, story_type) VALUES (?, ?, ?, ?)',
-    [req.user.id, childId || null, storyId, storyType],
-    (err, result) => err ? res.status(500).json({ error: '播放记录暂时无法保存' }) : res.json({ success: true, message: '故事播放记录成功', record: { id: result.insertId, story_id: storyId, story_type: storyType } })
-  );
+  const save = () => verifyPlayableStory(req.user.id, storyId, storyType, (storyErr, playable) => {
+    if (storyErr) return res.status(500).json({ error: '暂时无法核验故事' });
+    if (!playable) return res.status(404).json({ error: '故事不存在' });
+    db.query('INSERT INTO story_play_records (user_id, child_id, story_id, story_type) VALUES (?, ?, ?, ?)',
+      [req.user.id, childId || null, storyId, storyType],
+      (err, result) => err ? res.status(500).json({ error: '播放记录暂时无法保存' }) : res.json({ success: true, message: '故事播放记录成功', record: { id: result.insertId, story_id: storyId, story_type: storyType } })
+    );
+  });
+  if (!childId) return save();
+  db.query('SELECT id FROM children WHERE id = ? AND user_id = ?', [childId, req.user.id], (childErr, rows) => {
+    if (childErr) return res.status(500).json({ error: '暂时无法核验儿童档案' });
+    if (!rows.length) return res.status(404).json({ error: '儿童档案不存在' });
+    save();
+  });
 });
 
 router.post('/feedback', auth, (req, res) => {
   const storyId = positiveId(req.body.story_id);
   const rating = Number.parseInt(req.body.rating, 10);
   const feedback = clean(req.body.feedback, 500);
+  const storyType = req.body.story_type === 'custom' ? 'custom' : 'library';
   if (!storyId || !Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ error: '故事编号或评分无效' });
-  db.query('INSERT INTO story_feedback (user_id, story_id, rating, feedback) VALUES (?, ?, ?, ?)',
-    [req.user.id, storyId, rating, feedback],
-    (err, result) => err ? res.status(500).json({ error: '反馈暂时无法提交' }) : res.json({ success: true, message: '反馈提交成功', feedback: { id: result.insertId, rating, feedback } })
-  );
+  verifyPlayableStory(req.user.id, storyId, storyType, (storyErr, playable) => {
+    if (storyErr) return res.status(500).json({ error: '暂时无法核验故事' });
+    if (!playable) return res.status(404).json({ error: '故事不存在' });
+    db.query('INSERT INTO story_feedback (user_id, story_id, rating, feedback) VALUES (?, ?, ?, ?)',
+      [req.user.id, storyId, rating, feedback],
+      (err, result) => err ? res.status(500).json({ error: '反馈暂时无法提交' }) : res.json({ success: true, message: '反馈提交成功', feedback: { id: result.insertId, rating, feedback } })
+    );
+  });
 });
 
 module.exports = router;

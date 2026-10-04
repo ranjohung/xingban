@@ -124,6 +124,14 @@ async function main() {
   if (story.response.status !== 201 || Number(story.body.story?.child_id) !== Number(childId)) throw new Error(`自定义故事儿童归属失败：${JSON.stringify(story.body)}`);
   const storyReplay = await request('/story/custom', { method: 'POST', headers, body: JSON.stringify(storyPayload) });
   if (!storyReplay.response.ok || !storyReplay.body.replayed || Number(storyReplay.body.story?.id) !== Number(story.body.story.id)) throw new Error('自定义故事重复提交未返回原记录');
+  const storyPlay = await request('/story/play', { method: 'POST', headers, body: JSON.stringify({ story_id: story.body.story.id, story_type: 'custom', child_id: childId }) });
+  if (!storyPlay.response.ok) throw new Error(`自定义故事播放记录失败：${JSON.stringify(storyPlay.body)}`);
+  const foreignChildPlay = await request('/story/play', { method: 'POST', headers: therapistHeaders, body: JSON.stringify({ story_id: 1, story_type: 'library', child_id: childId }) });
+  if (foreignChildPlay.response.status !== 404) throw new Error('故事播放记录可伪造其他家庭儿童归属');
+  const foreignCustomPlay = await request('/story/play', { method: 'POST', headers: therapistHeaders, body: JSON.stringify({ story_id: story.body.story.id, story_type: 'custom' }) });
+  if (foreignCustomPlay.response.status !== 404) throw new Error('其他账号可记录播放家庭自定义故事');
+  const foreignCustomFeedback = await request('/story/feedback', { method: 'POST', headers: therapistHeaders, body: JSON.stringify({ story_id: story.body.story.id, story_type: 'custom', rating: 5, feedback: '越权反馈' }) });
+  if (foreignCustomFeedback.response.status !== 404) throw new Error('其他账号可向家庭自定义故事写入反馈');
 
   const learningPayload = { client_request_id: randomUUID(), activity_key: 'course:1:chapter:1', action: 'course_learning', description: '完成课程第一章' };
   const learning = await request('/growth/earn', { method: 'POST', headers, body: JSON.stringify(learningPayload) });
