@@ -92,7 +92,7 @@ async function main() {
     if (!preference || preference.default_timezone !== 'Asia/Shanghai') throw new Error('家庭周报时区默认值不正确');
 
     const [[sensitiveKind]] = await connection.execute("SELECT COLUMN_TYPE AS column_type FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sensitive_records' AND COLUMN_NAME = 'kind'");
-    if (!sensitiveKind?.column_type?.includes("'emergency_contacts'")) throw new Error('敏感记录缺少紧急联系人类型');
+    if (!sensitiveKind?.column_type?.includes("'emergency_contacts'") || !sensitiveKind.column_type.includes("'medical_profile'")) throw new Error('敏感记录缺少紧急联系人或加密医疗档案类型');
 
     console.log(JSON.stringify({ migrated_tables: expectedTables.length, preserved_user_id: 900001, status: 'PASS' }));
     console.log('PASS historical database upgrade: schema complete and legacy data preserved');

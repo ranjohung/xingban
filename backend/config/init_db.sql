@@ -345,7 +345,7 @@ CREATE TABLE IF NOT EXISTS sensitive_records (
   public_id CHAR(36) NOT NULL UNIQUE,
   user_id INT NOT NULL,
   child_id INT NOT NULL,
-  kind ENUM('safety_plan','mental_health_profile','wandering_plan','medical_event','emergency_contacts') NOT NULL,
+  kind ENUM('safety_plan','mental_health_profile','wandering_plan','medical_event','medical_profile','emergency_contacts') NOT NULL,
   ciphertext MEDIUMTEXT NOT NULL,
   iv VARCHAR(64) NOT NULL,
   auth_tag VARCHAR(64) NOT NULL,

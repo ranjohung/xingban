@@ -101,6 +101,7 @@ router.post('/wizard/step3', auth, (req, res) => {
   if (!draft_id) {
     return res.status(400).json({ error: '缺少草稿ID' });
   }
+  if (medical_info !== undefined && medical_info !== null && String(medical_info).trim()) return res.status(400).json({ error: '医疗信息不得写入建档草稿；请完成建档后使用加密医疗档案' });
   
   db.query('SELECT * FROM child_profile_drafts WHERE id = ? AND user_id = ?',
     [draft_id, req.user.id],
@@ -119,9 +120,9 @@ router.post('/wizard/step3', auth, (req, res) => {
         sensory_visual: sensory_visual || 'normal',
         sensory_tactile: sensory_tactile || 'normal',
         sensory_vestibular: sensory_vestibular || 'normal',
-        reinforcers: reinforcers || [],
-        medical_info: medical_info || null
+        reinforcers: reinforcers || []
       };
+      delete updatedData.medical_info;
       
       db.query('UPDATE child_profile_drafts SET step = ?, data = ?, updated_at = NOW() WHERE id = ?',
         [3, JSON.stringify(updatedData), draft_id],
@@ -159,7 +160,7 @@ router.post('/wizard/step4', auth, (req, res) => {
       const data = parseDbJson(draft.data, {});
       
       db.query(
-        'INSERT INTO children (user_id, nickname, birth_date, diagnosis_type, diagnosis_other, communication_level, social_level, self_care_level, cognitive_level, sensory_hearing, sensory_visual, sensory_tactile, sensory_vestibular, reinforcers, medical_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO children (user_id, nickname, birth_date, diagnosis_type, diagnosis_other, communication_level, social_level, self_care_level, cognitive_level, sensory_hearing, sensory_visual, sensory_tactile, sensory_vestibular, reinforcers, medical_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)',
         [
           req.user.id,
           data.nickname,
@@ -174,8 +175,7 @@ router.post('/wizard/step4', auth, (req, res) => {
           sensoryValue(data.sensory_visual),
           sensoryValue(data.sensory_tactile),
           sensoryValue(data.sensory_vestibular),
-          JSON.stringify(data.reinforcers || []),
-          data.medical_info || null
+          JSON.stringify(data.reinforcers || [])
         ],
         (err, result) => {
           if (err) return res.status(500).json({ error: err.message });
@@ -250,7 +250,7 @@ router.get('/wizard/draft', auth, (req, res) => {
         draft: {
           id: draft.id,
           step: draft.step,
-          data: parseDbJson(draft.data, {}),
+          data: (() => { const data=parseDbJson(draft.data,{}); delete data.medical_info; return data; })(),
           updated_at: draft.updated_at
         }
       });
@@ -272,6 +272,7 @@ router.post('/', auth, (req, res) => {
   if (String(nickname).trim().length > 40 || !validDate(birth_date) || !DIAGNOSIS_TYPES.has(diagnosis_type)) {
     return res.status(400).json({ error: '儿童档案字段无效' });
   }
+  if (medical_info !== undefined && medical_info !== null && String(medical_info).trim()) return res.status(400).json({ error: '医疗信息不得写入基础档案；请创建儿童后使用加密医疗档案' });
   if ([communication_level, social_level, self_care_level, cognitive_level].some(value => !validLevel(value))) {
     return res.status(400).json({ error: '支持需要记录必须为1至5' });
   }
@@ -295,7 +296,7 @@ router.post('/', auth, (req, res) => {
       sensoryValue(sensory_tactile),
       sensoryValue(sensory_vestibular),
       JSON.stringify(reinforcers || []),
-      medical_info || null
+      null
     ],
     (err, result) => {
       if (err?.code === 'ER_DUP_ENTRY' && clientRequestId) return db.query('SELECT * FROM children WHERE user_id=? AND client_request_id=?', [req.user.id, clientRequestId], (readError, rows) => readError || !rows.length
@@ -328,7 +329,7 @@ router.get('/', auth, (req, res) => {
   db.query('SELECT * FROM children WHERE user_id = ?', [req.user.id], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     
-    res.json({ success: true, children: results });
+    res.json({ success: true, children: results.map(item => { const safe={...item}; delete safe.medical_info; return safe; }) });
   });
 });
 
@@ -358,7 +359,7 @@ router.get('/:id', auth, (req, res) => {
       res.json({ 
         success: true, 
         child: {
-          ...child,
+          ...(() => { const safe={...child}; delete safe.medical_info; return safe; })(),
           reinforcers: parseDbJson(child.reinforcers, []),
           goals
         } 
@@ -374,9 +375,10 @@ router.put('/:id', auth, (req, res) => {
     sensory_hearing, sensory_visual, sensory_tactile, sensory_vestibular,
     reinforcers, medical_info
   } = req.body;
+  if (medical_info !== undefined && medical_info !== null && String(medical_info).trim()) return res.status(400).json({ error: '医疗信息不得写入基础档案；请使用加密医疗档案' });
   
   db.query(
-    'UPDATE children SET nickname = ?, birth_date = ?, diagnosis_type = ?, diagnosis_other = ?, communication_level = ?, social_level = ?, self_care_level = ?, cognitive_level = ?, sensory_hearing = ?, sensory_visual = ?, sensory_tactile = ?, sensory_vestibular = ?, reinforcers = ?, medical_info = ? WHERE id = ? AND user_id = ?',
+    'UPDATE children SET nickname = ?, birth_date = ?, diagnosis_type = ?, diagnosis_other = ?, communication_level = ?, social_level = ?, self_care_level = ?, cognitive_level = ?, sensory_hearing = ?, sensory_visual = ?, sensory_tactile = ?, sensory_vestibular = ?, reinforcers = ? WHERE id = ? AND user_id = ?',
     [
       nickname,
       birth_date,
@@ -391,7 +393,6 @@ router.put('/:id', auth, (req, res) => {
       sensory_tactile,
       sensory_vestibular,
       JSON.stringify(reinforcers || []),
-      medical_info || null,
       req.params.id,
       req.user.id
     ],

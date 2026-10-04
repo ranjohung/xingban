@@ -141,6 +141,20 @@ async function main() {
   const foreignContactRead = await request(`/sensitive/record/emergency_contacts/${childId}`, { headers: therapistHeaders });
   if (foreignContactRead.response.status !== 404) throw new Error('紧急联系人存在跨账号读取');
 
+  const medicalData = { allergies: '青霉素', medications: [{ name: '测试药物', note: '仅作自动化测试' }], special_notes: '就诊时先说明感官需要' };
+  const medicalSave = await request(`/sensitive/record/medical_profile/${childId}`, { method: 'PUT', headers, body: JSON.stringify({ data: medicalData }) });
+  if (!medicalSave.response.ok) throw new Error(`医疗档案加密保存失败：${JSON.stringify(medicalSave.body)}`);
+  const medicalRead = await request(`/sensitive/record/medical_profile/${childId}`, { headers });
+  if (!medicalRead.response.ok || medicalRead.body.resource?.data?.allergies !== '青霉素') throw new Error('医疗档案加密回读不一致');
+  const foreignMedicalRead = await request(`/sensitive/record/medical_profile/${childId}`, { headers: therapistHeaders });
+  if (foreignMedicalRead.response.status !== 404) throw new Error('医疗档案存在跨账号读取');
+  const legacySafety = await request('/safety/profile', { method: 'POST', headers, body: JSON.stringify({ child_id: childId, medical_info: '不得明文保存' }) });
+  if (legacySafety.response.status !== 410) throw new Error('旧版明文安全档案接口仍可写入');
+  const plaintextChild = await request('/child', { method: 'POST', headers, body: JSON.stringify({ nickname: '隐私测试', birth_date: '2020-01-01', diagnosis_type: 'other', communication_level: 1, social_level: 1, self_care_level: 1, cognitive_level: 1, medical_info: '不得明文保存' }) });
+  if (plaintextChild.response.status !== 400) throw new Error('儿童基础档案仍接受明文医疗信息');
+  const childList = await request('/child', { headers });
+  if (!childList.response.ok || childList.body.children?.some(item => Object.prototype.hasOwnProperty.call(item, 'medical_info'))) throw new Error('儿童档案列表仍暴露明文医疗字段');
+
   const emergencyPayload = { child_id: childId, client_request_id: randomUUID(), level: 'yellow' };
   const emergency = await request('/emergency/start', { method: 'POST', headers, body: JSON.stringify(emergencyPayload) });
   if (emergency.response.status !== 201 || !emergency.body.session?.id) throw new Error(`紧急支持会话启动失败：${JSON.stringify(emergency.body)}`);

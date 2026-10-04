@@ -7,7 +7,7 @@ const { writeAudit } = require('../services/audit');
 const { requireRole } = require('../middleware/roles');
 const { scanAuditAnomalies } = require('../services/auditMonitor');
 
-const KINDS = new Set(['safety_plan', 'mental_health_profile', 'wandering_plan', 'medical_event', 'emergency_contacts']);
+const KINDS = new Set(['safety_plan', 'mental_health_profile', 'wandering_plan', 'medical_event', 'medical_profile', 'emergency_contacts']);
 const SCOPES = new Set(['summary', 'risk', 'medical', 'safety']);
 const validId = value => Number.isInteger(Number(value)) && Number(value) > 0;
 
