@@ -247,6 +247,15 @@ async function main() {
   if (communityPost.response.status !== 201) throw new Error(`社区发帖失败：${JSON.stringify(communityPost.body)}`);
   const communityPostReplay = await request('/community/posts', { method: 'POST', headers, body: JSON.stringify(postPayload) });
   if (!communityPostReplay.response.ok || !communityPostReplay.body.replayed || Number(communityPostReplay.body.post?.id) !== Number(communityPost.body.post.id)) throw new Error('社区帖子重复提交未返回原帖子');
+  const [parentLike, therapistLike] = await Promise.all([
+    request(`/community/posts/${communityPost.body.post.id}/like`, { method: 'POST', headers, body: '{}' }),
+    request(`/community/posts/${communityPost.body.post.id}/like`, { method: 'POST', headers: therapistHeaders, body: '{}' })
+  ]);
+  if (!parentLike.response.ok || !therapistLike.response.ok) throw new Error('社区并发点赞失败');
+  const likedPost = await request(`/community/posts/${communityPost.body.post.id}`, { headers });
+  if (Number(likedPost.body.post?.likes) !== 2) throw new Error('社区并发点赞发生计数覆盖');
+  const parentUnlike = await request(`/community/posts/${communityPost.body.post.id}/like`, { method: 'POST', headers, body: '{}' });
+  if (!parentUnlike.response.ok || parentUnlike.body.isLiked !== false || Number(parentUnlike.body.likes) !== 1) throw new Error('社区取消点赞未从唯一明细重算');
   const commentPayload = { client_request_id: randomUUID(), content: '可以先用视觉提示说明还有两分钟。' };
   const communityComment = await request(`/community/posts/${communityPost.body.post.id}/comments`, { method: 'POST', headers, body: JSON.stringify(commentPayload) });
   if (communityComment.response.status !== 201) throw new Error(`社区评论失败：${JSON.stringify(communityComment.body)}`);

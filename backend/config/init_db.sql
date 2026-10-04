@@ -564,6 +564,14 @@ CREATE TABLE IF NOT EXISTS community_comments (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uq_community_comment_request (user_id, client_request_id), INDEX idx_comment_post_time (post_id, created_at),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY (post_id) REFERENCES community_posts(id) ON DELETE CASCADE
 );
+CREATE TABLE IF NOT EXISTS community_post_likes (
+  post_id BIGINT NOT NULL,
+  user_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (post_id, user_id),
+  FOREIGN KEY (post_id) REFERENCES community_posts(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 CREATE TABLE IF NOT EXISTS community_reports (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   case_ref CHAR(36) NOT NULL UNIQUE,

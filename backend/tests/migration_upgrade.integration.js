@@ -8,6 +8,7 @@ const expectedTables = [
   'data_deletion_requests', 'professional_credentials', 'professional_plan_events', 'professional_plans',
   'report_shares', 'security_alerts', 'weekly_report_jobs', 'weekly_report_preferences'
   , 'therapist_ratings'
+  , 'community_post_likes'
 ];
 
 const expectedColumns = {

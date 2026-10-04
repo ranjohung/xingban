@@ -142,6 +142,21 @@ router.get('/posts/:id', auth, (req, res) => {
 router.post('/posts/:id/like', auth, (req, res) => {
   const id = positiveInt(req.params.id, 0, Number.MAX_SAFE_INTEGER);
   if (!id) return res.status(400).json({ error: '帖子编号无效' });
+  if (db.status().mode === 'mysql') return db.withTransaction(async tx => {
+    const posts = await tx.query("SELECT id FROM community_posts WHERE id=? AND moderation_status='visible' FOR UPDATE", [id]);
+    if (!posts.length) return { notFound: true };
+    const existing = await tx.query('SELECT post_id FROM community_post_likes WHERE post_id=? AND user_id=? FOR UPDATE', [id, req.user.id]);
+    const isLiked = existing.length === 0;
+    if (isLiked) await tx.query('INSERT INTO community_post_likes (post_id,user_id) VALUES (?,?)', [id, req.user.id]);
+    else await tx.query('DELETE FROM community_post_likes WHERE post_id=? AND user_id=?', [id, req.user.id]);
+    const counts = await tx.query('SELECT COUNT(*) total FROM community_post_likes WHERE post_id=?', [id]);
+    const likes = Number(counts[0]?.total || 0);
+    await tx.query(`UPDATE community_posts SET likes=?,liked_user_ids=(SELECT COALESCE(JSON_ARRAYAGG(user_id),JSON_ARRAY()) FROM community_post_likes WHERE post_id=?) WHERE id=?`, [likes, id, id]);
+    return { isLiked, likes };
+  }).then(result => result.notFound
+    ? res.status(404).json({ error: '帖子不存在' })
+    : res.json({ success: true, message: result.isLiked ? '点赞成功' : '取消点赞成功', likes: result.likes, isLiked: result.isLiked }))
+    .catch(() => res.status(500).json({ error: '点赞状态未确认，请稍后重试' }));
   db.query("SELECT liked_user_ids FROM community_posts WHERE id = ? AND moderation_status = 'visible'", [id], (err, results) => {
     if (err) return res.status(500).json({ error: '暂时无法操作' });
     if (results.length === 0) return res.status(404).json({ error: '帖子不存在' });
