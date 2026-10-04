@@ -142,7 +142,7 @@ router.get('/posts/:id', auth, (req, res) => {
 router.post('/posts/:id/like', auth, (req, res) => {
   const id = positiveInt(req.params.id, 0, Number.MAX_SAFE_INTEGER);
   if (!id) return res.status(400).json({ error: '帖子编号无效' });
-  db.query('SELECT liked_user_ids FROM community_posts WHERE id = ?', [id], (err, results) => {
+  db.query("SELECT liked_user_ids FROM community_posts WHERE id = ? AND moderation_status = 'visible'", [id], (err, results) => {
     if (err) return res.status(500).json({ error: '暂时无法操作' });
     if (results.length === 0) return res.status(404).json({ error: '帖子不存在' });
     let likedUsers = [];
@@ -164,9 +164,13 @@ router.post('/posts/:id/like', auth, (req, res) => {
 router.get('/posts/:id/comments', auth, (req, res) => {
   const id = positiveInt(req.params.id, 0, Number.MAX_SAFE_INTEGER);
   if (!id) return res.status(400).json({ error: '帖子编号无效' });
-  db.query("SELECT * FROM community_comments WHERE post_id = ? AND moderation_status = 'visible' ORDER BY created_at ASC", [id], (err, results) => {
-    if (err) return res.status(500).json({ error: '评论暂时无法读取' });
-    res.json({ success: true, comments: results.map(publicComment) });
+  db.query("SELECT id FROM community_posts WHERE id = ? AND moderation_status = 'visible'", [id], (postErr, posts) => {
+    if (postErr) return res.status(500).json({ error: '评论暂时无法读取' });
+    if (!posts.length) return res.status(404).json({ error: '帖子不存在' });
+    db.query("SELECT * FROM community_comments WHERE post_id = ? AND moderation_status = 'visible' ORDER BY created_at ASC", [id], (err, results) => {
+      if (err) return res.status(500).json({ error: '评论暂时无法读取' });
+      res.json({ success: true, comments: results.map(publicComment) });
+    });
   });
 });
 
@@ -185,7 +189,7 @@ router.post('/posts/:id/comments', auth, (req, res) => {
   return createComment();
 
   function createComment() {
-  db.query('SELECT * FROM community_posts WHERE id = ?', [id], (findErr, posts) => {
+  db.query("SELECT id FROM community_posts WHERE id = ? AND moderation_status = 'visible'", [id], (findErr, posts) => {
     if (findErr) return res.status(500).json({ error: '暂时无法评论' });
     if (!posts.length) return res.status(404).json({ error: '帖子不存在' });
     const urgent = URGENT_PATTERN.test(content);

@@ -246,6 +246,12 @@ async function main() {
   if (!communityPostRead.response.ok || Number(communityPostRead.body.post.comments_count) !== 1) throw new Error('重复评论导致评论计数不一致');
   const held = await request('/community/posts', { method: 'POST', headers, body: JSON.stringify({ title: '需要马上帮助', content: '孩子说不想活并准备吞药', category: 'emotion' }) });
   if (held.response.status !== 202 || !held.body.case_ref) throw new Error(`危机审核失败：${JSON.stringify(held.body)}`);
+  const heldLike = await request(`/community/posts/${held.body.post_id}/like`, { method: 'POST', headers, body: '{}' });
+  if (heldLike.response.status !== 404) throw new Error('暂缓公开的危机帖子仍可被点赞或枚举');
+  const heldComments = await request(`/community/posts/${held.body.post_id}/comments`, { headers });
+  if (heldComments.response.status !== 404) throw new Error('暂缓公开的危机帖子仍可读取评论入口');
+  const heldCommentWrite = await request(`/community/posts/${held.body.post_id}/comments`, { method: 'POST', headers, body: JSON.stringify({ content: '不应写入隐藏帖子', client_request_id: randomUUID() }) });
+  if (heldCommentWrite.response.status !== 404) throw new Error('暂缓公开的危机帖子仍可写入评论');
   const reportPayload={client_request_id:randomUUID(),target_type:'post',target_id:held.body.post_id,reason:'privacy',details:'帖子包含不必要的儿童身份信息'};
   const communityReport=await request('/community/reports',{method:'POST',headers,body:JSON.stringify(reportPayload)});if(communityReport.response.status!==201)throw new Error(`社区举报失败：${JSON.stringify(communityReport.body)}`);
   const communityReportReplay=await request('/community/reports',{method:'POST',headers,body:JSON.stringify(reportPayload)});if(!communityReportReplay.response.ok||!communityReportReplay.body.replayed||communityReportReplay.body.case_ref!==communityReport.body.case_ref)throw new Error('社区举报重复提交未返回原工单');
