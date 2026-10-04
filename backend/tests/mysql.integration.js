@@ -201,6 +201,10 @@ async function main() {
   if (share.response.status !== 201) throw new Error(`周报分享失败：${JSON.stringify(share.body)}`);
   const shareReplay = await request('/therapist/share', { method: 'POST', headers, body: JSON.stringify(sharePayload) });
   if (!shareReplay.response.ok || !shareReplay.body.replayed || Number(shareReplay.body.share?.id) !== Number(share.body.share.id)) throw new Error('周报分享重复提交未返回原授权');
+  const firstRating = await request(`/therapist/${therapistId}/rate`, { method: 'POST', headers, body: JSON.stringify({ rating: 5 }) });
+  if (!firstRating.response.ok || Number(firstRating.body.review_count) !== 1 || Number(firstRating.body.rating) !== 5) throw new Error(`专业评分首次保存失败：${JSON.stringify(firstRating.body)}`);
+  const revisedRating = await request(`/therapist/${therapistId}/rate`, { method: 'POST', headers, body: JSON.stringify({ rating: 3 }) });
+  if (!revisedRating.response.ok || Number(revisedRating.body.review_count) !== 1 || Number(revisedRating.body.rating) !== 3) throw new Error('同一家长修改评分被重复计数');
   const feedbackPayload = { client_request_id: randomUUID(), child_id: childId, strategy_id: 1, behavior_record_id: behavior.body.record.id, effectiveness: 'effective', note: '转换支持有效', scene: '活动转换' };
   const feedback = await request('/strategy/feedback', { method: 'POST', headers, body: JSON.stringify(feedbackPayload) });
   if (feedback.response.status !== 201) throw new Error(`策略反馈失败：${JSON.stringify(feedback.body)}`);

@@ -608,14 +608,22 @@ router.post('/:id/rate', auth, requireRole('parent'), (req, res) => {
   const id = positiveId(req.params.id);
   const rating = Number(req.body.rating);
   if (!id || !Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ error: '评分必须为1至5的整数' });
-  db.query('SELECT id, rating, review_count FROM therapists WHERE id = ? AND is_certified = TRUE', [id], (err, rows) => {
+  db.query(`SELECT t.id FROM therapists t WHERE t.id=? AND t.is_certified=TRUE AND (
+      EXISTS (SELECT 1 FROM report_shares rs WHERE rs.therapist_id=t.id AND rs.owner_user_id=?)
+      OR EXISTS (SELECT 1 FROM professional_plans pp WHERE pp.therapist_id=t.id AND pp.owner_user_id=?))`, [id, req.user.id, req.user.id], (err, rows) => {
     if (err) return res.status(500).json({ error: '评分暂时无法提交' });
-    if (!rows.length) return res.status(404).json({ error: '未找到已核验的专业人员' });
-    const count = Number(rows[0].review_count || 0) + 1;
-    const average = ((Number(rows[0].rating || 0) * (count - 1)) + rating) / count;
-    db.query('UPDATE therapists SET rating=?, review_count=? WHERE id=?', [average, count, id], updateErr => updateErr
-      ? res.status(500).json({ error: '评分暂时无法提交' })
-      : res.json({ success: true, message: '评分成功', rating: average }));
+    if (!rows.length) return res.status(404).json({ error: '未找到可评价的协作关系' });
+    if (db.status().mode !== 'mysql') return res.status(503).json({ error: '评分需要可靠数据库，当前不可用' });
+    db.withTransaction(async tx => {
+      await tx.query(`INSERT INTO therapist_ratings (therapist_id,parent_user_id,rating) VALUES (?,?,?)
+        ON DUPLICATE KEY UPDATE rating=VALUES(rating),updated_at=NOW()`, [id, req.user.id, rating]);
+      const totals = await tx.query('SELECT AVG(rating) average,COUNT(*) count FROM therapist_ratings WHERE therapist_id=?', [id]);
+      const average = Number(totals[0]?.average || 0);
+      const count = Number(totals[0]?.count || 0);
+      await tx.query('UPDATE therapists SET rating=?,review_count=? WHERE id=?', [average, count, id]);
+      return { average, count };
+    }).then(result => res.json({ success: true, message: '评分已保存', rating: result.average, review_count: result.count }))
+      .catch(() => res.status(500).json({ error: '评分未确认保存，请稍后重试' }));
   });
 });
 
