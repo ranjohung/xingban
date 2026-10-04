@@ -2,6 +2,13 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
+const positiveId = value => Number.isInteger(Number(value)) && Number(value) > 0 ? Number(value) : 0;
+const clean = (value, max) => typeof value === 'string' ? value.trim().slice(0, max) : '';
+const GENERALIZATION_STATUSES = new Set(['pending', 'trying', 'generalized']);
+
+const requireOwnedChild = (userId, childId, callback) => {
+  db.query('SELECT id FROM children WHERE id = ? AND user_id = ?', [childId, userId], (err, rows) => callback(err, Boolean(rows?.length)));
+};
 
 router.get('/recommend/:childId', auth, (req, res) => {
   const { behavior_category } = req.query;
@@ -155,41 +162,55 @@ router.get('/:strategyId/feedback/:childId', auth, (req, res) => {
 });
 
 router.get('/:strategyId/generalization/:childId', auth, (req, res) => {
-  db.query('SELECT * FROM skill_generalization WHERE strategy_id = ? AND child_id = ?', 
-    [req.params.strategyId, req.params.childId], (err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
-    
-    res.json({ success: true, generalization: results });
+  const strategyId = positiveId(req.params.strategyId);
+  const childId = positiveId(req.params.childId);
+  if (!strategyId || !childId) return res.status(400).json({ error: '策略或儿童编号无效' });
+  requireOwnedChild(req.user.id, childId, (ownerErr, owned) => {
+    if (ownerErr) return res.status(500).json({ error: '暂时无法核验儿童档案' });
+    if (!owned) return res.status(404).json({ error: '儿童档案不存在' });
+    db.query('SELECT * FROM skill_generalization WHERE strategy_id = ? AND child_id = ?',
+      [strategyId, childId], (err, results) => {
+      if (err) return res.status(500).json({ error: '技能泛化记录暂时无法读取' });
+      res.json({ success: true, generalization: results });
+    });
   });
 });
 
 router.post('/generalization', auth, (req, res) => {
-  const { child_id, strategy_id, original_scene, target_scene, status } = req.body;
+  const childId = positiveId(req.body.child_id);
+  const strategyId = positiveId(req.body.strategy_id);
+  const originalScene = clean(req.body.original_scene, 100);
+  const targetScene = clean(req.body.target_scene, 100);
+  const status = GENERALIZATION_STATUSES.has(req.body.status) ? req.body.status : 'pending';
   
-  if (!child_id || !strategy_id || !original_scene || !target_scene) {
+  if (!childId || !strategyId || !originalScene || !targetScene) {
     return res.status(400).json({ error: '请填写必填信息' });
   }
-  
-  db.query('SELECT * FROM skill_generalization WHERE child_id = ? AND strategy_id = ? AND target_scene = ?', 
-    [child_id, strategy_id, target_scene], (err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
-    
-    if (results.length > 0) {
-      db.query('UPDATE skill_generalization SET status = ? WHERE id = ?', 
-        [status || 'trying', results[0].id], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ success: true, message: '技能泛化记录更新成功' });
-      });
-    } else {
-      db.query(
-        'INSERT INTO skill_generalization (child_id, strategy_id, original_scene, target_scene, status) VALUES (?, ?, ?, ?, ?)',
-        [child_id, strategy_id, original_scene, target_scene, status || 'pending'],
-        (err, result) => {
-          if (err) return res.status(500).json({ error: err.message });
-          res.status(201).json({ success: true, message: '技能泛化记录创建成功', id: result.insertId });
+  requireOwnedChild(req.user.id, childId, (ownerErr, owned) => {
+    if (ownerErr) return res.status(500).json({ error: '暂时无法核验儿童档案' });
+    if (!owned) return res.status(404).json({ error: '儿童档案不存在' });
+    db.query('SELECT id FROM strategies WHERE id = ?', [strategyId], (strategyErr, strategyRows) => {
+      if (strategyErr) return res.status(500).json({ error: '暂时无法核验策略' });
+      if (!strategyRows.length) return res.status(404).json({ error: '策略不存在' });
+      db.query('SELECT id FROM skill_generalization WHERE child_id = ? AND strategy_id = ? AND target_scene = ?',
+        [childId, strategyId, targetScene], (err, results) => {
+        if (err) return res.status(500).json({ error: '技能泛化记录暂时无法保存' });
+        if (results.length > 0) {
+          db.query('UPDATE skill_generalization SET original_scene = ?, status = ? WHERE id = ? AND child_id = ?',
+            [originalScene, status, results[0].id, childId], updateErr => updateErr
+              ? res.status(500).json({ error: '技能泛化记录暂时无法更新' })
+              : res.json({ success: true, message: '技能泛化记录更新成功' }));
+        } else {
+          db.query(
+            'INSERT INTO skill_generalization (child_id, strategy_id, original_scene, target_scene, status) VALUES (?, ?, ?, ?, ?)',
+            [childId, strategyId, originalScene, targetScene, status],
+            (insertErr, result) => insertErr
+              ? res.status(500).json({ error: '技能泛化记录暂时无法创建' })
+              : res.status(201).json({ success: true, message: '技能泛化记录创建成功', id: result.insertId })
+          );
         }
-      );
-    }
+      });
+    });
   });
 });
 

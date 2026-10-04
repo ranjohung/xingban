@@ -198,6 +198,16 @@ async function main() {
   if (feedback.response.status !== 201) throw new Error(`策略反馈失败：${JSON.stringify(feedback.body)}`);
   const feedbackReplay = await request('/strategy/feedback', { method: 'POST', headers, body: JSON.stringify(feedbackPayload) });
   if (!feedbackReplay.response.ok || !feedbackReplay.body.replayed || Number(feedbackReplay.body.feedback?.id) !== Number(feedback.body.feedback.id)) throw new Error('策略反馈重复提交未返回原反馈');
+  const generalization = await request('/strategy/generalization', { method: 'POST', headers, body: JSON.stringify({ child_id: childId, strategy_id: 1, original_scene: '家中活动转换', target_scene: '学校活动转换', status: 'trying' }) });
+  if (generalization.response.status !== 201) throw new Error(`技能泛化记录创建失败：${JSON.stringify(generalization.body)}`);
+  const generalizationRead = await request(`/strategy/1/generalization/${childId}`, { headers });
+  if (!generalizationRead.response.ok || generalizationRead.body.generalization?.[0]?.target_scene !== '学校活动转换') throw new Error('技能泛化记录回读失败');
+  const foreignGeneralizationRead = await request(`/strategy/1/generalization/${childId}`, { headers: therapistHeaders });
+  if (foreignGeneralizationRead.response.status !== 404) throw new Error('技能泛化记录存在跨家庭读取');
+  const foreignGeneralizationWrite = await request('/strategy/generalization', { method: 'POST', headers: therapistHeaders, body: JSON.stringify({ child_id: childId, strategy_id: 1, original_scene: '恶意修改', target_scene: '学校活动转换', status: 'generalized' }) });
+  if (foreignGeneralizationWrite.response.status !== 404) throw new Error('技能泛化记录存在跨家庭修改');
+  const generalizationAfterAttack = await request(`/strategy/1/generalization/${childId}`, { headers });
+  if (generalizationAfterAttack.body.generalization?.[0]?.status !== 'trying' || generalizationAfterAttack.body.generalization?.[0]?.original_scene !== '家中活动转换') throw new Error('越权请求修改了技能泛化记录');
   const planPayload = { client_request_id: randomUUID(), therapist_id: therapistId, title: '待确认的转换支持计划', goal: '孩子可表达暂停', frequency: '每天一次', responsible_person: '家长', stop_conditions: '孩子不适或风险升级', review_date: '2026-10-20', status: 'pending_confirmation' };
   const plan = await request('/therapist/plans', { method: 'POST', headers, body: JSON.stringify(planPayload) });
   if (plan.response.status !== 201) throw new Error(`计划失败：${JSON.stringify(plan.body)}`);
